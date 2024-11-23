@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <script>
+      (() => {
+        const savedTheme = localStorage.getItem("theme");
+        const isDarkMode = savedTheme === "dark";
+        document.documentElement.classList.toggle("dark", isDarkMode);
+        window.addEventListener('storage', (event) => {
+          location.reload();
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

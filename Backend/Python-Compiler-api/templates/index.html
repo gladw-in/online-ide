@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Python Compiler</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs/loader.js"></script>
+  </head>
+  <body class="bg-gray-200">
+    <div class="max-w-screen-xl mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-4 text-center">Python Compiler</h1>
+      <form id="codeForm" class="bg-white p-6 shadow-md rounded-lg">
+        <div class="mb-4">
+          <p class="block text-gray-700 font-bold mb-2">Enter Python Code:</p>
+          <div id="editor" class="h-[300px]"></div>
+        </div>
+        <div class="text-center">
+          <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full sm:w-auto">Run Code</button>
+        </div>
+      </form>
+      <div id="output" class="hidden mt-8 bg-white p-6 shadow-md rounded-lg max-h-[500px]">
+        <pre id="outputText" class="whitespace-pre-wrap font-mono text-sm bg-[black] text-[#48e448] max-h-[450px] overflow-y-auto p-3 rounded [scrollbar-width: thin]"></pre>
+      </div>
+    </div>
+    <script>
+      const code = `# Keywords
+import math
+from random import randint
+
+# Functions
+def greet(name):
+    print(f"Hello, {name}!")
+
+
+def calculate_area(radius):
+    return math.pi * radius**2
+
+
+def generate_random_number():
+    return randint(1, 100)
+
+
+# Variables
+name = "Glad"
+radius = 5
+
+# Control structures
+if radius > 0:
+    area = calculate_area(radius)
+    print(f"The area of a circle with radius {radius} is {area:.2f}")
+else:
+    print("Invalid radius. Please provide a positive value.")
+
+for i in range(3):
+    greet(name)
+
+# Data structures
+numbers = [1, 2, 3, 4, 5]
+for num in numbers:
+    print(f"Number: {num}")
+
+# Classes and objects
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    def display_info(self):
+        print(f"{self.name} is {self.age} years old.")
+
+
+person1 = Person("Glad", 18)
+person2 = Person("Vidhya", 17)
+
+person1.display_info()
+person2.display_info()
+
+# Exception handling
+try:
+    result = 10 / 0
+except ZeroDivisionError:
+    print("Cannot divide by zero.")
+except Exception as e:
+    print(f"An error occurred: {e}")
+finally:
+    print("Execution completed.")
+
+# Other miscellaneous functions
+print(f"Random number: {generate_random_number()}")
+
+# Additional Keywords
+global_var = "I am a global variable"
+
+# More Functions
+def factorial(n):
+    """
+    Calculate the factorial of a number.
+    """
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n - 1)
+
+
+def concatenate_strings(*args):
+    """
+    Concatenate multiple strings.
+    """
+    return " ".join(args)
+
+
+# Decorators
+def capitalize_decorator(func):
+    """
+    Decorator to capitalize the result of a function.
+    """
+
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        return result.capitalize()
+
+    return wrapper
+
+
+@capitalize_decorator
+def get_greeting(name):
+    return f"hello, {name}"
+
+
+# Generators
+def fibonacci_generator(n):
+    """
+    Generate Fibonacci sequence up to n terms.
+    """
+    a, b = 0, 1
+    for _ in range(n):
+        yield a
+        a, b = b, a + b
+
+
+# Lambda Functions
+multiply = lambda x, y: x * y
+cube = lambda x: x**3
+is_even = lambda x: x % 2 == 0
+
+# Executing a Lambda Function dynamically
+lambda_expression = "lambda z: z**2"
+exec(f"squared_result = {lambda_expression}")
+print(f"Dynamic Lambda Result: {squared_result(4)}")
+
+# Set
+fruits_set = {"apple", "orange", "banana", "apple"}
+
+# Dictionary
+person_info = {"name": "Glad", "age": 18, "city": "New York"}
+
+# List Comprehension
+squared_numbers = [x**2 for x in range(5)]
+
+# Map and Filter
+numbers = [1, 2, 3, 4, 5]
+squared_numbers_map = list(map(lambda x: x**2, numbers))
+even_numbers_filter = list(filter(lambda x: x % 2 == 0, numbers))
+
+# List Slicing
+original_list = [1, 2, 3, 4, 5]
+sliced_list = original_list[1:4]
+
+# Try-Except-Else
+try:
+    result = 10 / 2
+except ZeroDivisionError:
+    print("Cannot divide by zero.")
+else:
+    print(f"Result of division: {result}")
+
+# Assert
+assert radius > 0, "Radius must be greater than 0"
+
+# While Loop
+counter = 0
+while counter < 3:
+    print(f"Counter: {counter}")
+    counter += 1
+
+# Break and Continue
+for i in range(10):
+    if i == 5:
+        break
+    if i % 2 == 0:
+        continue
+    print(i)
+
+# End of Program`;
+      let editor;
+      async function initMonacoEditor() {
+        await new Promise(resolve => {
+          require.config({
+            paths: {
+              'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs'
+            }
+          });
+          require(['vs/editor/editor.main'], () => resolve());
+        });
+        editor = monaco.editor.create(document.getElementById('editor'), {
+          value: code,
+          language: 'python',
+          minimap: {
+            enabled: false
+          },
+          theme: 'vs',
+          matchBrackets: 'always',
+          renderValidationDecorations: 'on',
+          scrollbar: {
+            vertical: 'visible',
+            horizontal: 'visible'
+          },
+          fontWeight: 'bold',
+          formatOnPaste: true,
+          semanticHighlighting: true,
+          folding: false,
+          fontSize: 13,
+          cursorBlinking: 'smooth',
+          cursorSmoothCaretAnimation: true,
+          cursorStyle: 'line',
+          automaticLayout: true
+        });
+      }
+      async function handleSubmit(event) {
+        event.preventDefault();
+        const code = editor.getValue().trim();
+        if (code === '') {
+          alert('Please enter some Python code.');
+          return;
+        }
+        try {
+          const response = await fetch('/run', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain',
+            },
+            body: code
+          });
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          const data = await response.json();
+          document.getElementById('outputText').textContent = data.output;
+          document.getElementById('output').classList.remove("hidden");
+        } catch (error) {
+          document.getElementById('outputText').textContent = error || 'Error occurred while running the code. Please check your code and try again.';
+          document.getElementById('output').classList.remove("hidden");
+        }
+      }
+      document.getElementById('codeForm').addEventListener('submit', handleSubmit);
+      document.addEventListener('DOMContentLoaded', async () => {
+        await initMonacoEditor();
+      });
+    </script>
+  </body>
+</html>
