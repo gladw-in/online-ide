@@ -17,6 +17,44 @@ const corsOptions = {
 const usernameRegex = /^[a-zA-Z0-9_.-]{3,30}$/;
 const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
+const updateLanguageCount = (user, countType, language) => {
+	switch (language) {
+		case 'python':
+			user[countType].set('py', (user[countType].get('py') || 0) + 1);
+			break;
+		case 'javascript':
+			user[countType].set('js', (user[countType].get('js') || 0) + 1);
+			break;
+		case 'HtmlJsCss':
+			user[countType].set('HtmlJsCss', (user[countType].get('HtmlJsCss') || 0) + 1);
+			break;
+		case 'c':
+			user[countType].set('c', (user[countType].get('c') || 0) + 1);
+			break;
+		case 'c++':
+			user[countType].set('cpp', (user[countType].get('cpp') || 0) + 1);
+			break;
+		case 'java':
+			user[countType].set('java', (user[countType].get('java') || 0) + 1);
+			break;
+		case 'c#':
+			user[countType].set('cs', (user[countType].get('cs') || 0) + 1);
+			break;
+		case 'rust':
+			user[countType].set('rust', (user[countType].get('rust') || 0) + 1);
+			break;
+		case 'go':
+			user[countType].set('go', (user[countType].get('go') || 0) + 1);
+			break;
+		case 'php':
+			user[countType].set('php', (user[countType].get('php') || 0) + 1);
+			break;
+		default:
+			return false;
+	}
+	return true;
+};
+
 app.use(cors(corsOptions));
 app.use(express.json());
 
@@ -42,13 +80,9 @@ const userSchema = new mongoose.Schema({
 		type: Date,
 		default: null
 	},
-	PyRunCount: {
-		type: Number,
-		default: 0
-	},
-	JsRunCount: {
-		type: Number,
-		default: 0
+	createdDate: {
+		type: Date,
+		default: Date.now
 	},
 	generateCodeCount: {
 		type: Map,
@@ -57,6 +91,13 @@ const userSchema = new mongoose.Schema({
 			py: 0,
 			js: 0,
 			HtmlJsCss: 0,
+			c: 0,
+			cpp: 0,
+			java: 0,
+			cs: 0,
+			rust: 0,
+			go: 0,
+			php: 0
 		}
 	},
 	refactorCodeCount: {
@@ -66,6 +107,29 @@ const userSchema = new mongoose.Schema({
 			py: 0,
 			js: 0,
 			HtmlJsCss: 0,
+			c: 0,
+			cpp: 0,
+			java: 0,
+			cs: 0,
+			rust: 0,
+			go: 0,
+			php: 0
+		}
+	},
+	runCodeCount: {
+		type: Map,
+		of: Number,
+		default: {
+			py: 0,
+			js: 0,
+			HtmlJsCss: 0,
+			c: 0,
+			cpp: 0,
+			java: 0,
+			cs: 0,
+			rust: 0,
+			go: 0,
+			php: 0
 		}
 	}
 });
@@ -136,9 +200,13 @@ app.post('/api/register', async (req, res) => {
 		const newUser = new User({
 			username,
 			email,
-			password: hashedPassword
+			password: hashedPassword,
+			lastLogin: null,
+			createdDate: ISTDate,
 		});
+
 		await newUser.save();
+
 		res.status(201).json({
 			msg: 'User registered successfully'
 		});
@@ -217,10 +285,18 @@ app.get('/api/protected', async (req, res) => {
 				msg: 'User not found'
 			});
 		}
-		res.json({
+		const includeEmail = req.query.email === 'true';
+
+		const response = {
 			msg: 'Protected data',
-			user
-		});
+			username: user.username
+		};
+
+		if (includeEmail) {
+			response.email = user.email;
+		}
+
+		res.json(response);
 	} catch (err) {
 		res.status(403).json({
 			msg: 'Invalid or expired token'
@@ -467,9 +543,10 @@ app.post('/api/verify-password', async (req, res) => {
 	}
 });
 
-app.post('/api/pythonrun/count', async (req, res) => {
+app.post('/api/runCode/count', async (req, res) => {
 	const {
-		username
+		username,
+		language
 	} = req.body;
 
 	try {
@@ -484,38 +561,13 @@ app.post('/api/pythonrun/count', async (req, res) => {
 			});
 		}
 
-		user.PyRunCount = (user.PyRunCount || 0) + 1;
-		await user.save();
-
-		res.status(204).send();
-	} catch (err) {
-		console.error(err);
-		res.status(500).json({
-			msg: 'Server error'
-		});
-	}
-});
-
-app.post('/api/javascriptrun/count', async (req, res) => {
-	const {
-		username
-	} = req.body;
-
-	try {
-		await checkAndConnectDB();
-
-		const user = await User.findOne({
-			username
-		});
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found'
+		if (!updateLanguageCount(user, 'runCodeCount', language)) {
+			return res.status(400).json({
+				msg: 'Unsupported language'
 			});
 		}
 
-		user.JsRunCount = (user.JsRunCount || 0) + 1;
 		await user.save();
-
 		res.status(204).send();
 	} catch (err) {
 		console.error(err);
@@ -543,12 +595,10 @@ app.post('/api/generateCode/count', async (req, res) => {
 			});
 		}
 
-		if (language === 'python') {
-			user.generateCodeCount.set('py', (user.generateCodeCount.get('py') || 0) + 1);
-		} else if (language === 'javascript') {
-			user.generateCodeCount.set('js', (user.generateCodeCount.get('js') || 0) + 1);
-		} else if (language === 'HtmlJsCss') {
-			user.generateCodeCount.set('HtmlJsCss', (user.generateCodeCount.get('HtmlJsCss') || 0) + 1);
+		if (!updateLanguageCount(user, 'generateCodeCount', language)) {
+			return res.status(400).json({
+				msg: 'Unsupported language'
+			});
 		}
 
 		await user.save();
@@ -579,12 +629,10 @@ app.post('/api/refactorCode/count', async (req, res) => {
 			});
 		}
 
-		if (language === 'python') {
-			user.refactorCodeCount.set('py', (user.refactorCodeCount.get('py') || 0) + 1);
-		} else if (language === 'javascript') {
-			user.refactorCodeCount.set('js', (user.refactorCodeCount.get('js') || 0) + 1);
-		} else if (language === 'HtmlJsCss') {
-			user.refactorCodeCount.set('HtmlJsCss', (user.refactorCodeCount.get('HtmlJsCss') || 0) + 1);
+		if (!updateLanguageCount(user, 'refactorCodeCount', language)) {
+			return res.status(400).json({
+				msg: 'Unsupported language'
+			});
 		}
 
 		await user.save();

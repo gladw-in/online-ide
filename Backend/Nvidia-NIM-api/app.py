@@ -197,7 +197,7 @@ def generate_code():
         if not language or not prompt:
             return jsonify({"error": "Both language and prompt are required."}), 400
 
-        formatted_prompt = f"Please provide only the **code** in {language} for the following problem: {prompt}. Do not include explanations, markdown headers, comments, or anything other than the code itself and also i dont want to use inputs give appropriate values."
+        formatted_prompt = f"Please provide only the **code** in {language} for the following problem: {prompt}. Do not include explanations, markdown headers, comments, or anything other than the code itself."
 
         completion = client.chat.completions.create(
             model="nvidia/llama-3.1-nemotron-70b-instruct",
@@ -233,7 +233,7 @@ def refactor():
         if not code:
             return jsonify({"error": "No code provided."}), 400
 
-        refactor_prompt = f"Please fix the following code and provide **only the corrected code** without explanations, markdown headers, extra comments, or anything else:\n{code} in {language}\nand also i dont want to use inputs give appropriate values and give the errors in comments only."
+        refactor_prompt = f"Please fix the following code and provide **only the corrected code** without explanations, markdown headers, extra comments, or anything else:\n{code} in {language}\nand give the errors in comments only."
 
         completion = client.chat.completions.create(
             model="nvidia/llama-3.1-nemotron-70b-instruct",
@@ -258,7 +258,46 @@ def refactor():
     except Exception as e:
         return jsonify({"error": f"Failed to refactor code. Error: {str(e)}"}), 500
 
+@app.route("/get-output", methods=["POST"])
+def get_output():
+    try:
+        data = request.get_json()
+        language = data.get("language")
+        code = data.get("code")
+        
+        if not language or not code:
+            return jsonify({"error": "Both language and code are required."}), 400
+        
+        prompt = f"Please provide only the raw output of the {language} code I provide. Do not include any explanations, comments, or extra information. If the code asks for inputs, provide the correct inputs and output only—no other remarks. If randomness is involved, give different values each time. For infinite iterations, display only the first 20 outputs followed by dots. First, ensure the code runs correctly: check for any syntax errors, runtime errors, or issues thoroughly. If there are errors, show the exact error message without any modifications or additional details. Be extremely strict in identifying errors and verify all syntax carefully. Output only the result or error, nothing else. The code is:\n{code}"
+        
+        completion = client.chat.completions.create(
+            model="nvidia/llama-3.1-nemotron-70b-instruct",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+            top_p=1,
+            max_tokens=1024,
+            stream=True
+        )
+
+        generated_output = ""
+        for chunk in completion:
+            if chunk.choices[0].delta.content is not None:
+                generated_output += chunk.choices[0].delta.content
+        
+        content = re.findall(CODE_REGEX, generated_output, re.DOTALL)
+        
+        if content:
+            code_block = content[0]
+            if code_block.startswith("\n"):
+                code_block = code_block[1:]
+            
+            return jsonify({"output": code_block})
+        else:
+            return jsonify({"error": "Cannot give output for this code"}), 400
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to get output. Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
 

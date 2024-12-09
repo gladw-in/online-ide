@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
 const InputField = ({ label, type, value, onChange, required, name }) => (
   <div className="mb-4">
@@ -63,24 +62,31 @@ const Register = () => {
     const { username, email, password } = formData;
 
     try {
-      const response = await axios.post(
+      const response = await fetch(
         `${import.meta.env.VITE_BACKEND_API_URL}/api/register`,
         {
-          username,
-          email,
-          password,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username, email, password }),
         }
       );
+
+      if (!response.ok) {
+        throw new Error("Server error, please try again.");
+      }
+
       navigate("/login");
     } catch (err) {
-      setError(err.response?.data?.msg || "Server error, please try again.");
+      setError(err.message || "Server error, please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex justify-center items-center min-h-[80vh] bg-gray-100 dark:bg-gray-900">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-3xl font-semibold text-center text-gray-700 dark:text-gray-200 mb-6">
           Register

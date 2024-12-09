@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
 const InputField = ({ label, type, value, onChange, required, name }) => (
   <div className="mb-4">
@@ -47,18 +46,6 @@ const Login = () => {
       setError("Invalid email format");
       return false;
     }
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return false;
-    }
-    return true;
-  };
-
-  const validateForm2 = () => {
-    if (!formData.email.includes("@")) {
-      setError("Invalid email format");
-      return false;
-    }
 
     if (!(typeof formData.email === "string")) {
       setError("the username should be a sring");
@@ -80,21 +67,35 @@ const Login = () => {
     const { email, password } = formData;
 
     try {
-      const response = await axios.post(
+      const response = await fetch(
         `${import.meta.env.VITE_BACKEND_API_URL}/api/login`,
         {
-          email,
-          password,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
         }
       );
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("username", response.data.username);
+      if (!response.ok) {
+        throw new Error("Server error, please try again.");
+      }
 
-      navigate("/");
+      const data = await response.json();
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.username);
+
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate("/");
+      }
+
       location.reload();
     } catch (err) {
-      setError(err.response?.data?.msg || "Server error, please try again.");
+      setError(err.message || "Server error, please try again.");
       console.error("Login error:", err);
     } finally {
       setLoading(false);
@@ -102,7 +103,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex items-center justify-center min-h-[80vh] bg-gray-100 dark:bg-gray-900">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-3xl font-semibold text-center text-gray-700 dark:text-gray-200 mb-6">
           Login

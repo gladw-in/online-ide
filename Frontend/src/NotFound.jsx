@@ -5,7 +5,11 @@ function NotFound() {
   const navigate = useNavigate();
 
   const goBack = () => {
-    navigate(-1);
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
   };
 
   return (

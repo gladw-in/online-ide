@@ -8,6 +8,7 @@ import {
   faDownload,
   faMagic,
   faWrench,
+  faCopy,
 } from "@fortawesome/free-solid-svg-icons";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
@@ -20,12 +21,14 @@ const CodeEditor = ({
   defaultCode,
 }) => {
   const [code, setCode] = useState(
-    sessionStorage.getItem(language === "python" ? "pythonCode" : "jsCode") ||
-      defaultCode ||
-      ""
+    sessionStorage.getItem(`${language}Code`) || defaultCode || ""
   );
-  const [output, setOutput] = useState("");
+  const [output, setOutput] = useState(
+    sessionStorage.getItem(`${language}Output`) || ""
+  );
   const [deviceType, setDeviceType] = useState("pc");
+  const [cpyBtnState, setCpyBtnState] = useState("Copy");
+  const [timeoutId, setTimeoutId] = useState(null);
   const [loadingAction, setLoadingAction] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
@@ -42,9 +45,8 @@ const CodeEditor = ({
   )} Editor`;
 
   useEffect(() => {
-    const sessionKey = language === "python" ? "pythonCode" : "jsCode";
-    const savedCode = sessionStorage.getItem(sessionKey);
-    const savedOutput = sessionStorage.getItem(`${sessionKey}Output`);
+    const savedCode = sessionStorage.getItem(`${language}Code`);
+    const savedOutput = sessionStorage.getItem(`${language}Output`);
 
     if (savedCode) {
       setCode(savedCode);
@@ -79,66 +81,50 @@ const CodeEditor = ({
   }, [language]);
 
   useEffect(() => {
-    const sessionKey = language === "python" ? "pythonCode" : "jsCode";
-    sessionStorage.setItem(sessionKey, code);
-    sessionStorage.setItem(`${sessionKey}Output`, output);
+    if (code !== sessionStorage.getItem(`${language}Code`) || code === "") {
+      sessionStorage.setItem(`${language}Code`, code);
+    }
+
+    if (
+      output !== sessionStorage.getItem(`${language}Output`) ||
+      output === ""
+    ) {
+      sessionStorage.setItem(`${language}Output`, output);
+    }
   }, [code, output, language]);
 
   const runCode = async () => {
     if (code.length === 0) return;
-
     setLoadingAction("run");
-    if (language === "javascript") {
-      try {
-        let capturedOutput = "";
-        const originalLog = console.log;
-        console.log = (message) => {
-          capturedOutput += `${message}\n`;
-        };
+    try {
+      const response = await fetch(apiEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          language: language,
+          code: code,
+        }),
+      });
 
-        eval(code);
+      const result = await response.json();
 
-        console.log = originalLog;
-
-        setOutput(capturedOutput || "No output returned.");
-
-        if (isLoggedIn) {
-          getRunCodeCount();
-        }
-      } catch (error) {
-        console.error("Error running JavaScript code:", error);
-        setOutput(`Error running code: ${error.message}`);
-      } finally {
-        setLoadingAction(null);
-        setIsCleared(false);
-      }
-    } else if (language === "python") {
-      try {
-        const response = await fetch(apiEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain",
-          },
-          body: code,
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to run code.");
-        }
-
-        const result = await response.json();
+      if (response.ok) {
         setOutput(result.output || "No output returned.");
-
         if (isLoggedIn) {
-          getRunCodeCount();
+          getRunCodeCount(language);
         }
-      } catch (error) {
-        console.error("Error running code:", error);
-        setOutput("Error running code.");
-      } finally {
-        setLoadingAction(null);
-        setIsCleared(false);
+      } else {
+        console.error("Error:", result.error);
+        setOutput(`Error: ${result.error}`);
       }
+    } catch (error) {
+      console.error("Request failed:", error);
+      setOutput("Request failed.");
+    } finally {
+      setLoadingAction(null);
+      setIsCleared(false);
     }
   };
 
@@ -148,14 +134,81 @@ const CodeEditor = ({
     setIsCleared(true);
   };
 
-  const downloadFile = (content, filename) => {
-    const mimeType =
-      language === "python" ? "text/x-python" : "application/javascript";
+  const handleCopy = async () => {
+    if (cpyBtnState === "Copying..." || code.length === 0) return;
+
+    setCpyBtnState("Copying...");
+
+    try {
+      await navigator.clipboard.writeText(code);
+      setCpyBtnState("Copied!");
+    } catch (err) {
+      setCpyBtnState("Error!");
+    }
+
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    const newTimeoutId = setTimeout(() => {
+      setCpyBtnState("Copy");
+    }, 1500);
+
+    setTimeoutId(newTimeoutId);
+  };
+
+  const downloadFile = (content, filename, language) => {
+    let mimeType;
+    let fileExtension;
+
+    switch (language) {
+      case "python":
+        mimeType = "text/x-python";
+        fileExtension = "py";
+        break;
+      case "javascript":
+        mimeType = "application/javascript";
+        fileExtension = "js";
+        break;
+      case "c":
+        mimeType = "text/x-c";
+        fileExtension = "c";
+        break;
+      case "cpp":
+        mimeType = "text/x-c++src";
+        fileExtension = "cpp";
+        break;
+      case "java":
+        mimeType = "text/x-java";
+        fileExtension = "java";
+        break;
+      case "csharp":
+        mimeType = "application/x-csharp";
+        fileExtension = "cs";
+        break;
+      case "go":
+        mimeType = "text/x-go";
+        fileExtension = "go";
+        break;
+      case "rust":
+        mimeType = "text/x-rust";
+        fileExtension = "rs";
+        break;
+      case "php":
+        mimeType = "application/x-httpd-php";
+        fileExtension = "php";
+        break;
+      default:
+        mimeType = "application/octet-stream";
+        fileExtension = "txt";
+        break;
+    }
+
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = filename;
+    a.download = `${filename}.${fileExtension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -241,17 +294,17 @@ const CodeEditor = ({
     }
   };
 
-  const getRunCodeCount = async () => {
+  const getRunCodeCount = async (language) => {
     const username = localStorage.getItem("username");
 
     const response = await fetch(
-      `${import.meta.env.VITE_BACKEND_API_URL}/api/${language}run/count`,
+      `${import.meta.env.VITE_BACKEND_API_URL}/api/runCode/count`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username, language }),
       }
     );
 
@@ -304,18 +357,19 @@ const CodeEditor = ({
     }
   };
 
-  const renderOutput = () => (
-    <div className="mt-4">
-      <h2 className="text-xl mb-2">Output</h2>
-      <pre
-        className={`select-text font-mono text-xs font-semibold lg:text-sm max-h-[295px] overflow-auto p-3 rounded [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944] ${
-          isCleared ? "hidden" : ""
-        }`}
-      >
-        {output}
-      </pre>
-    </div>
-  );
+  const renderOutput = () =>
+    isLoggedIn && (
+      <div className="mt-4">
+        <h2 className="text-xl mb-2">Output</h2>
+        <pre
+          className={`select-text font-mono text-xs font-semibold lg:text-sm max-h-[295px] overflow-auto p-3 rounded [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944] ${
+            isCleared ? "hidden" : ""
+          }`}
+        >
+          {output}
+        </pre>
+      </div>
+    );
 
   return (
     <div className="mx-auto p-4">
@@ -352,18 +406,25 @@ const CodeEditor = ({
         />
       </div>
       <div className="mt-4 flex flex-wrap justify-center gap-4">
-        <button
-          onClick={runCode}
-          className="px-6 py-2 bg-blue-500 text-white rounded-md w-full sm:w-auto"
-          disabled={loadingAction === "run"}
-        >
-          {loadingAction === "run" ? (
-            <FontAwesomeIcon icon={faSpinner} className="mr-2 animate-spin" />
-          ) : (
-            <FontAwesomeIcon icon={faPlay} className="mr-2" />
-          )}
-          {loadingAction === "run" ? "Running..." : "Run"}
-        </button>
+        {isLoggedIn && (
+          <>
+            <button
+              onClick={runCode}
+              className="px-6 py-2 bg-blue-500 text-white rounded-md w-full sm:w-auto"
+              disabled={loadingAction === "run"}
+            >
+              {loadingAction === "run" ? (
+                <FontAwesomeIcon
+                  icon={faSpinner}
+                  className="mr-2 animate-spin"
+                />
+              ) : (
+                <FontAwesomeIcon icon={faPlay} className="mr-2" />
+              )}
+              {loadingAction === "run" ? "Running..." : "Run"}
+            </button>
+          </>
+        )}
         <button
           onClick={clearAll}
           className="px-6 py-2 bg-red-500 text-white rounded-md w-full sm:w-auto"
@@ -372,10 +433,18 @@ const CodeEditor = ({
           Clear All
         </button>
         <button
-          onClick={() =>
-            downloadFile(code, `code.${language === "python" ? "py" : "js"}`)
-          }
-          className="px-6 py-2 bg-purple-500 text-white rounded-md w-full sm:w-auto"
+          onClick={handleCopy}
+          className={`px-6 py-2 bg-purple-500 text-white rounded-md w-full sm:w-auto transition-all duration-300 ${
+            cpyBtnState === "Copying..." ? "opacity-80" : ""
+          }`}
+          disabled={cpyBtnState === "Copying..."}
+        >
+          <FontAwesomeIcon icon={faCopy} className="mr-2" />
+          {cpyBtnState}
+        </button>
+        <button
+          onClick={() => downloadFile(code, "code", language)}
+          className="px-6 py-2 bg-orange-500 text-white rounded-md w-full sm:w-auto"
           disabled={code.length === 0}
         >
           <FontAwesomeIcon icon={faDownload} className="mr-2" />

@@ -8,13 +8,13 @@ import {
   faMagic,
   faWrench,
   faSpinner,
+  faExpand,
 } from "@fortawesome/free-solid-svg-icons";
 import { faHtml5, faCss3Alt, faJs } from "@fortawesome/free-brands-svg-icons";
 import Swal from "sweetalert2";
 import "sweetalert2/src/sweetalert2.scss";
 import sampleHtml from "./samples/index.html?raw";
 import sampleCSS from "./samples/style.css?raw";
-import sampleJS from "./samples/script.js?raw";
 
 const EditorSection = ({
   language,
@@ -76,7 +76,7 @@ const Editor = ({ isDarkMode }) => {
     const savedCode = sessionStorage.getItem("editorCode");
     return savedCode
       ? JSON.parse(savedCode)
-      : { html: sampleHtml, css: sampleCSS, js: sampleJS };
+      : { html: sampleHtml, css: sampleCSS, js: "" };
   });
 
   const [deviceType, setDeviceType] = useState("pc");
@@ -93,6 +93,8 @@ const Editor = ({ isDarkMode }) => {
     tablet: 14,
     mobile: 12,
   };
+
+  const languages = ["html", "css", "javascript"];
 
   document.title = "HTML, CSS, JS Editor";
 
@@ -159,6 +161,31 @@ const Editor = ({ isDarkMode }) => {
     }, 500),
     [code]
   );
+
+  const openPreviewFullScreen = () => {
+    const { html, css, js } = code;
+    const newWindow = window.open("", "_blank");
+    newWindow.document.write(`
+      <html>
+      <head>
+        <style>${css}</style>
+      </head>
+      <body>
+        ${html}
+        <script>
+          (function() {
+            try {
+              ${js}
+            } catch (error) {
+              console.error("Error executing JS:", error);
+            }
+          })();
+        </script>
+      </body>
+      </html>
+    `);
+    newWindow.document.close();
+  };
 
   useEffect(() => {
     updatePreview();
@@ -490,30 +517,17 @@ const Editor = ({ isDarkMode }) => {
   return (
     <div className="container mx-auto p-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-4">
-        <EditorSection
-          language="html"
-          value={code.html}
-          onChange={handleEditorChange}
-          theme={isDarkMode ? "vs-dark" : "vs-light"}
-          fontSize={fontSizeMap[deviceType]}
-          readOnly={isEditorReadOnly}
-        />
-        <EditorSection
-          language="css"
-          value={code.css}
-          onChange={handleEditorChange}
-          theme={isDarkMode ? "vs-dark" : "vs-light"}
-          fontSize={fontSizeMap[deviceType]}
-          readOnly={isEditorReadOnly}
-        />
-        <EditorSection
-          language="javascript"
-          value={code.js}
-          onChange={handleEditorChange}
-          theme={isDarkMode ? "vs-dark" : "vs-light"}
-          fontSize={fontSizeMap[deviceType]}
-          readOnly={isEditorReadOnly}
-        />
+        {languages.map((language) => (
+          <EditorSection
+            key={language}
+            language={language}
+            value={code[language]}
+            onChange={handleEditorChange}
+            theme={isDarkMode ? "vs-dark" : "vs-light"}
+            fontSize={fontSizeMap[deviceType]}
+            readOnly={isEditorReadOnly}
+          />
+        ))}
       </div>
       <div className="mt-4 flex flex-wrap justify-center gap-4">
         <button
@@ -578,11 +592,21 @@ const Editor = ({ isDarkMode }) => {
           </>
         )}
       </div>
-      <iframe
-        id="previewFrame"
-        title="Preview"
-        className="w-full mt-4 h-96 border-2 dark:border-gray-700 dark:text-black dark:bg-white"
-      />
+      <div className="mt-4 relative">
+        <h2 className="text-xl mb-2">Preview</h2>
+        <button
+          onClick={openPreviewFullScreen}
+          className="absolute top-14 right-2 w-12 h-12 bg-transparent border-2 border-gray-500 text-gray-500 rounded-md transition-all duration-300 hover:bg-gray-700 hover:text-white hover:border-gray-700"
+          title="Fullscreen"
+        >
+          <FontAwesomeIcon icon={faExpand} className="text-xl" />
+        </button>
+        <iframe
+          id="previewFrame"
+          title="Preview"
+          className="w-full mt-4 h-96 border-2 dark:border-gray-700 dark:text-black dark:bg-white"
+        />
+      </div>
     </div>
   );
 };

@@ -5,8 +5,15 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { faPython } from "@fortawesome/free-brands-svg-icons";
-import { faJsSquare } from "@fortawesome/free-brands-svg-icons";
+import {
+  faPython,
+  faJsSquare,
+  faCuttlefish,
+  faJava,
+  faRust,
+  faGolang,
+  faPhp,
+} from "@fortawesome/free-brands-svg-icons";
 import Header from "./Header";
 import Editor from "./Editor";
 import Accounts from "./Accounts";
@@ -18,11 +25,21 @@ import NavigationLinks from "./NavigationLinks";
 import Footer from "./Footer";
 import samplePy from "./samples/python.py?raw";
 import sampleJs from "./samples/javascript.js?raw";
+import sampleC from "./samples/c.c?raw";
+import sampleCpp from "./samples/cpp.cpp?raw";
+import sampleJava from "./samples/java.java?raw";
+import sampleCsharp from "./samples/csharp.cs?raw";
+import sampleRust from "./samples/rust.rs?raw";
+import sampleGo from "./samples/go.go?raw";
+import samplePHP from "./samples/php.php?raw";
 
-function App() {
+const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
-    return savedTheme === "dark";
+    if (savedTheme) {
+      return savedTheme === "dark";
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
   const toggleTheme = () => {
@@ -78,19 +95,87 @@ function App() {
           element={<ProtectedRoute element={<Accounts />} />}
         />
         <Route path="/" element={<NavigationLinks />} />
-        <Route path="/editor" element={<Editor isDarkMode={isDarkMode} />} />
+        <Route path="/htmlcssjs" element={<Editor isDarkMode={isDarkMode} />} />
         <Route
           path="/python"
           element={renderCodeEditor(
             "python",
             faPython,
-            `${import.meta.env.VITE_PYTHON_MINIFIER_API_URL}/run`,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
             samplePy
           )}
         />
         <Route
           path="/javascript"
-          element={renderCodeEditor("javascript", faJsSquare, "", sampleJs)}
+          element={renderCodeEditor(
+            "javascript",
+            faJsSquare,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
+            sampleJs
+          )}
+        />
+        <Route
+          path="/c"
+          element={renderCodeEditor(
+            "c",
+            faCuttlefish,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
+            sampleC
+          )}
+        />
+        <Route
+          path="/cpp"
+          element={renderCodeEditor(
+            "cpp",
+            faCuttlefish,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
+            sampleCpp
+          )}
+        />
+        <Route
+          path="/java"
+          element={renderCodeEditor(
+            "java",
+            faJava,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
+            sampleJava
+          )}
+        />
+        <Route
+          path="/csharp"
+          element={renderCodeEditor(
+            "csharp",
+            faCuttlefish,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
+            sampleCsharp
+          )}
+        />
+        <Route
+          path="/rust"
+          element={renderCodeEditor(
+            "rust",
+            faRust,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
+            sampleRust
+          )}
+        />
+        <Route
+          path="/go"
+          element={renderCodeEditor(
+            "go",
+            faGolang,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
+            sampleGo
+          )}
+        />
+        <Route
+          path="/php"
+          element={renderCodeEditor(
+            "php",
+            faPhp,
+            `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/get-output`,
+            samplePHP
+          )}
         />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -105,6 +190,7 @@ function App() {
       }}
     >
       <div
+        id="main-div"
         className={`min-h-screen flex flex-col dark:bg-gray-900 dark:text-white select-none dark:[color-scheme:dark] ${
           isDarkMode ? "dark" : ""
         }`}
@@ -115,6 +201,6 @@ function App() {
       </div>
     </Router>
   );
-}
+};
 
 export default App;

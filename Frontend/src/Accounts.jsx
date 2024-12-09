@@ -77,7 +77,7 @@ const Accounts = () => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API_URL}/api/protected`,
+        `${import.meta.env.VITE_BACKEND_API_URL}/api/protected?email=true`,
         {
           method: "GET",
           headers: {
@@ -90,8 +90,8 @@ const Accounts = () => {
         setUserData(data.user);
         setFormData((prevData) => ({
           ...prevData,
-          username: data.user.username,
-          email: data.user.email,
+          username: data.username,
+          email: data.email,
         }));
       } else {
         setErrorMessage(data.msg || "Failed to fetch user data");
@@ -407,7 +407,7 @@ const Accounts = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-8 p-4 bg-white rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
+    <div className="max-w-md mx-auto my-8 p-4 bg-white rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
       <h2 className="text-xl font-semibold text-center">Account Settings</h2>
       {errorMessage && (
         <p className="text-red-500 text-center">{errorMessage}</p>

@@ -37,8 +37,8 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         }
       );
       const data = await response.json();
-      if (data.user) {
-        setUsername(data.user.username);
+      if (data.username) {
+        setUsername(data.username);
         setIsLoggedIn(true);
       } else {
         setIsLoggedIn(false);
@@ -69,7 +69,13 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         localStorage.removeItem("token");
         setIsLoggedIn(false);
         setUsername("");
-        navigate(-1);
+
+        if (window.history.length > 1) {
+          navigate(-1);
+        } else {
+          navigate("/");
+        }
+
         location.reload();
       }
     });
