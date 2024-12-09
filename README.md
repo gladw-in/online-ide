@@ -12,7 +12,7 @@ NVIDIA_API_KEY=
 ```
 ## How to Set Up and Use
 
-To set up and run Python Minifier:
+To set up and run:
 
 ### What You Need
 
