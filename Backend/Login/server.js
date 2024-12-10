@@ -196,6 +196,8 @@ app.post('/api/register', async (req, res) => {
 
 		const salt = await bcrypt.genSalt(10);
 		const hashedPassword = await bcrypt.hash(password, salt);
+		const currentDate = new Date();
+		const ISTDate = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000);
 
 		const newUser = new User({
 			username,

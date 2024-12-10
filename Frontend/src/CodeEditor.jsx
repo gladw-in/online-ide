@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MonacoEditor from "@monaco-editor/react";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrashAlt,
@@ -33,6 +34,8 @@ const CodeEditor = ({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
   const [isCleared, setIsCleared] = useState(false);
+
+  const navigate = useNavigate();
 
   const fontSizeMap = {
     pc: 16,
@@ -94,6 +97,11 @@ const CodeEditor = ({
   }, [code, output, language]);
 
   const runCode = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
     if (code.length === 0) return;
     setLoadingAction("run");
     try {
@@ -216,6 +224,11 @@ const CodeEditor = ({
   };
 
   const generateCodeFromPrompt = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
     const { value: prompt } = await Swal.fire({
       title: "Enter",
       input: "text",
@@ -259,6 +272,11 @@ const CodeEditor = ({
   };
 
   const refactorCode = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
     if (code.length === 0 || !language) return;
 
     setLoadingAction("refactor");
@@ -406,25 +424,18 @@ const CodeEditor = ({
         />
       </div>
       <div className="mt-4 flex flex-wrap justify-center gap-4">
-        {isLoggedIn && (
-          <>
-            <button
-              onClick={runCode}
-              className="px-6 py-2 bg-blue-500 text-white rounded-md w-full sm:w-auto"
-              disabled={loadingAction === "run"}
-            >
-              {loadingAction === "run" ? (
-                <FontAwesomeIcon
-                  icon={faSpinner}
-                  className="mr-2 animate-spin"
-                />
-              ) : (
-                <FontAwesomeIcon icon={faPlay} className="mr-2" />
-              )}
-              {loadingAction === "run" ? "Running..." : "Run"}
-            </button>
-          </>
-        )}
+        <button
+          onClick={runCode}
+          className="px-6 py-2 bg-blue-500 text-white rounded-md w-full sm:w-auto"
+          disabled={loadingAction === "run"}
+        >
+          {loadingAction === "run" ? (
+            <FontAwesomeIcon icon={faSpinner} className="mr-2 animate-spin" />
+          ) : (
+            <FontAwesomeIcon icon={faPlay} className="mr-2" />
+          )}
+          {loadingAction === "run" ? "Running..." : "Run"}
+        </button>
         <button
           onClick={clearAll}
           className="px-6 py-2 bg-red-500 text-white rounded-md w-full sm:w-auto"
@@ -450,40 +461,30 @@ const CodeEditor = ({
           <FontAwesomeIcon icon={faDownload} className="mr-2" />
           Download
         </button>
-        {isLoggedIn && (
-          <>
-            <button
-              onClick={generateCodeFromPrompt}
-              className="px-6 py-2 bg-green-500 text-white rounded-md w-full sm:w-auto"
-              disabled={loadingAction === "generate"}
-            >
-              {loadingAction === "generate" ? (
-                <FontAwesomeIcon
-                  icon={faSpinner}
-                  className="mr-2 animate-spin"
-                />
-              ) : (
-                <FontAwesomeIcon icon={faMagic} className="mr-2" />
-              )}
-              {loadingAction === "generate" ? "Generating..." : "Generate"}
-            </button>
-            <button
-              onClick={refactorCode}
-              className="px-6 py-2 bg-yellow-500 text-white rounded-md w-full sm:w-auto"
-              disabled={loadingAction === "refactor"}
-            >
-              {loadingAction === "refactor" ? (
-                <FontAwesomeIcon
-                  icon={faSpinner}
-                  className="mr-2 animate-spin"
-                />
-              ) : (
-                <FontAwesomeIcon icon={faWrench} className="mr-2" />
-              )}
-              {loadingAction === "refactor" ? "Refactoring..." : "Refactor"}
-            </button>
-          </>
-        )}
+        <button
+          onClick={generateCodeFromPrompt}
+          className="px-6 py-2 bg-green-500 text-white rounded-md w-full sm:w-auto"
+          disabled={loadingAction === "generate"}
+        >
+          {loadingAction === "generate" ? (
+            <FontAwesomeIcon icon={faSpinner} className="mr-2 animate-spin" />
+          ) : (
+            <FontAwesomeIcon icon={faMagic} className="mr-2" />
+          )}
+          {loadingAction === "generate" ? "Generating..." : "Generate"}
+        </button>
+        <button
+          onClick={refactorCode}
+          className="px-6 py-2 bg-yellow-500 text-white rounded-md w-full sm:w-auto"
+          disabled={loadingAction === "refactor"}
+        >
+          {loadingAction === "refactor" ? (
+            <FontAwesomeIcon icon={faSpinner} className="mr-2 animate-spin" />
+          ) : (
+            <FontAwesomeIcon icon={faWrench} className="mr-2" />
+          )}
+          {loadingAction === "refactor" ? "Refactoring..." : "Refactor"}
+        </button>
       </div>
       {renderOutput()}
     </div>

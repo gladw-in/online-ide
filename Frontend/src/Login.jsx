@@ -74,12 +74,15 @@ const Login = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({
+            email,
+            password,
+          }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Server error, please try again.");
+        throw new Error("Invalid credentials!");
       }
 
       const data = await response.json();
@@ -92,7 +95,7 @@ const Login = () => {
       } else {
         navigate("/");
       }
-
+      
       location.reload();
     } catch (err) {
       setError(err.message || "Server error, please try again.");
