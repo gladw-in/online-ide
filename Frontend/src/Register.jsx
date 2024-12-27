@@ -7,7 +7,7 @@ const InputField = ({ label, type, value, onChange, required, name }) => (
       htmlFor={name}
       className="block text-gray-600 dark:text-gray-300 font-medium mb-2"
     >
-      {label}
+      {label} <span className="text-red-600">*</span>
     </label>
     <input
       id={name}
@@ -30,6 +30,11 @@ const Register = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const usernameRegex = /^[a-zA-Z0-9_.-]{5,30}$/;
+
+  const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+
   const navigate = useNavigate();
 
   document.title = "Register";
@@ -40,25 +45,45 @@ const Register = () => {
       ...prevData,
       [name]: value,
     }));
+
+    if (error) {
+      setError("");
+    }
   };
 
   const validateForm = () => {
-    if (!formData.email.includes("@")) {
+    if (!emailRegex.test(formData.email)) {
       setError("Invalid email format");
       return false;
     }
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+
+    if (!usernameRegex.test(formData.username)) {
+      setError(
+        "Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters)."
+      );
       return false;
     }
+
+    if (formData.username.length < 5 || formData.username.length > 30) {
+      setError("Username should be between 5 and 30 characters");
+      return false;
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return false;
+    }
+
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validateForm()) return;
 
     setLoading(true);
+
     const { username, email, password } = formData;
 
     try {
@@ -82,13 +107,8 @@ const Register = () => {
         throw new Error(errorData.msg || "Server error, please try again.");
       }
 
-      
-      if (window.history.length > 1) {
-        navigate(-1);
-      } else {
-        navigate("/");
-      }
-      
+      navigate("/login");
+      location.reload();
     } catch (err) {
       setError(err.message || "Server error, please try again.");
     } finally {
@@ -97,7 +117,7 @@ const Register = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex justify-center items-center min-h-[80vh] bg-gray-100 dark:bg-gray-900">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-3xl font-semibold text-center text-gray-700 dark:text-gray-200 mb-6">
           Register
@@ -125,7 +145,7 @@ const Register = () => {
               htmlFor="password"
               className="block text-gray-600 dark:text-gray-300 font-medium mb-2"
             >
-              Password
+              Password <span className="text-red-600">*</span>
             </label>
             <input
               id="password"
@@ -153,7 +173,7 @@ const Register = () => {
 
           <button
             type="submit"
-            className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400"
+            className="w-full py-3 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             disabled={loading}
           >
             {loading ? "Registering..." : "Register"}

@@ -1,19 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { VscHome } from "react-icons/vsc";
 import { useNavigate } from "react-router-dom";
 
-function NotFound() {
+const NotFound = () => {
   const navigate = useNavigate();
 
-  const goBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/");
-    }
+  useEffect(() => {
+    document.title = "404 - Page Not Found";
+  }, []);
+
+  const handleGoHome = () => {
+    navigate("/");
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-800">
+    <div className="flex items-center justify-center min-h-[80vh] px-2 bg-gray-100 dark:bg-gray-900">
       <div className="text-center">
         <h2 className="text-4xl font-bold text-red-500 dark:text-red-400">
           404 - Page Not Found
@@ -21,17 +22,18 @@ function NotFound() {
         <p className="mt-4 text-lg text-gray-800 dark:text-gray-300">
           The page you are looking for does not exist.
         </p>
-        <div className="mt-6">
+        <div className="mt-6 flex justify-center">
           <button
-            onClick={goBack}
-            className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600"
+            onClick={handleGoHome}
+            className="px-6 py-3 bg-blue-500 text-white rounded-md dark:bg-blue-700 flex items-center space-x-2 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg"
           >
-            Go Back
+            <VscHome className="text-xl mr-2" />
+            Go to Homepage
           </button>
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default NotFound;

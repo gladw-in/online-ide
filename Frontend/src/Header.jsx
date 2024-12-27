@@ -1,12 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faSun,
-  faMoon,
-  faBars,
-  faSpinner,
-} from "@fortawesome/free-solid-svg-icons";
+import { FaSpinner, FaBarsStaggered } from "react-icons/fa6";
+import { RxMoon, RxSun } from "react-icons/rx";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
 
@@ -14,14 +9,19 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const [username, setUsername] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setLoading] = useState(true);
+
   const navigate = useNavigate();
+  const baseUrl = window.location.origin;
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       fetchUserData(token);
-    } else {
+    } else if (!token) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      setIsLoggedIn(false);
       setLoading(false);
     }
   }, []);
@@ -42,14 +42,11 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         setIsLoggedIn(true);
       } else {
         setIsLoggedIn(false);
-        sessionStorage.removeItem("token");
-        navigate("/login");
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
         location.reload();
       }
-    } catch (error) {
-      setIsLoggedIn(false);
-      sessionStorage.removeItem("token");
-      navigate("/login");
+    } catch {
       location.reload();
     } finally {
       setLoading(false);
@@ -63,30 +60,44 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       showCancelButton: true,
       confirmButtonText: "Yes, log me out!",
       cancelButtonText: "No, cancel!",
+      confirmButtonColor: "#da4242",
       reverseButtons: true,
+      allowOutsideClick: false,
     }).then((result) => {
       if (result.isConfirmed) {
         localStorage.removeItem("token");
+        localStorage.removeItem("username");
         setIsLoggedIn(false);
         setUsername("");
 
-        if (window.history.length > 1) {
-          navigate(-1);
-        } else {
-          navigate("/");
-        }
+        navigate(window.history.length > 1 ? -1 : "/");
 
         location.reload();
       }
     });
   };
 
+  const formatUsername = (username) => {
+    if (username.length > 15) {
+      return `${username.slice(0, 5)}...${username.slice(-5)}`;
+    }
+    return username;
+  };
+
+  useEffect(() => {
+    if (isLoading) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+  }, [isLoading]);
+
   return (
     <>
-      {loading && (
+      {isLoading && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex justify-center items-center z-50 overflow-hidden">
           <div className="flex items-center space-x-3 bg-white p-4 rounded-lg shadow-lg dark:bg-gray-800 dark:text-white">
-            <FontAwesomeIcon icon={faSpinner} spin className="text-4xl" />
+            <FaSpinner className="text-4xl animate-spin" />
             <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">
               Loading...
             </span>
@@ -96,8 +107,8 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       <header className="bg-gray-800 text-white p-4 relative z-10">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <Link
-            to="/"
-            className="text-2xl font-bold tracking-wide hover:text-gray-300 transition-colors duration-200"
+            to={`${baseUrl}`}
+            className="text-2xl ml-2.5 font-bold tracking-wide hover:text-gray-300 transition-colors duration-200"
           >
             Online IDE
           </Link>
@@ -106,10 +117,11 @@ const Header = ({ isDarkMode, toggleTheme }) => {
             {isLoggedIn ? (
               <>
                 <Link
-                  to="/accounts"
+                  to={`${baseUrl}/accounts`}
                   className="text-lg hover:text-gray-300 transition-colors duration-200"
+                  title={username.trim()}
                 >
-                  {username}'s Account
+                  {formatUsername(username)}'s Account
                 </Link>
                 <button
                   onClick={handleLogout}
@@ -121,13 +133,13 @@ const Header = ({ isDarkMode, toggleTheme }) => {
             ) : (
               <>
                 <Link
-                  to="/login"
+                  to={`${baseUrl}/login`}
                   className="text-lg hover:text-gray-300 transition-colors duration-200"
                 >
                   Login
                 </Link>
                 <Link
-                  to="/register"
+                  to={`${baseUrl}/register`}
                   className="text-lg hover:text-gray-300 transition-colors duration-200"
                 >
                   Register
@@ -141,17 +153,18 @@ const Header = ({ isDarkMode, toggleTheme }) => {
               onClick={toggleTheme}
               className="text-xl focus:outline-none p-2 rounded-full hover:bg-gray-700 transition-colors duration-200"
             >
-              <FontAwesomeIcon
-                icon={isDarkMode ? faSun : faMoon}
-                className="text-white"
-              />
+              {isDarkMode ? (
+                <RxMoon className="text-white" />
+              ) : (
+                <RxSun className="text-white" />
+              )}
             </button>
 
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="text-xl focus:outline-none p-2 rounded-full hover:bg-gray-700 transition-colors duration-200 md:hidden"
             >
-              <FontAwesomeIcon icon={faBars} className="text-white" />
+              <FaBarsStaggered className="text-white" />
             </button>
           </div>
         </div>
@@ -164,9 +177,10 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                   <Link
                     to="/accounts"
                     className="block text-lg text-center hover:text-gray-300"
+                    title={username.trim()}
                     onClick={() => setIsDropdownOpen(false)}
                   >
-                    {username}'s Account
+                    {formatUsername(username)}'s Account
                   </Link>
                   <button
                     onClick={() => {

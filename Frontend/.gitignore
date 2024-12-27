@@ -1,0 +1,125 @@
+# Node modules directory
+node_modules/
+
+# Build output
+dist/
+
+# Vite cache
+.vite/
+
+# Dependency directories
+.pnp/
+.pnp.js
+
+# Optional npm cache directory
+.npm/
+
+# Environment variables file
+.env
+.env.*.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE/editor-specific files
+# Visual Studio Code
+.vscode/
+
+# JetBrains IDEs (e.g., WebStorm, IntelliJ IDEA)
+.idea/
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Atom
+.atom/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Vim
+*.swp
+*.swo
+*.swn
+
+# IntelliJ IDEA (other configurations)
+*.iml
+*.ipr
+*.iws
+
+# Xcode
+*.xcuserstate
+*.xcworkspace/
+*.xcuserdatad/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Google Cloud SDK
+.gcloud/
+.gcloudignore
+*.gcloud
+
+# Ignore .idx files
+*.idx
+
+# Operating system-specific files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Miscellaneous
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.pot
+*.pyc
+
+# Package distribution
+*.tgz
+*.gz
+*.zip
+
+# Documentation
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+
+# Bun
+bun.lockb
+
+# Byte-compiled files
+__pycache__/
+
+# Virtual environment
+venv/
+env/
+
+# Distribution / packaging
+.Python
+develop-eggs/
+egg-info/
+
+# Vercel
+vercel.json
+.vercel

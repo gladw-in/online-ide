@@ -7,7 +7,7 @@ const InputField = ({ label, type, value, onChange, required, name }) => (
       htmlFor={name}
       className="block text-gray-600 dark:text-gray-300 font-medium mb-2"
     >
-      {label}
+      {label} <span className="text-red-600">*</span>
     </label>
     <input
       id={name}
@@ -16,7 +16,7 @@ const InputField = ({ label, type, value, onChange, required, name }) => (
       value={value}
       onChange={onChange}
       required={required}
-      className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+      className="w-full p-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
     />
   </div>
 );
@@ -29,7 +29,10 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
   const navigate = useNavigate();
+
+  const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
   document.title = "Login";
 
@@ -39,31 +42,33 @@ const Login = () => {
       ...prevData,
       [name]: value,
     }));
+
+    if (error) {
+      setError("");
+    }
   };
 
   const validateForm = () => {
-    if (!formData.email.includes("@")) {
+    if (!emailRegex.test(formData.email)) {
       setError("Invalid email format");
       return false;
     }
 
-    if (!(typeof formData.email === "string")) {
-      setError("the username should be a sring");
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
       return false;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return false;
-    }
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validateForm()) return;
 
     setLoading(true);
+
     const { email, password } = formData;
 
     try {
@@ -90,16 +95,10 @@ const Login = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("username", data.username);
 
-      if (window.history.length > 1) {
-        navigate(-1);
-      } else {
-        navigate("/");
-      }
-      
+      navigate(window.history.length > 1 ? -1 : "/");
       location.reload();
     } catch (err) {
       setError(err.message || "Server error, please try again.");
-      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
@@ -126,7 +125,7 @@ const Login = () => {
               htmlFor="password"
               className="block text-gray-600 dark:text-gray-300 font-medium mb-2"
             >
-              Password
+              Password <span className="text-red-600">*</span>
             </label>
             <input
               id="password"
@@ -135,7 +134,7 @@ const Login = () => {
               value={formData.password}
               onChange={handleInputChange}
               required
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              className="w-full p-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             />
             <button
               type="button"
@@ -154,7 +153,7 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400"
+            className="w-full py-3 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             disabled={loading}
           >
             {loading ? "Logging in..." : "Login"}
@@ -164,12 +163,12 @@ const Login = () => {
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             Don't have an account?{" "}
-            <a
-              href="/register"
+            <button
+              onClick={() => navigate("/register")}
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >
               Register here
-            </a>
+            </button>
           </p>
         </div>
       </div>

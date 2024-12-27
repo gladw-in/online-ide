@@ -1,48 +1,49 @@
 #include <iostream>
-using namespace std;
+#include <vector>
+#include <algorithm>
 
 void reverseArray(int arr[], int size) {
     int start = 0, end = size - 1;
     while (start < end) {
-        swap(arr[start], arr[end]);
+        std::swap(arr[start], arr[end]);
         start++;
         end--;
     }
 }
 
-void printArray(int arr[], int size) {
-    cout << "Array elements: ";
+void printArray(const int arr[], int size) {
+    std::cout << "Array elements: ";
     for (int i = 0; i < size; i++) {
-        cout << arr[i] << " ";
+        std::cout << arr[i] << " ";
     }
-    cout << endl;
+    std::cout << std::endl;
 }
 
 int main() {
     int n;
-    cout << "Enter the size of the array: ";
-    cin >> n;
+    std::cout << "Enter the size of the array: ";
+    std::cin >> n;
 
-    int arr[n];
-    cout << "Enter " << n << " elements: ";
+    std::vector<int> arr(n); 
+    std::cout << "Enter " << n << " elements: ";
     for (int i = 0; i < n; i++) {
-        cin >> arr[i];
+        std::cin >> arr[i];
     }
 
-    cout << "Original ";
-    printArray(arr, n);
+    std::cout << "Original ";
+    printArray(arr.data(), n);
 
-    reverseArray(arr, n);
+    reverseArray(arr.data(), n);
 
-    cout << "Reversed ";
-    printArray(arr, n);
+    std::cout << "Reversed ";
+    printArray(arr.data(), n);
 
     int sum = 0;
     for (int i = 0; i < n; i++) {
         sum += arr[i];
     }
 
-    cout << "Sum of elements: " << sum << endl;
+    std::cout << "Sum of elements: " << sum << std::endl;
 
     return 0;
 }

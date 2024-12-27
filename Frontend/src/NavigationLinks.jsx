@@ -5,59 +5,110 @@ const navLinks = [
   {
     to: "/htmlcssjs",
     text: "HTML, CSS, JS",
-    bgClass: "bg-blue-500",
+    classes: "bg-blue-500 motion-delay-[400ms]",
   },
   {
     to: "/python",
     text: "Python",
-    bgClass: "bg-green-500",
+    classes: "bg-green-500 motion-delay-[450ms]",
   },
   {
     to: "/javascript",
     text: "Javascript",
-    bgClass: "bg-purple-500",
+    classes: "bg-purple-500 motion-delay-[500ms]",
   },
   {
     to: "/c",
     text: "C",
-    bgClass: "bg-red-500",
+    classes: "bg-red-500 motion-delay-[550ms]",
   },
   {
     to: "/cpp",
     text: "C++",
-    bgClass: "bg-blue-700",
+    classes: "bg-blue-700 motion-delay-[600ms]",
   },
   {
     to: "/java",
     text: "Java",
-    bgClass: "bg-orange-500",
+    classes: "bg-orange-500 motion-delay-[650ms]",
   },
   {
     to: "/csharp",
     text: "C#",
-    bgClass: "bg-teal-500",
+    classes: "bg-teal-500 motion-delay-[700ms]",
   },
   {
     to: "/rust",
     text: "Rust",
-    bgClass: "bg-yellow-600",
+    classes: "bg-yellow-600 motion-delay-[750ms]",
   },
   {
     to: "/go",
     text: "Go",
-    bgClass: "bg-green-700",
+    classes: "bg-green-700 motion-delay-[800ms]",
   },
   {
-    to: "/php",
-    text: "PHP",
-    bgClass: "bg-purple-600",
+    to: "/shell",
+    text: "Shell",
+    classes: "bg-gray-600 motion-delay-[850ms]",
+  },
+  {
+    to: "/sql",
+    text: "SQL",
+    classes: "bg-indigo-500 motion-delay-[900ms]",
+  },
+  {
+    to: "/mongodb",
+    text: "MongoDB",
+    classes: "bg-teal-600 motion-delay-[950ms]",
+  },
+  {
+    to: "/swift",
+    text: "Swift",
+    classes: "bg-pink-500 motion-delay-[1000ms]",
+  },
+  {
+    to: "/ruby",
+    text: "Ruby",
+    classes: "bg-red-600 motion-delay-[1050ms]",
+  },
+  {
+    to: "/typescript",
+    text: "Typescript",
+    classes: "bg-blue-600 motion-delay-[1100ms]",
+  },
+  {
+    to: "/dart",
+    text: "Dart",
+    classes: "bg-cyan-500 motion-delay-[1150ms]",
+  },
+  {
+    to: "/kotlin",
+    text: "Kotlin",
+    classes: "bg-teal-700 motion-delay-[1200ms]",
+  },
+  {
+    to: "/perl",
+    text: "Perl",
+    classes: "bg-pink-700 motion-delay-[1250ms]",
+  },
+  {
+    to: "/scala",
+    text: "Scala",
+    classes: "bg-green-500 motion-delay-[1300ms]",
+  },
+  {
+    to: "/julia",
+    text: "Julia",
+    classes: "bg-yellow-500 motion-delay-[1350ms]",
   },
 ];
 
 const NavigationLinks = () => {
+  const baseUrl = window.location.origin;
+
   useEffect(() => {
-    document.title =
-      "Online IDE - HTML, CSS, JS, PYTHON, C, C++, JAVA, RUST and PHP";
+    document.title = "Online IDE";
   }, []);
 
   return (
@@ -66,8 +117,9 @@ const NavigationLinks = () => {
         {navLinks.map((link) => (
           <Link
             key={link.to}
-            to={link.to}
-            className={`w-full px-8 py-4 text-xl font-semibold ${link.bgClass} text-white text-center rounded-lg shadow-lg hover:scale-105 transform transition-all duration-300 sm:px-6 sm:py-3 sm:text-lg md:px-8 md:py-4 lg:px-8 lg:py-4`}
+            to={`${baseUrl}${link.to}`}
+            title={link.text}
+            className={`w-full px-8 py-4 text-xl font-semibold motion-preset-rebound-down ${link.classes} text-white text-center rounded-lg shadow-lg whitespace-nowrap overflow-hidden text-ellipsis hover:scale-105 transform transition-all duration-300 sm:px-6 sm:py-3 sm:text-lg md:px-8 md:py-4 lg:px-8 lg:py-4`}
           >
             {link.text}
           </Link>

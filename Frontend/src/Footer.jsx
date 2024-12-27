@@ -4,11 +4,11 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="text-center p-4 bg-gray-800 text-white">
-      <p className="text-sm md:text-base lg:text-lg">
-        &copy; {currentYear} Online IDE
+    <footer className="text-center p-4 bg-gray-800 text-white">
+      <p className="text-sm md:text-base lg:text-lg flex items-center justify-center">
+        <span>&copy; {currentYear} Online IDE</span>
       </p>
-    </div>
+    </footer>
   );
 };
 

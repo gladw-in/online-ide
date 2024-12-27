@@ -44,7 +44,6 @@ const InputField = ({
 );
 
 const Accounts = () => {
-  const [userData, setUserData] = useState(null);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -59,6 +58,7 @@ const Accounts = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [btnState, setBtnState] = useState(false);
+
   const navigate = useNavigate();
 
   document.title = "Accounts";
@@ -87,7 +87,6 @@ const Accounts = () => {
       );
       const data = await response.json();
       if (response.ok) {
-        setUserData(data.user);
         setFormData((prevData) => ({
           ...prevData,
           username: data.username,
@@ -103,6 +102,7 @@ const Accounts = () => {
 
   const handlePasswordVerification = async (e) => {
     e.preventDefault();
+
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/login");
@@ -114,6 +114,7 @@ const Accounts = () => {
 
     try {
       setBtnState(true);
+
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_API_URL}/api/verify-password`,
         {
@@ -142,6 +143,7 @@ const Accounts = () => {
 
   const handleUpdateUsername = async (e) => {
     e.preventDefault();
+
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/login");
@@ -163,6 +165,7 @@ const Accounts = () => {
       showCancelButton: true,
       confirmButtonText: "Yes, update it!",
       cancelButtonText: "No, keep it",
+      allowOutsideClick: false,
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
@@ -179,8 +182,8 @@ const Accounts = () => {
           );
 
           const data = await response.json();
-
           if (response.ok) {
+            localStorage.setItem("username", username);
             Swal.fire({
               title: "Updated!",
               text: "Your username has been updated successfully.",
@@ -202,6 +205,7 @@ const Accounts = () => {
 
   const handleUpdateEmail = async (e) => {
     e.preventDefault();
+
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/login");
@@ -223,6 +227,7 @@ const Accounts = () => {
       showCancelButton: true,
       confirmButtonText: "Yes, update it!",
       cancelButtonText: "No, keep it",
+      allowOutsideClick: false,
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
@@ -239,7 +244,6 @@ const Accounts = () => {
           );
 
           const data = await response.json();
-
           if (response.ok) {
             Swal.fire({
               title: "Updated!",
@@ -275,6 +279,11 @@ const Accounts = () => {
       return;
     }
 
+    if (newPassword.length < 8 || confirmPassword.length < 8) {
+      setErrorMessage("Password must be at least 8 characters long.");
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setErrorMessage("New password and confirm password do not match.");
       return;
@@ -294,6 +303,7 @@ const Accounts = () => {
       showCancelButton: true,
       confirmButtonText: "Yes, update it!",
       cancelButtonText: "No, keep it",
+      allowOutsideClick: false,
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
@@ -357,6 +367,8 @@ const Accounts = () => {
       showCancelButton: true,
       confirmButtonText: "Yes, delete it!",
       cancelButtonText: "No, keep it",
+      confirmButtonColor: "#da4242",
+      allowOutsideClick: false,
     }).then(async (result) => {
       if (result.isConfirmed) {
         const token = localStorage.getItem("token");
@@ -380,6 +392,7 @@ const Accounts = () => {
           const data = await response.json();
           if (response.ok) {
             localStorage.removeItem("token");
+            localStorage.removeItem("username");
             Swal.fire({
               title: "Deleted!",
               text: "Your account has been deleted.",
@@ -404,6 +417,10 @@ const Accounts = () => {
       ...prevData,
       [name]: value,
     }));
+
+    if (errorMessage) {
+      setErrorMessage("");
+    }
   };
 
   return (
@@ -429,7 +446,7 @@ const Accounts = () => {
           />
           <button
             type="submit"
-            className="w-full p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+            className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
           >
             {btnState ? "Verifying..." : "Verify Password"}
           </button>
@@ -449,7 +466,7 @@ const Accounts = () => {
             />
             <button
               type="submit"
-              className="w-full p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             >
               Update Username
             </button>
@@ -466,7 +483,7 @@ const Accounts = () => {
             />
             <button
               type="submit"
-              className="w-full p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             >
               Update Email
             </button>
@@ -497,7 +514,7 @@ const Accounts = () => {
             />
             <button
               type="submit"
-              className="w-full p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             >
               Update Password
             </button>
@@ -509,7 +526,7 @@ const Accounts = () => {
         <div className="mt-4 text-center">
           <button
             onClick={handleDeleteAccount}
-            className="w-full p-2 bg-red-500 text-white rounded-md hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500"
+            className="w-full p-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none transition duration-300 dark:bg-red-600 dark:hover:bg-red-500 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
           >
             Delete Account
           </button>

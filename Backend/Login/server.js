@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -14,7 +15,8 @@ const corsOptions = {
 	credentials: true,
 };
 
-const usernameRegex = /^[a-zA-Z0-9_.-]{3,30}$/;
+const usernameRegex = /^[a-zA-Z0-9_.-]{5,30}$/;
+
 const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
 const updateLanguageCount = (user, countType, language) => {
@@ -31,13 +33,13 @@ const updateLanguageCount = (user, countType, language) => {
 		case 'c':
 			user[countType].set('c', (user[countType].get('c') || 0) + 1);
 			break;
-		case 'c++':
+		case 'cpp':
 			user[countType].set('cpp', (user[countType].get('cpp') || 0) + 1);
 			break;
 		case 'java':
 			user[countType].set('java', (user[countType].get('java') || 0) + 1);
 			break;
-		case 'c#':
+		case 'csharp':
 			user[countType].set('cs', (user[countType].get('cs') || 0) + 1);
 			break;
 		case 'rust':
@@ -46,8 +48,38 @@ const updateLanguageCount = (user, countType, language) => {
 		case 'go':
 			user[countType].set('go', (user[countType].get('go') || 0) + 1);
 			break;
-		case 'php':
-			user[countType].set('php', (user[countType].get('php') || 0) + 1);
+		case 'shell':
+			user[countType].set('shell', (user[countType].get('shell') || 0) + 1);
+			break;
+		case 'sql':
+			user[countType].set('sql', (user[countType].get('sql') || 0) + 1);
+			break;
+		case 'mongodb':
+			user[countType].set('mongodb', (user[countType].get('mongodb') || 0) + 1);
+			break;
+		case 'swift':
+			user[countType].set('swift', (user[countType].get('swift') || 0) + 1);
+			break;
+		case 'ruby':
+			user[countType].set('ruby', (user[countType].get('ruby') || 0) + 1);
+			break;
+		case 'typescript':
+			user[countType].set('ts', (user[countType].get('ts') || 0) + 1);
+			break;
+		case 'dart':
+			user[countType].set('dart', (user[countType].get('dart') || 0) + 1);
+			break;
+		case 'kotlin':
+			user[countType].set('kt', (user[countType].get('kt') || 0) + 1);
+			break;
+		case 'perl':
+			user[countType].set('perl', (user[countType].get('perl') || 0) + 1);
+			break;
+		case 'scala':
+			user[countType].set('scala', (user[countType].get('scala') || 0) + 1);
+			break;
+		case 'julia':
+			user[countType].set('julia', (user[countType].get('julia') || 0) + 1);
 			break;
 		default:
 			return false;
@@ -97,7 +129,17 @@ const userSchema = new mongoose.Schema({
 			cs: 0,
 			rust: 0,
 			go: 0,
-			php: 0
+			shell: 0,
+			sql: 0,
+			mongodb: 0,
+			swift: 0,
+			ruby: 0,
+			ts: 0,
+			dart: 0,
+			kt: 0,
+			perl: 0,
+			scala: 0,
+			julia: 0
 		}
 	},
 	refactorCodeCount: {
@@ -113,7 +155,17 @@ const userSchema = new mongoose.Schema({
 			cs: 0,
 			rust: 0,
 			go: 0,
-			php: 0
+			shell: 0,
+			sql: 0,
+			mongodb: 0,
+			swift: 0,
+			ruby: 0,
+			ts: 0,
+			dart: 0,
+			kt: 0,
+			perl: 0,
+			scala: 0,
+			julia: 0
 		}
 	},
 	runCodeCount: {
@@ -122,19 +174,72 @@ const userSchema = new mongoose.Schema({
 		default: {
 			py: 0,
 			js: 0,
-			HtmlJsCss: 0,
 			c: 0,
 			cpp: 0,
 			java: 0,
 			cs: 0,
 			rust: 0,
 			go: 0,
-			php: 0
+			shell: 0,
+			sql: 0,
+			mongodb: 0,
+			swift: 0,
+			ruby: 0,
+			ts: 0,
+			dart: 0,
+			kt: 0,
+			perl: 0,
+			scala: 0,
+			julia: 0
 		}
 	}
 });
 
+const logsSchema = new mongoose.Schema({
+	username: {
+		type: String,
+		required: true
+	},
+	email: {
+		type: String,
+		required: true
+	},
+	lastLogin: {
+		type: Date,
+		default: null
+	},
+	createdDate: {
+		type: Date,
+		default: Date.now
+	},
+	generateCodeCount: {
+		type: Map,
+		of: Number,
+		default: {}
+	},
+	refactorCodeCount: {
+		type: Map,
+		of: Number,
+		default: {}
+	},
+	runCodeCount: {
+		type: Map,
+		of: Number,
+		default: {}
+	},
+	actionType: {
+		type: String,
+		required: true
+	},
+	timestamp: {
+		type: Date,
+		default: Date.now
+	}
+});
+
 const User = mongoose.model('user', userSchema);
+
+const Log = mongoose.model('log', logsSchema);
 
 async function checkAndConnectDB() {
 	if (mongoose.connection.readyState === 0) {
@@ -150,6 +255,56 @@ async function checkAndConnectDB() {
 	}
 }
 
+async function logUserAction(user, actionType) {
+	try {
+		let log = await Log.findOne({
+			username: user.username,
+			email: user.email
+		});
+
+		if (log) {
+			log.lastLogin = user.lastLogin;
+			log.createdDate = user.createdDate;
+			log.generateCodeCount = user.generateCodeCount;
+			log.refactorCodeCount = user.refactorCodeCount;
+			log.runCodeCount = user.runCodeCount;
+			log.actionType = actionType;
+		} else {
+			log = new Log({
+				username: user.username,
+				email: user.email,
+				lastLogin: user.lastLogin,
+				createdDate: user.createdDate,
+				generateCodeCount: user.generateCodeCount,
+				refactorCodeCount: user.refactorCodeCount,
+				runCodeCount: user.runCodeCount,
+				actionType: actionType
+			});
+		}
+
+		await log.save();
+	} catch (err) {
+		console.error('Error logging user action:', err);
+	}
+}
+
+userSchema.pre('save', function(next) {
+	const user = this;
+	const actionType = user.isNew ? 'create' : 'update';
+	logUserAction(user, actionType);
+	next();
+});
+
+userSchema.pre('remove', function(next) {
+	const user = this;
+	logUserAction(user, 'delete');
+	next();
+});
+
+app.get('/', (req, res) => {
+	res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.post('/api/register', async (req, res) => {
 	const {
 		username,
@@ -163,6 +318,7 @@ app.post('/api/register', async (req, res) => {
 		const existingUser = await User.findOne({
 			email
 		});
+
 		if (existingUser) {
 			return res.status(400).json({
 				msg: 'User already exists'
@@ -171,7 +327,7 @@ app.post('/api/register', async (req, res) => {
 
 		if (!usernameRegex.test(username)) {
 			return res.status(400).json({
-				msg: 'Username can only contain letters, numbers, underscores, hyphens, and periods (3-30 characters).'
+				msg: 'Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters).'
 			});
 		}
 
@@ -180,7 +336,6 @@ app.post('/api/register', async (req, res) => {
 				msg: 'Username should be between 5 and 30 characters'
 			});
 		}
-
 
 		if (!emailRegex.test(email)) {
 			return res.status(400).json({
@@ -226,12 +381,25 @@ app.post('/api/login', async (req, res) => {
 		password
 	} = req.body;
 
+	if (!emailRegex.test(email)) {
+		return res.status(400).json({
+			msg: 'Invalid email format'
+		});
+	}
+
+	if (password.length < 8) {
+		return res.status(400).json({
+			msg: 'Password must be at least 8 characters long'
+		});
+	}
+
 	try {
 		await checkAndConnectDB();
 
 		const user = await User.findOne({
 			email
 		});
+
 		if (!user) {
 			return res.status(400).json({
 				msg: 'Invalid credentials'
@@ -239,6 +407,7 @@ app.post('/api/login', async (req, res) => {
 		}
 
 		const isMatch = await bcrypt.compare(password, user.password);
+
 		if (!isMatch) {
 			return res.status(400).json({
 				msg: 'Invalid credentials'
@@ -248,6 +417,7 @@ app.post('/api/login', async (req, res) => {
 		const currentDate = new Date();
 		const ISTDate = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000);
 		user.lastLogin = ISTDate;
+
 		await user.save();
 
 		const token = jwt.sign({
@@ -255,6 +425,7 @@ app.post('/api/login', async (req, res) => {
 		}, process.env.JWT_SECRET, {
 			algorithm: 'HS256'
 		});
+
 		res.json({
 			token,
 			username: user.username
@@ -279,16 +450,16 @@ app.get('/api/protected', async (req, res) => {
 	try {
 		await checkAndConnectDB();
 
-
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId).select('-password');
+
 		if (!user) {
 			return res.status(404).json({
 				msg: 'User not found'
 			});
 		}
-		const includeEmail = req.query.email === 'true';
 
+		const includeEmail = req.query.email === 'true';
 		const response = {
 			msg: 'Protected data',
 			username: user.username
@@ -324,6 +495,18 @@ app.put('/api/change-username', async (req, res) => {
 		});
 	}
 
+	if (!usernameRegex.test(newUsername)) {
+		return res.status(400).json({
+			msg: 'Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters).'
+		});
+	}
+
+	if (newUsername.length < 5 || newUsername.length > 30) {
+		return res.status(400).json({
+			msg: 'Username should be between 5 and 30 characters'
+		});
+	}
+
 	try {
 		await checkAndConnectDB();
 
@@ -339,6 +522,7 @@ app.put('/api/change-username', async (req, res) => {
 		const existingUser = await User.findOne({
 			username: newUsername
 		});
+
 		if (existingUser) {
 			return res.status(400).json({
 				msg: 'Username is already taken'
@@ -347,6 +531,7 @@ app.put('/api/change-username', async (req, res) => {
 
 		user.username = newUsername;
 		await user.save();
+
 		res.json({
 			msg: 'Username updated successfully'
 		});
@@ -378,6 +563,12 @@ app.put('/api/change-email', async (req, res) => {
 		});
 	}
 
+	if (!emailRegex.test(newEmail)) {
+		return res.status(400).json({
+			msg: 'Invalid email format'
+		});
+	}
+
 	try {
 		await checkAndConnectDB();
 
@@ -393,6 +584,7 @@ app.put('/api/change-email', async (req, res) => {
 		const existingUser = await User.findOne({
 			email: newEmail
 		});
+
 		if (existingUser) {
 			return res.status(400).json({
 				msg: 'Email is already taken'
@@ -401,6 +593,7 @@ app.put('/api/change-email', async (req, res) => {
 
 		user.email = newEmail;
 		await user.save();
+
 		res.json({
 			msg: 'Email updated successfully'
 		});
@@ -436,6 +629,12 @@ app.put('/api/change-password', async (req, res) => {
 	if (newPassword !== confirmPassword) {
 		return res.status(400).json({
 			msg: 'New password and confirm password do not match'
+		});
+	}
+
+	if (newPassword.length < 8) {
+		return res.status(400).json({
+			msg: 'Password must be at least 8 characters long'
 		});
 	}
 
@@ -496,7 +695,10 @@ app.delete('/api/account', async (req, res) => {
 			});
 		}
 
+		await logUserAction(user, 'delete');
+
 		await User.findByIdAndDelete(decoded.userId);
+
 		res.json({
 			msg: 'Account deleted successfully'
 		});
@@ -513,27 +715,38 @@ app.post('/api/verify-password', async (req, res) => {
 		password
 	} = req.body;
 	const token = req.headers['authorization']?.split(' ')[1];
+
 	if (!token) {
 		return res.status(403).json({
 			msg: 'No token provided'
 		});
 	}
+
+	if (password.length < 8) {
+		return res.status(400).json({
+			msg: 'Password must be at least 8 characters long'
+		});
+	}
+
 	try {
 		await checkAndConnectDB();
 
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId);
+
 		if (!user) {
 			return res.status(404).json({
 				msg: 'User not found'
 			});
 		}
+
 		const isMatch = await bcrypt.compare(password, user.password);
 		if (!isMatch) {
 			return res.status(400).json({
 				msg: 'Incorrect password'
 			});
 		}
+
 		res.json({
 			msg: 'Password verified'
 		});
@@ -557,6 +770,7 @@ app.post('/api/runCode/count', async (req, res) => {
 		const user = await User.findOne({
 			username
 		});
+
 		if (!user) {
 			return res.status(404).json({
 				msg: 'User not found'
@@ -569,7 +783,9 @@ app.post('/api/runCode/count', async (req, res) => {
 			});
 		}
 
+		await logUserAction(user, 'update');
 		await user.save();
+
 		res.status(204).send();
 	} catch (err) {
 		console.error(err);
@@ -591,6 +807,7 @@ app.post('/api/generateCode/count', async (req, res) => {
 		const user = await User.findOne({
 			username
 		});
+
 		if (!user) {
 			return res.status(404).json({
 				msg: 'User not found'
@@ -603,7 +820,9 @@ app.post('/api/generateCode/count', async (req, res) => {
 			});
 		}
 
+		await logUserAction(user, 'update');
 		await user.save();
+
 		res.status(204).send();
 	} catch (err) {
 		console.error(err);
@@ -625,6 +844,7 @@ app.post('/api/refactorCode/count', async (req, res) => {
 		const user = await User.findOne({
 			username
 		});
+
 		if (!user) {
 			return res.status(404).json({
 				msg: 'User not found'
@@ -637,7 +857,9 @@ app.post('/api/refactorCode/count', async (req, res) => {
 			});
 		}
 
+		await logUserAction(user, 'update');
 		await user.save();
+
 		res.status(204).send();
 	} catch (err) {
 		console.error(err);

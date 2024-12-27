@@ -1,20 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { debounce } from "lodash";
 import MonacoEditor from "@monaco-editor/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faTrashAlt,
-  faDownload,
-  faMagic,
-  faWrench,
-  faSpinner,
-  faExpand,
-} from "@fortawesome/free-solid-svg-icons";
-import { faHtml5, faCss3Alt, faJs } from "@fortawesome/free-brands-svg-icons";
-import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
+import { PiFileHtmlFill, PiFileCssFill, PiFileJsFill } from "react-icons/pi";
+import { MdPreview } from "react-icons/md";
+import { SlSizeFullscreen } from "react-icons/sl";
+import { FaSpinner, FaDownload, FaWrench } from "react-icons/fa6";
+import { FaMagic, FaTrashAlt } from "react-icons/fa";
+import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
 import sampleHtml from "./samples/index.html?raw";
 import sampleCSS from "./samples/style.css?raw";
+import sampleJs from "./samples/script.js?raw";
 
 const EditorSection = ({
   language,
@@ -27,11 +24,11 @@ const EditorSection = ({
   const getLanguageIcon = () => {
     switch (language) {
       case "html":
-        return faHtml5;
+        return PiFileHtmlFill;
       case "css":
-        return faCss3Alt;
+        return PiFileCssFill;
       case "javascript":
-        return faJs;
+        return PiFileJsFill;
       default:
         return null;
     }
@@ -40,8 +37,11 @@ const EditorSection = ({
   return (
     <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-200 rounded-lg">
       <div className="flex items-center my-2 ml-3">
-        <FontAwesomeIcon icon={getLanguageIcon()} className="mr-2 text-xl" />
-        <h2 className="text-xl">{language.toUpperCase()}</h2>
+        {React.createElement(getLanguageIcon(), { className: "mr-2 text-xl" })}
+        <h2 className="text-xl">
+          {language.charAt(0).toUpperCase() + language.slice(1).toLowerCase()}{" "}
+          Editor
+        </h2>
       </div>
       <MonacoEditor
         language={language}
@@ -76,7 +76,7 @@ const Editor = ({ isDarkMode }) => {
     const savedCode = sessionStorage.getItem("editorCode");
     return savedCode
       ? JSON.parse(savedCode)
-      : { html: sampleHtml, css: sampleCSS, js: "" };
+      : { html: sampleHtml, css: sampleCSS, javascript: sampleJs };
   });
 
   const [deviceType, setDeviceType] = useState("pc");
@@ -96,7 +96,9 @@ const Editor = ({ isDarkMode }) => {
 
   const languages = ["html", "css", "javascript"];
 
-  document.title = "HTML, CSS, JS Editor";
+  document.title = "HTML, CSS, JS Editor - Online IDE";
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedCode = JSON.stringify(code);
@@ -127,7 +129,7 @@ const Editor = ({ isDarkMode }) => {
 
   const updatePreview = useCallback(
     debounce(() => {
-      const { html, css, js } = code;
+      const { html, css, javascript } = code;
       const iframe = document.getElementById("previewFrame");
 
       if (iframe) {
@@ -137,22 +139,22 @@ const Editor = ({ isDarkMode }) => {
         iframeDocument.open();
         iframeDocument.write(`
           <html>
-          <head>
-            <style>${css}</style>
-          </head>
-          <body>
-            ${html}
-            <script>
-              (function() {
-                try {
-                  ${js}
-                } catch (error) {
-                  console.error("Error executing JS:", error);
-                }
-              })();
-            </script>
-          </body>
-        </html>
+            <head>
+              <style>${css}</style>
+            </head>
+            <body>
+              ${html}
+              <script>
+                (function() {
+                  try {
+                    ${javascript}
+                  } catch (error) {
+                    console.error("Error executing JS:", error);
+                  }
+                })();
+              </script>
+            </body>
+          </html>
         `);
         iframeDocument.close();
       } else {
@@ -163,11 +165,13 @@ const Editor = ({ isDarkMode }) => {
   );
 
   const openPreviewFullScreen = () => {
-    const { html, css, js } = code;
+    const { html, css, javascript } = code;
     const newWindow = window.open("", "_blank");
     newWindow.document.write(`
       <html>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Preview</title>
         <style>${css}</style>
       </head>
       <body>
@@ -175,7 +179,7 @@ const Editor = ({ isDarkMode }) => {
         <script>
           (function() {
             try {
-              ${js}
+              ${javascript}
             } catch (error) {
               console.error("Error executing JS:", error);
             }
@@ -196,7 +200,9 @@ const Editor = ({ isDarkMode }) => {
   };
 
   const clearAll = () => {
-    setCode({ html: "", css: "", js: "" });
+    const { html, css, javascript } = code;
+
+    setCode({ html: "", css: "", javascript: "" });
     sessionStorage.removeItem("editorCode");
 
     const iframe = document.getElementById("previewFrame");
@@ -209,6 +215,7 @@ const Editor = ({ isDarkMode }) => {
       iframeDocument.write(`
         <html>
           <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <style>${css}</style>
           </head>
           <body>
@@ -216,7 +223,7 @@ const Editor = ({ isDarkMode }) => {
             <script>
               (function() {
                 try {
-                  ${js}
+                  ${javascript}
                 } catch (error) {
                   console.error("Error executing JS:", error);
                 }
@@ -226,11 +233,12 @@ const Editor = ({ isDarkMode }) => {
         </html>
       `);
       iframeDocument.close();
+      location.reload();
     }
   };
 
   const downloadFile = () => {
-    let { html, css, js } = code;
+    let { html, css, javascript } = code;
     html = html.replace(/<html.*?>|<\/html>/gi, "");
     html = html.replace(/<head.*?>|<\/head>/gi, "");
     html = html.replace(/<body.*?>|<\/body>/gi, "");
@@ -238,11 +246,12 @@ const Editor = ({ isDarkMode }) => {
     const finalHtml = `
       <html>
         <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <style>${css}</style>
         </head>
         <body>
           ${html}
-          <script>${js}</script>
+          <script>${javascript}</script>
         </body>
       </html>
     `;
@@ -251,19 +260,31 @@ const Editor = ({ isDarkMode }) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "code.html";
+    a.download = "file.html";
+    document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
   const generateCodeFromPrompt = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
     const { value: prompt } = await Swal.fire({
       title: "Enter",
       input: "text",
       inputLabel: "What code do you want?",
       inputPlaceholder: "e.g., simple calculator",
       showCancelButton: true,
+      allowOutsideClick: false,
+      inputValidator: (value) => {
+        if (!value) {
+          return "This field is mandatory! Please enter a prompt.";
+        }
+      },
     });
 
     if (prompt) {
@@ -273,9 +294,7 @@ const Editor = ({ isDarkMode }) => {
         setisGenerateBtnPressed(true);
         setIsEditorReadOnly(true);
         const responseHtml = await fetch(
-          `${
-            import.meta.env.VITE_NVIDIA_NIM_APP_API_URL
-          }/htmlcssjsgenerate-code`,
+          `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
             headers: {
@@ -296,15 +315,13 @@ const Editor = ({ isDarkMode }) => {
         setCode({
           html: resultHtml.html || "",
           css: "",
-          js: "",
+          javascript: "",
         });
 
         generatesetBtnTxt("Generating css...");
 
         const responseCss = await fetch(
-          `${
-            import.meta.env.VITE_NVIDIA_NIM_APP_API_URL
-          }/htmlcssjsgenerate-code`,
+          `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
             headers: {
@@ -325,15 +342,13 @@ const Editor = ({ isDarkMode }) => {
         setCode((prevCode) => ({
           html: prevCode.html,
           css: resultCss.css || "",
-          js: prevCode.js,
+          javascript: prevCode.js,
         }));
 
         generatesetBtnTxt("Generating js...");
 
         const responseJs = await fetch(
-          `${
-            import.meta.env.VITE_NVIDIA_NIM_APP_API_URL
-          }/htmlcssjsgenerate-code`,
+          `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
             headers: {
@@ -354,7 +369,7 @@ const Editor = ({ isDarkMode }) => {
         setCode((prevCode) => ({
           html: prevCode.html,
           css: prevCode.css,
-          js: resultJs.js || "",
+          javascript: resultJs.js || "",
         }));
         getGenerateCodeCount();
       } catch (error) {
@@ -369,6 +384,11 @@ const Editor = ({ isDarkMode }) => {
   };
 
   const refactorCode = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
     setLoadingAction("refactor");
     try {
       refactorsetBtnTxt("Refactoring Html...");
@@ -376,7 +396,7 @@ const Editor = ({ isDarkMode }) => {
       setIsEditorReadOnly(true);
 
       const responseHtml = await fetch(
-        `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/htmlcssjsrefactor-code`,
+        `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
         {
           method: "POST",
           headers: {
@@ -385,7 +405,7 @@ const Editor = ({ isDarkMode }) => {
           body: JSON.stringify({
             html: code.html,
             css: code.css,
-            js: code.js,
+            javascript: code.js,
             type: "html",
           }),
         }
@@ -399,13 +419,13 @@ const Editor = ({ isDarkMode }) => {
       setCode({
         html: resultHtml.html || code.html,
         css: code.css,
-        js: code.js,
+        javascript: code.js,
       });
 
       refactorsetBtnTxt("Refactoring css...");
 
       const responseCss = await fetch(
-        `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/htmlcssjsrefactor-code`,
+        `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
         {
           method: "POST",
           headers: {
@@ -414,7 +434,7 @@ const Editor = ({ isDarkMode }) => {
           body: JSON.stringify({
             html: resultHtml.html || code.html,
             css: code.css,
-            js: code.js,
+            javascript: code.js,
             type: "css",
           }),
         }
@@ -428,13 +448,13 @@ const Editor = ({ isDarkMode }) => {
       setCode((prevCode) => ({
         html: prevCode.html,
         css: resultCss.css || prevCode.css,
-        js: prevCode.js,
+        javascript: prevCode.js,
       }));
 
       refactorsetBtnTxt("Refactoring js...");
 
       const responseJs = await fetch(
-        `${import.meta.env.VITE_NVIDIA_NIM_APP_API_URL}/htmlcssjsrefactor-code`,
+        `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
         {
           method: "POST",
           headers: {
@@ -443,7 +463,7 @@ const Editor = ({ isDarkMode }) => {
           body: JSON.stringify({
             html: resultHtml.html || code.html,
             css: resultCss.css || code.css,
-            js: code.js,
+            javascript: code.js,
             type: "js",
           }),
         }
@@ -457,7 +477,7 @@ const Editor = ({ isDarkMode }) => {
       setCode((prevCode) => ({
         html: prevCode.html,
         css: prevCode.css,
-        js: resultJs.js || prevCode.js,
+        javascript: resultJs.js,
       }));
       getRefactorCodeCount();
     } catch (error) {
@@ -514,6 +534,66 @@ const Editor = ({ isDarkMode }) => {
     }
   };
 
+  const buttonData = [
+    {
+      text: "Clear All",
+      icon: <FaTrashAlt className="mr-2 mt-1" />,
+      onClick: clearAll,
+      disabled: false,
+      color: "bg-red-500",
+      loadingAction: null,
+      iconLoading: null,
+    },
+    {
+      text: "Download",
+      icon: <FaDownload className="mr-2 mt-1" />,
+      onClick: downloadFile,
+      disabled:
+        code.html.length === 0 &&
+        code.css.length === 0 &&
+        code.javascript.length === 0,
+      color: "bg-orange-500",
+      loadingAction: null,
+      iconLoading: null,
+    },
+    {
+      text: generateBtnTxt,
+      icon:
+        loadingAction === "generate" ? (
+          <FaSpinner className="mr-2 mt-1 animate-spin" />
+        ) : (
+          <FaMagic className="mr-2 mt-1" />
+        ),
+      onClick: () => {
+        if (!isRefactorBtnPressed) {
+          generateCodeFromPrompt();
+        }
+      },
+      disabled: loadingAction === "generate",
+      color: "bg-green-500",
+      loadingAction: "generate",
+      iconLoading: <FaSpinner className="mr-2 mt-1 animate-spin" />,
+    },
+    {
+      text: refactorBtnTxt,
+      icon:
+        loadingAction === "refactor" ? (
+          <FaSpinner className="mr-2 mt-1 animate-spin" />
+        ) : (
+          <FaWrench className="mr-2 mt-1" />
+        ),
+      onClick: () => {
+        if (!isGenerateBtnPressed) {
+          refactorCode();
+        }
+      },
+      disabled: loadingAction === "refactor",
+      color: "bg-yellow-500",
+      loadingAction: "refactor",
+      iconLoading: <FaSpinner className="mr-2 mt-1 animate-spin" />,
+    },
+  ];
+
   return (
     <div className="container mx-auto p-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-4">
@@ -530,76 +610,29 @@ const Editor = ({ isDarkMode }) => {
         ))}
       </div>
       <div className="mt-4 flex flex-wrap justify-center gap-4">
-        <button
-          onClick={clearAll}
-          className="px-6 py-2 bg-red-500 text-white rounded-md w-full sm:w-auto"
-        >
-          <FontAwesomeIcon icon={faTrashAlt} className="mr-2" />
-          Clear All
-        </button>
-        <button
-          onClick={() => downloadFile()}
-          className="px-6 py-2 bg-purple-500 text-white rounded-md w-full sm:w-auto"
-          disabled={
-            code.html.length === 0 &&
-            code.css.length === 0 &&
-            code.js.length === 0
-          }
-        >
-          <FontAwesomeIcon icon={faDownload} className="mr-2" />
-          Download
-        </button>
-        {isLoggedIn && (
-          <>
-            <button
-              onClick={() => {
-                if (!isRefactorBtnPressed) {
-                  generateCodeFromPrompt();
-                }
-              }}
-              className="px-6 py-2 bg-green-500 text-white rounded-md w-full sm:w-auto"
-              disabled={loadingAction === "generate"}
-            >
-              {loadingAction === "generate" ? (
-                <FontAwesomeIcon
-                  icon={faSpinner}
-                  className="mr-2 animate-spin"
-                />
-              ) : (
-                <FontAwesomeIcon icon={faMagic} className="mr-2" />
-              )}
-              {generateBtnTxt}
-            </button>
-            <button
-              onClick={() => {
-                if (!isGenerateBtnPressed) {
-                  refactorCode();
-                }
-              }}
-              className="px-6 py-2 bg-yellow-500 text-white rounded-md w-full sm:w-auto"
-              disabled={loadingAction === "refactor"}
-            >
-              {loadingAction === "refactor" ? (
-                <FontAwesomeIcon
-                  icon={faSpinner}
-                  className="mr-2 animate-spin"
-                />
-              ) : (
-                <FontAwesomeIcon icon={faWrench} className="mr-2" />
-              )}
-              {refactorBtnTxt}
-            </button>
-          </>
-        )}
+        {buttonData.map((button, index) => (
+          <button
+            key={index}
+            onClick={button.onClick}
+            className={`px-6 py-2 text-white inline-flex place-content-center rounded-md w-full sm:w-auto md:hover:scale-105 transition-transform duration-200 ${button.color}`}
+            disabled={button.disabled}
+          >
+            {button.icon}
+            {button.text}
+          </button>
+        ))}
       </div>
-      <div className="mt-4 relative">
-        <h2 className="text-xl mb-2">Preview</h2>
+      <div className="mt-4 relative flex flex-col items-start dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg">
+        <div className="flex items-center">
+          <MdPreview className="text-2xl mt-3 ml-3" />
+          <h2 className="text-xl mt-3 ml-3">Preview</h2>
+        </div>
         <button
           onClick={openPreviewFullScreen}
-          className="absolute top-14 right-2 w-12 h-12 bg-transparent border-2 border-gray-500 text-gray-500 rounded-md transition-all duration-300 hover:bg-gray-700 hover:text-white hover:border-gray-700"
-          title="Fullscreen"
+          className="absolute top-16 right-2 w-10 h-10 bg-transparent border-2 border-gray-500 text-gray-500 rounded-md transition-all duration-300 hover:bg-gray-700/30 hover:text-white hover:border-gray-700"
+          title="Fullscreen Preview"
         >
-          <FontAwesomeIcon icon={faExpand} className="text-xl" />
+          <SlSizeFullscreen className="inline-flex text-xl pb-[3px]" />
         </button>
         <iframe
           id="previewFrame"
