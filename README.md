@@ -42,12 +42,14 @@ GEMINI_API_KEY=
 - **[jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)**: A library for creating and verifying JSON Web Tokens (JWT) to securely transmit data between parties.
 - **[mongoose](https://mongoosejs.com/)**: A MongoDB Object Data Modeling (ODM) library for Node.js, offering schema-based data modeling.
 
-## Python Dependencies:
+## Python Libraries:
 - **[google-generativeai](https://ai.google.dev/gemini-api/docs/quickstart?lang=python)**: A collection of Google APIs and tools for integrating generative AI models into applications.
 - **[python-dotenv](https://pypi.org/project/python-dotenv/)**: A Python library for loading environment variables from a `.env` file into the environment.
 - **[absl-py](https://github.com/abseil/abseil-py)**: A Python library developed by Google, providing utilities for building scalable and efficient applications.
 - **[flask_cors](https://flask-cors.readthedocs.io/en/latest/)**: A Flask extension to handle Cross-Origin Resource Sharing (CORS) and allow requests from different origins.
 - **[flask](https://flask.palletsprojects.com/)**: A lightweight Python web framework used for building web applications.
+- **[os](https://docs.python.org/3/library/os.html)**: A module in Python providing a way of using operating system-dependent functionality, such as reading or writing to the file system.
+- **[re](https://docs.python.org/3/library/re.html)**: A module in Python used for working with regular expressions, allowing pattern matching and text manipulation.
 
 ## How to Set Up and Use
 
@@ -61,7 +63,7 @@ To set up and run:
 - [Python](https://www.python.org/) (version 3.11 or newer)
 - [Pip](https://pip.pypa.io/en/stable/) Python package installer
 
-### Installation Frontend
+## Frontend
 
 1. Clone the repository:
 ```
@@ -75,7 +77,6 @@ npm install
 ```
 
 3. Remember to have the **.env**.
-
 
 ### For Development
 
@@ -105,7 +106,7 @@ To see how the release version looks:
 npm run preview
 ```
 
-### Installation Backend Login
+## Backend Login
 
 1. Clone the repository:
 ```
@@ -123,7 +124,7 @@ npm install
 ```
 node server.js
 ```
-### Installation GenAi
+## GenAi
 
 1. Clone the repository:
 ```
