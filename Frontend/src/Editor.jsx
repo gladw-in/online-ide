@@ -587,7 +587,10 @@ const Editor = ({ isDarkMode }) => {
           refactorCode();
         }
       },
-      disabled: loadingAction === "refactor",
+      disabled:
+        code.html.length === 0 &&
+        code.css.length === 0 &&
+        code.javascript.length === 0,
       color: "bg-yellow-500",
       loadingAction: "refactor",
       iconLoading: <FaSpinner className="mr-2 mt-1 animate-spin" />,
