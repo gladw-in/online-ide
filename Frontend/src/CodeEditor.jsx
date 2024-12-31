@@ -490,7 +490,7 @@ const CodeEditor = ({
         </div>
 
         <pre className="select-text font-mono text-xs font-semibold lg:text-sm max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]">
-          {output.replaceAll(/```[\w\s]+/g, "")}
+          {output.replace(/```/g, "")}
         </pre>
       </div>
       <p className="ml-2 text-sm text-gray-500 italic">
