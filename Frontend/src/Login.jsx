@@ -95,7 +95,7 @@ const Login = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("username", data.username);
 
-      navigate(window.history.length > 1 ? -1 : "/");
+      navigate(window.history.length > 2 ? -1 : "/");
       location.reload();
     } catch (err) {
       setError(err.message || "Server error, please try again.");

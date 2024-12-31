@@ -70,7 +70,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         setIsLoggedIn(false);
         setUsername("");
 
-        navigate(window.history.length > 1 ? -1 : "/");
+        navigate(window.history.length > 2 ? -1 : "/");
 
         location.reload();
       }
