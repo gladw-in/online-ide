@@ -267,6 +267,20 @@ const Editor = ({ isDarkMode }) => {
     URL.revokeObjectURL(url);
   };
 
+  const handleCtrlS = (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+      event.preventDefault();
+      downloadFile();
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleCtrlS);
+    return () => {
+      document.removeEventListener("keydown", handleCtrlS);
+    };
+  }, []);
+
   const generateCodeFromPrompt = async () => {
     if (!isLoggedIn) {
       navigate("/login");

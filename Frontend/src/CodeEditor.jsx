@@ -159,6 +159,13 @@ const CodeEditor = ({
     setTimeoutId(newTimeoutId);
   };
 
+  useEffect(() => {
+    document.addEventListener("copy", handleCopy);
+    return () => {
+      document.removeEventListener("copy", handleCopy);
+    };
+  }, []);
+
   const generateCodeFromPrompt = async () => {
     if (!isLoggedIn) {
       navigate("/login");
@@ -414,6 +421,20 @@ const CodeEditor = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  const handleCtrlS = (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+      event.preventDefault();
+      downloadFile(code, "file", language);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleCtrlS);
+    return () => {
+      document.removeEventListener("keydown", handleCtrlS);
+    };
+  }, [code, language]);
 
   const buttonsConfig = [
     {
