@@ -161,13 +161,6 @@ const CodeEditor = ({
     setTimeoutId(newTimeoutId);
   };
 
-  useEffect(() => {
-    document.addEventListener("copy", handleCopy);
-    return () => {
-      document.removeEventListener("copy", handleCopy);
-    };
-  }, []);
-
   const generateCodeFromPrompt = async () => {
     if (!isLoggedIn) {
       navigate("/login");
