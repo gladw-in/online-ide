@@ -137,12 +137,14 @@ const CodeEditor = ({
   };
 
   const handleCopy = async () => {
-    if (cpyBtnState === "Copying..." || code.length === 0) return;
+    const content = sessionStorage.getItem(`${language}Code`);
+
+    if (cpyBtnState === "Copying..." || content.length === 0) return;
 
     setCpyBtnState("Copying...");
 
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(content);
       setCpyBtnState("Copied!");
     } catch (err) {
       setCpyBtnState("Error!");
