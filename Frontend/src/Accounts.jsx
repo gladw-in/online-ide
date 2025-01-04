@@ -24,7 +24,7 @@ const InputField = ({
       <input
         id={name}
         type={showPassword ? "text" : type}
-        className="w-full mt-1 p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+        className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-400"
         value={value}
         onChange={onChange}
         required={required}

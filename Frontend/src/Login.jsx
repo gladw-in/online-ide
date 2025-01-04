@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const InputField = ({ label, type, value, onChange, required, name }) => (
-  <div className="mb-4">
+const InputField = ({
+  label,
+  type,
+  value,
+  onChange,
+  required,
+  name,
+  showPassword,
+  onTogglePassword,
+}) => (
+  <div className="mb-4 relative">
     <label
       htmlFor={name}
       className="block text-gray-600 dark:text-gray-300 font-medium mb-2"
@@ -18,6 +27,15 @@ const InputField = ({ label, type, value, onChange, required, name }) => (
       required={required}
       className="w-full p-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
     />
+    {name === "password" && (
+      <button
+        type="button"
+        className="absolute right-3 top-[70%] transform -translate-y-1/2 text-gray-500 dark:text-gray-300"
+        onClick={onTogglePassword}
+      >
+        {showPassword ? "Hide" : "Show"}
+      </button>
+    )}
   </div>
 );
 
@@ -120,30 +138,16 @@ const Login = () => {
             required
           />
 
-          <div className="mb-4 relative">
-            <label
-              htmlFor="password"
-              className="block text-gray-600 dark:text-gray-300 font-medium mb-2"
-            >
-              Password <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-              className="w-full p-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-            />
-            <button
-              type="button"
-              className="absolute right-3  top-[70%] transform -translate-y-1/2 text-gray-500 dark:text-gray-300"
-              onClick={() => setShowPassword((prev) => !prev)}
-            >
-              {showPassword ? "Hide" : "Show"}
-            </button>
-          </div>
+          <InputField
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            required
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword((prev) => !prev)}
+          />
 
           {error && (
             <p className="text-red-600 dark:text-red-400 text-center mb-4">
