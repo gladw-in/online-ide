@@ -481,25 +481,30 @@ Generate HTML code for the following project, suitable for placement directly wi
 *   Exclude all `<html>`, `<head>`, and `<body>` tags.
 *   **Absolutely do not include any inline JavaScript** (e.g., `<script>...</script>` within HTML tags, event handlers like `onclick="..."`, or any other form of inline scripting). The HTML should be purely structural.
 *   Do not include any inline styles (e.g., `style="..."`), or links to external CSS/JS files *except for essential CDNs as specified below*.
+*   Don’t give JavaScript in this HTML code; I will ask for that later.
+*   Add the IDs and class names only; no other attributes should be used that are required by JavaScript code.
 
-Regarding external libraries/CDNs:
+**VERY IMPORTANT**: Regarding external libraries/CDNs:
 
-*   If the project description *explicitly mentions* a specific library (e.g., "use jQuery"), include it using the appropriate `<link>` or `<script>` tag within the `<body>`.
-*   If the project requires functionality that is *commonly provided by a well-known library* (e.g., date/time picking, charting, complex UI components) and the project description does *not explicitly forbid* their use, you *may* include the appropriate CDN link within the `<body>`.
-*   If you include a CDN, use the most common and reputable CDN provider (e.g., cdnjs, unpkg).
-*   Only include CDNs that are *directly relevant* to the functionality of the page as described in the project description.
+*   **Do not use external libraries/CDNs if they are not required by the project.**
+*   If the project description *explicitly mentions* a specific library (e.g., "use Bootstrap"), **include it using the appropriate `<link>` or `<script>` tag within the `<body>`**.
+*   If the project requires functionality that is *commonly provided by a well-known library* (e.g., date/time picking, charting, complex UI components) and the project description does *not explicitly forbid* their use, **you *may* include the appropriate CDN link within the `<body>`**.
+*   **If including a CDN, use the most common and reputable CDN provider** (e.g., cdnjs, unpkg).
+*   **Include only those CDNs that are *directly relevant* to the functionality of the page as described in the project description**.
 *   The CDN links should be placed **at the very bottom of the body section** (just before the closing `</body>` tag).
+*   **Do not use jQuery unless specifically asked for in the project description**.
 
 Project description: {prompt}
 """
 
 css_prompt = """
-Generate CSS code to style only the classes, IDs, or elements that appear in the following HTML structure.
+Generate CSS to style the following HTML.
 
-*   Provide only the CSS code.
-*   Do not include any explanations, HTML tags, or other extraneous text.
-*   Only style the classes, IDs, or elements present in the provided HTML. Do not add any unrelated styles.
-*   **Do not include any styles for inline styles that are already included in the HTML elements.** Only add styles not yet included.
+*   The CSS should be valid and well-formatted.
+*   Make the design responsive for various screen sizes using media queries.
+*   Use the provided `id` and `class` attributes from the HTML for styling. Do not introduce new selectors based on element types unless absolutely necessary (e.g., styling all `<a>` tags for basic link styles).
+*   Prioritize using class names for styling, and use id names only when styling a specific element that is unique on the page.
+*   Use modern CSS techniques (flexbox, grid) for layout where appropriate.
 
 HTML:
 ```html
@@ -508,12 +513,14 @@ HTML:
 """
 
 js_prompt = """
-Generate JavaScript code to add functionality only for the elements and IDs present in the following HTML structure, styled with the provided CSS.
+Generate JavaScript to add interactivity to the following HTML.
 
-*   Do not add functionality for elements or IDs not included in the HTML.
-*   **Do not repeat JavaScript** or event handlers that already exist in the HTML (e.g., avoid `onclick` attributes within HTML tags).
-*   Provide only the JavaScript code.
-*   Do not include any explanations, HTML tags, or other extraneous text.
+*   The JavaScript should be valid and well-formatted.
+*   Use the provided id and class attributes from the HTML to select elements.
+*   Do not use inline event handlers (e.g., onclick). Use event listeners attached with addEventListener.
+*   If the project requires complex logic or data manipulation, consider using appropriate JavaScript methods and data structures.
+*   If the project requires fetching data from an API, use the fetch API.
+*   Ensure the JavaScript is unobtrusive and degrades gracefully if JavaScript is disabled.
 
 HTML:
 ```html

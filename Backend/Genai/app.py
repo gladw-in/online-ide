@@ -27,7 +27,6 @@ except Exception as e:
 
 CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
 
-
 api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
@@ -90,6 +89,26 @@ def generate_code_html_css_js(prompt, params):
         return f"Error: {e}"
 
 
+def generate_html(prompt):
+    formatted_prompt = html_prompt.format(prompt=prompt)
+    response = model.generate_content(formatted_prompt)
+    return extract_code(response.text)
+
+
+def generate_css(html_content):
+    formatted_prompt = css_prompt.format(html_content=html_content)
+    response = model.generate_content(formatted_prompt)
+    return extract_code(response.text)
+
+
+def generate_js(html_content, css_content):
+    formatted_prompt = js_prompt.format(
+        html_content=html_content, css_content=css_content
+    )
+    response = model.generate_content(formatted_prompt)
+    return extract_code(response.text)
+
+
 def extract_code(output):
     match = re.search(CODE_REGEX, output, re.DOTALL)
     if match:
@@ -135,54 +154,35 @@ def refactor_code_api():
 
 
 @app.route("/htmlcssjsgenerate-code", methods=["POST"])
-def htmlcssjs_generate():
-    try:
-        data = request.get_json()
-        prompt = data.get("prompt")
-        code_type = data.get("type")
+def htmlcssjsgenerate():
+    data = request.get_json()
+    project_description = data.get("prompt")
+    code_type = data.get("type")
 
-        if not prompt or not code_type:
-            return jsonify({"error": "Prompt and type are required."}), 400
+    if not project_description:
+        return jsonify({"error": "Project description is required"}), 400
+    if not code_type or code_type not in ["html", "css", "js"]:
+        return jsonify({"error": "Invalid or missing 'type' parameter"}), 400
+
+    try:
+
+        html_code = generate_html(project_description)
+        css_code = generate_css(html_code)
+        js_code = generate_js(html_code, css_code)
 
         if code_type == "html":
-            content = generate_code_html_css_js(html_prompt, {"prompt": prompt})
-            content = re.search(CODE_REGEX, content, re.DOTALL)
-            content = content.group(1) if content else content
-            return jsonify({"html": content})
+            return jsonify({"html": html_code})
 
-        elif code_type == "css":
-            html_content = generate_code_html_css_js(html_prompt, {"prompt": prompt})
-            content = generate_code_html_css_js(
-                css_prompt, {"html_content": html_content}
-            )
-            content = re.search(CODE_REGEX, content, re.DOTALL)
-            content = content.group(1) if content else content
-            return jsonify({"css": content})
+        if code_type == "css":
+            return jsonify({"css": css_code})
 
-        elif code_type == "js":
-            html_content = generate_code_html_css_js(html_prompt, {"prompt": prompt})
-            css_content = generate_code_html_css_js(
-                css_prompt, {"html_content": html_content}
-            )
-            content = generate_code_html_css_js(
-                js_prompt, {"html_content": html_content, "css_content": css_content}
-            )
-            content = re.search(CODE_REGEX, content, re.DOTALL)
-            content = content.group(1) if content else content
-            return jsonify({"js": content})
+        if code_type == "js":
+            return jsonify({"js": js_code})
 
-        else:
-            return (
-                jsonify(
-                    {
-                        "error": "Invalid type. Please choose from 'html', 'css', or 'js'."
-                    }
-                ),
-                400,
-            )
-
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"error": "An unexpected error occurred: " + str(e)}), 500
 
 
 @app.route("/htmlcssjsrefactor-code", methods=["POST"])

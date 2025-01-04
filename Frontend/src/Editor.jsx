@@ -294,6 +294,7 @@ const Editor = ({ isDarkMode }) => {
       inputPlaceholder: "e.g., simple calculator",
       showCancelButton: true,
       allowOutsideClick: false,
+      footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">Refactor the code if the <span class="font-bold">generated code</span> is not functioning properly.</p>`,
       inputValidator: (value) => {
         if (!value) {
           return "This field is mandatory! Please enter a prompt.";
