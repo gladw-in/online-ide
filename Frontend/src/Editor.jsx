@@ -240,12 +240,7 @@ const Editor = ({ isDarkMode }) => {
   const downloadFile = () => {
     const editorCode = JSON.parse(sessionStorage.getItem("editorCode"));
 
-    if (
-      !editorCode ||
-      !editorCode.html ||
-      !editorCode.css ||
-      !editorCode.javascript
-    ) {
+    if (!editorCode) {
       return;
     }
 
