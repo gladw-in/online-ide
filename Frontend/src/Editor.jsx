@@ -238,10 +238,23 @@ const Editor = ({ isDarkMode }) => {
   };
 
   const downloadFile = () => {
-    let { html, css, javascript } = code;
-    html = html.replace(/<html.*?>|<\/html>/gi, "");
-    html = html.replace(/<head.*?>|<\/head>/gi, "");
-    html = html.replace(/<body.*?>|<\/body>/gi, "");
+    const editorCode = JSON.parse(sessionStorage.getItem("editorCode"));
+
+    if (
+      !editorCode ||
+      !editorCode.html ||
+      !editorCode.css ||
+      !editorCode.javascript
+    ) {
+      return;
+    }
+
+    const { html, css, javascript } = editorCode;
+
+    const cleanedHtml = html
+      .replace(/<html.*?>|<\/html>/gi, "")
+      .replace(/<head.*?>|<\/head>/gi, "")
+      .replace(/<body.*?>|<\/body>/gi, "");
 
     const finalHtml = `
       <html>
@@ -250,7 +263,7 @@ const Editor = ({ isDarkMode }) => {
           <style>${css}</style>
         </head>
         <body>
-          ${html}
+          ${cleanedHtml}
           <script>${javascript}</script>
         </body>
       </html>
