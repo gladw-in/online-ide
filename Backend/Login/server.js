@@ -315,13 +315,23 @@ app.post('/api/register', async (req, res) => {
 	try {
 		await checkAndConnectDB();
 
-		const existingUser = await User.findOne({
+		const existingEmail = await User.findOne({
 			email
 		});
 
-		if (existingUser) {
+		if (existingEmail) {
 			return res.status(400).json({
-				msg: 'User already exists'
+				msg: 'Email already in use'
+			});
+		}
+
+		const existingUsername = await User.findOne({
+			username
+		});
+
+		if (existingUsername) {
+			return res.status(400).json({
+				msg: 'Username already taken'
 			});
 		}
 
