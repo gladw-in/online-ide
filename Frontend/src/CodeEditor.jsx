@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -32,8 +32,13 @@ const CodeEditor = ({
   const [loadingActionRun, setLoadingActionRun] = useState(null);
   const [loadingActionGen, setLoadingActionGen] = useState(null);
   const [loadingActionRefactor, setLoadingActionRefactor] = useState(null);
+  const [isGenerateBtnPressed, setisGenerateBtnPressed] = useState(false);
+  const [isRefactorBtnPressed, setisRefactorBtnPressed] = useState(false);
+  const [isDownloadBtnPressed, setisDownloadBtnPressed] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
+
+  const terminalRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -100,6 +105,8 @@ const CodeEditor = ({
     if (code.length === 0) return;
     setLoadingActionRun("run");
     try {
+      setisDownloadBtnPressed(true);
+
       const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: {
@@ -124,10 +131,12 @@ const CodeEditor = ({
     } catch (error) {
       setOutput("Failed!! try again.");
     } finally {
-      document
-        .getElementById("terminal")
-        .scrollIntoView({ behavior: "smooth", block: "start" });
+      terminalRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
       setLoadingActionRun(null);
+      setisDownloadBtnPressed(false);
     }
   };
 
@@ -186,6 +195,8 @@ const CodeEditor = ({
       setLoadingActionGen("generate");
       try {
         setIsEditorReadOnly(true);
+        setisGenerateBtnPressed(true);
+
         const response = await fetch(
           `${import.meta.env.VITE_GEMINI_API_URL}/generate_code`,
           {
@@ -212,6 +223,7 @@ const CodeEditor = ({
       } finally {
         setLoadingActionGen(null);
         setIsEditorReadOnly(false);
+        setisGenerateBtnPressed(false);
       }
     }
   };
@@ -227,6 +239,7 @@ const CodeEditor = ({
     setLoadingActionRefactor("refactor");
     try {
       setIsEditorReadOnly(true);
+      setisRefactorBtnPressed(true);
 
       const response = await fetch(
         `${import.meta.env.VITE_GEMINI_API_URL}/refactor_code`,
@@ -254,6 +267,7 @@ const CodeEditor = ({
     } finally {
       setLoadingActionRefactor(null);
       setIsEditorReadOnly(false);
+      setisRefactorBtnPressed(false);
     }
   };
 
@@ -476,7 +490,7 @@ const CodeEditor = ({
           <FaMagic className="mr-2 mt-1" />
         ),
       text: loadingActionGen === "generate" ? "Generating..." : "Generate",
-      disabled: loadingActionGen === "generate",
+      disabled: isDownloadBtnPressed || isRefactorBtnPressed,
     },
     {
       action: refactorCode,
@@ -489,17 +503,15 @@ const CodeEditor = ({
         ),
       text:
         loadingActionRefactor === "refactor" ? "Refactoring..." : "Refactor",
-      disabled: code.length === 0,
+      disabled:
+        code.length === 0 || isDownloadBtnPressed || isGenerateBtnPressed,
     },
   ];
 
   const RenderOutput = () => (
     <>
-      <div className="mt-4">
-        <div
-          className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2"
-          id="terminal"
-        >
+      <div className="mt-4" ref={terminalRef}>
+        <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2">
           <div className="flex items-center space-x-2">
             <BiTerminal className="ml-2 text-2xl" />
             <h2 className="text-xl">Output</h2>
@@ -551,17 +563,19 @@ const CodeEditor = ({
         />
       </div>
       <div className="mt-4 flex flex-wrap justify-center gap-4">
-        {buttonsConfig.map((button, index) => (
-          <button
-            key={index}
-            onClick={button.action}
-            className={`px-6 py-2 ${button.bgColor} text-white inline-flex place-content-center rounded-md w-full sm:w-auto md:hover:scale-105 transition-transform duration-200`}
-            disabled={button.disabled}
-          >
-            {button.icon}
-            {button.text}
-          </button>
-        ))}
+        {buttonsConfig.map(
+          ({ action, bgColor, icon, text, disabled }, index) => (
+            <button
+              key={index}
+              onClick={action}
+              className={`px-6 py-2 ${bgColor} text-white inline-flex place-content-center rounded-md w-full sm:w-auto md:hover:scale-105 transition-transform duration-200`}
+              disabled={disabled}
+            >
+              {icon}
+              {text}
+            </button>
+          )
+        )}
       </div>
       <RenderOutput />
     </div>

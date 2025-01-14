@@ -636,15 +636,15 @@ const Editor = ({ isDarkMode }) => {
         ))}
       </div>
       <div className="mt-4 flex flex-wrap justify-center gap-4">
-        {buttonData.map((button, index) => (
+        {buttonData.map(({ onClick, color, icon, text, disabled }, index) => (
           <button
             key={index}
-            onClick={button.onClick}
-            className={`px-6 py-2 text-white inline-flex place-content-center rounded-md w-full sm:w-auto md:hover:scale-105 transition-transform duration-200 ${button.color}`}
-            disabled={button.disabled}
+            onClick={onClick}
+            className={`px-6 py-2 text-white inline-flex place-content-center rounded-md w-full sm:w-auto md:hover:scale-105 transition-transform duration-200 ${color}`}
+            disabled={disabled}
           >
-            {button.icon}
-            {button.text}
+            {icon}
+            {text}
           </button>
         ))}
       </div>
