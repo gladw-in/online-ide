@@ -39,6 +39,7 @@ const CodeEditor = ({
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
 
   const terminalRef = useRef(null);
+  const editorRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -101,6 +102,10 @@ const CodeEditor = ({
     }
   }, [code, output, language]);
 
+  const handleEditorDidMount = (editor, monaco) => {
+    editorRef.current = editor;
+  };
+
   const runCode = async () => {
     if (code.length === 0) return;
     setLoadingActionRun("run");
@@ -154,6 +159,18 @@ const CodeEditor = ({
 
     try {
       await navigator.clipboard.writeText(content);
+
+      const lastLineNumber = editorRef.current.getModel().getLineCount();
+      editorRef.current.revealLine(lastLineNumber);
+      editorRef.current.setSelection({
+        startLineNumber: 1,
+        startColumn: 1,
+        endLineNumber: lastLineNumber,
+        endColumn: editorRef.current
+          .getModel()
+          .getLineMaxColumn(lastLineNumber),
+      });
+
       setCpyBtnState("Copied!");
     } catch (err) {
       setCpyBtnState("Error!");
@@ -221,6 +238,8 @@ const CodeEditor = ({
       } catch (error) {
         Swal.fire("Error", "Failed to generate code.", "error");
       } finally {
+        editorRef.current.revealLine(1);
+
         setLoadingActionGen(null);
         setIsEditorReadOnly(false);
         setisGenerateBtnPressed(false);
@@ -542,6 +561,7 @@ const CodeEditor = ({
           value={code}
           onChange={(newValue) => setCode(newValue)}
           editorDidMount={(editor) => editor.focus()}
+          onMount={handleEditorDidMount}
           height="350px"
           theme={isDarkMode ? "vs-dark" : "vs-light"}
           options={{
