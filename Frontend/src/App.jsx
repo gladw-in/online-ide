@@ -11,12 +11,7 @@ const App = () => {
       <Router>
         <ThemeContext.Consumer>
           {({ isDarkMode, toggleTheme }) => (
-            <div
-              id="main-div"
-              className={`min-h-screen flex flex-col bg-[#f3f3f3] dark:bg-gray-900 dark:text-white select-none dark:[color-scheme:dark] ${
-                isDarkMode ? "dark" : ""
-              }`}
-            >
+            <div className="min-h-screen flex flex-col bg-[#f3f3f3] dark:bg-gray-900 dark:text-white select-none dark:[color-scheme:dark]">
               <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
               <EditorRoutes isDarkMode={isDarkMode} />
               <Footer />
