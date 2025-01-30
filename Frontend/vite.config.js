@@ -2,10 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { terser } from 'rollup-plugin-terser';
 import { createHtmlPlugin } from 'vite-plugin-html';
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   base: "/",
   plugins: [react(),
+    tailwindcss(),
     createHtmlPlugin({
       minify: {
         collapseWhitespace: true,

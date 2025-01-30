@@ -19,7 +19,6 @@ const InputField = ({
       {label} <span className="text-red-600">*</span>
     </label>
     <input
-      id={name}
       type={type}
       name={name}
       value={value}
@@ -112,6 +111,8 @@ const Login = () => {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("username", data.username);
+      localStorage.setItem("login", "true");
+      sessionStorage.removeItem("sharedLinks");
 
       navigate(window.history.length > 2 ? -1 : "/");
       location.reload();

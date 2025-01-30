@@ -1,17 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { debounce } from "lodash";
 import MonacoEditor from "@monaco-editor/react";
+import ShareLinkModal from "./utils/ShareLinkModal.js";
 import { useNavigate } from "react-router-dom";
 import { PiFileHtmlFill, PiFileCssFill, PiFileJsFill } from "react-icons/pi";
 import { MdPreview } from "react-icons/md";
 import { SlSizeFullscreen } from "react-icons/sl";
 import { FaSpinner, FaDownload, FaWrench } from "react-icons/fa6";
-import { FaMagic, FaTrashAlt } from "react-icons/fa";
+import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
 import Swal from "sweetalert2/dist/sweetalert2.js";
-import "sweetalert2/src/sweetalert2.scss";
-import sampleHtml from "./samples/index.html?raw";
-import sampleCSS from "./samples/style.css?raw";
-import sampleJs from "./samples/script.js?raw";
 
 const EditorSection = ({
   language,
@@ -35,7 +32,7 @@ const EditorSection = ({
   };
 
   return (
-    <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-200 rounded-lg">
+    <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-lg">
       <div className="flex items-center my-2 ml-3">
         {React.createElement(getLanguageIcon(), { className: "mr-2 text-xl" })}
         <h2 className="text-xl">
@@ -60,6 +57,7 @@ const EditorSection = ({
           folding: true,
           cursorBlinking: "smooth",
           cursorSmoothCaretAnimation: true,
+          scrollBeyondLastLine: false,
           cursorStyle: "line",
           fontSize,
           readOnly,
@@ -71,12 +69,18 @@ const EditorSection = ({
   );
 };
 
-const Editor = ({ isDarkMode }) => {
+const Editor = ({ isDarkMode, value, shareIdData }) => {
+  const storageKey = `${shareIdData || "htmlcssjs"}code`;
+
   const [code, setCode] = useState(() => {
-    const savedCode = sessionStorage.getItem("editorCode");
+    const savedCode = sessionStorage.getItem(storageKey);
     return savedCode
       ? JSON.parse(savedCode)
-      : { html: sampleHtml, css: sampleCSS, javascript: sampleJs };
+      : {
+          html: value.html || "",
+          css: value.css || "",
+          javascript: value.javascript || "",
+        };
   });
 
   const [deviceType, setDeviceType] = useState("pc");
@@ -87,6 +91,8 @@ const Editor = ({ isDarkMode }) => {
   const [isRefactorBtnPressed, setisRefactorBtnPressed] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
+
+  const iframeRef = useRef(null);
 
   const fontSizeMap = {
     pc: 16,
@@ -102,7 +108,7 @@ const Editor = ({ isDarkMode }) => {
 
   useEffect(() => {
     const storedCode = JSON.stringify(code);
-    sessionStorage.setItem("editorCode", storedCode);
+    sessionStorage.setItem(storageKey, storedCode);
 
     const token = localStorage.getItem("token");
     if (token) {
@@ -127,18 +133,31 @@ const Editor = ({ isDarkMode }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    const editorCode = JSON.parse(sessionStorage.getItem(storageKey));
+    const { html, css, javascript } = editorCode;
+
+    if (html.length === 0 && css.length === 0 && javascript.length === 0) {
+      setCode({
+        html: value.html || "",
+        css: value.css || "",
+        javascript: value.javascript || "",
+      });
+    }
+  }, []);
+
   const updatePreview = useCallback(
     debounce(() => {
       const { html, css, javascript } = code;
-      const iframe = document.getElementById("previewFrame");
 
-      if (iframe) {
+      if (iframeRef.current) {
         const iframeDocument =
-          iframe.contentDocument || iframe.contentWindow.document;
+          iframeRef.current.contentDocument ||
+          iframeRef.current.contentWindow.document;
 
         iframeDocument.open();
         iframeDocument.write(`
-          <html>
+          <html style="scrollbar-width: thin;">
             <head>
               <style>${css}</style>
             </head>
@@ -157,8 +176,6 @@ const Editor = ({ isDarkMode }) => {
           </html>
         `);
         iframeDocument.close();
-      } else {
-        console.error("Iframe not found");
       }
     }, 500),
     [code]
@@ -168,7 +185,7 @@ const Editor = ({ isDarkMode }) => {
     const { html, css, javascript } = code;
     const newWindow = window.open("", "_blank");
     newWindow.document.write(`
-      <html>
+      <html style="scrollbar-width: thin;">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Preview</title>
@@ -200,22 +217,20 @@ const Editor = ({ isDarkMode }) => {
   };
 
   const clearAll = () => {
+    setCode({ html: "", css: "", javascript: "" });
+    sessionStorage.removeItem(storageKey);
+
     const { html, css, javascript } = code;
 
-    setCode({ html: "", css: "", javascript: "" });
-    sessionStorage.removeItem("editorCode");
-
-    const iframe = document.getElementById("previewFrame");
-
-    if (iframe) {
+    if (iframeRef.current) {
       const iframeDocument =
-        iframe.contentDocument || iframe.contentWindow.document;
+        iframeRef.current.contentDocument ||
+        iframeRef.current.contentWindow.document;
 
       iframeDocument.open();
       iframeDocument.write(`
         <html>
           <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <style>${css}</style>
           </head>
           <body>
@@ -233,12 +248,11 @@ const Editor = ({ isDarkMode }) => {
         </html>
       `);
       iframeDocument.close();
-      location.reload();
     }
   };
 
   const downloadFile = () => {
-    const editorCode = JSON.parse(sessionStorage.getItem("editorCode"));
+    const editorCode = JSON.parse(sessionStorage.getItem(storageKey));
 
     if (!editorCode) {
       return;
@@ -276,7 +290,13 @@ const Editor = ({ isDarkMode }) => {
   };
 
   const handleCtrlS = (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.key === "s" &&
+      code.html.length !== 0 &&
+      code.css.length !== 0 &&
+      code.javascript.length !== 0
+    ) {
       event.preventDefault();
       downloadFile();
     }
@@ -297,7 +317,7 @@ const Editor = ({ isDarkMode }) => {
 
     const { value: prompt } = await Swal.fire({
       title: "Enter",
-      input: "text",
+      input: "textarea",
       inputLabel: "What code do you want?",
       inputPlaceholder: "e.g., simple calculator",
       showCancelButton: true,
@@ -313,16 +333,15 @@ const Editor = ({ isDarkMode }) => {
     if (prompt) {
       setLoadingAction("generate");
       try {
-        generatesetBtnTxt("Generating Html...");
+        generatesetBtnTxt("Generating HTML...");
         setisGenerateBtnPressed(true);
         setIsEditorReadOnly(true);
+
         const responseHtml = await fetch(
           `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               prompt,
               type: "html",
@@ -341,17 +360,16 @@ const Editor = ({ isDarkMode }) => {
           javascript: "",
         });
 
-        generatesetBtnTxt("Generating css...");
+        generatesetBtnTxt("Generating CSS...");
 
         const responseCss = await fetch(
           `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               prompt,
+              htmlContent: resultHtml.html,
               type: "css",
             }),
           }
@@ -365,20 +383,20 @@ const Editor = ({ isDarkMode }) => {
         setCode((prevCode) => ({
           html: prevCode.html,
           css: resultCss.css || "",
-          javascript: prevCode.js,
+          javascript: prevCode.javascript,
         }));
 
-        generatesetBtnTxt("Generating js...");
+        generatesetBtnTxt("Generating JS...");
 
         const responseJs = await fetch(
           `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               prompt,
+              htmlContent: resultHtml.html,
+              cssContent: resultCss.css,
               type: "js",
             }),
           }
@@ -394,9 +412,14 @@ const Editor = ({ isDarkMode }) => {
           css: prevCode.css,
           javascript: resultJs.js || "",
         }));
-        getGenerateCodeCount();
+
+        await getGenerateCodeCount();
       } catch (error) {
-        Swal.fire("Error", "Failed to generate code.", "error");
+        Swal.fire(
+          "Error",
+          error.message || "Failed to generate code.",
+          "error"
+        );
       } finally {
         generatesetBtnTxt("Generate");
         setisGenerateBtnPressed(false);
@@ -414,9 +437,20 @@ const Editor = ({ isDarkMode }) => {
 
     setLoadingAction("refactor");
     try {
-      refactorsetBtnTxt("Refactoring Html...");
+      refactorsetBtnTxt("Refactoring HTML...");
       setisRefactorBtnPressed(true);
       setIsEditorReadOnly(true);
+
+      const updateCodeState = (html, css, js) => {
+        setCode((prevCode) => ({
+          html: html || prevCode.html,
+          css: css || prevCode.css,
+          javascript: js || prevCode.javascript,
+        }));
+      };
+
+      let editorCode = JSON.parse(sessionStorage.getItem(storageKey));
+      let { html, css, javascript } = editorCode;
 
       const responseHtml = await fetch(
         `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
@@ -426,9 +460,9 @@ const Editor = ({ isDarkMode }) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            html: code.html,
-            css: code.css,
-            javascript: code.js,
+            html: html,
+            css: css,
+            javascript: javascript,
             type: "html",
           }),
         }
@@ -437,15 +471,17 @@ const Editor = ({ isDarkMode }) => {
       if (!responseHtml.ok) {
         throw new Error("Failed to refactor HTML.");
       }
-
       const resultHtml = await responseHtml.json();
-      setCode({
-        html: resultHtml.html || code.html,
-        css: code.css,
-        javascript: code.js,
-      });
+      updateCodeState(resultHtml.html, null, null);
 
-      refactorsetBtnTxt("Refactoring css...");
+      refactorsetBtnTxt("Refactoring CSS...");
+
+      editorCode = JSON.parse(sessionStorage.getItem(storageKey));
+      const {
+        html: updatedHtml,
+        css: currentCss,
+        javascript: currentJs,
+      } = editorCode;
 
       const responseCss = await fetch(
         `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
@@ -455,9 +491,9 @@ const Editor = ({ isDarkMode }) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            html: resultHtml.html || code.html,
-            css: code.css,
-            javascript: code.js,
+            html: updatedHtml || html,
+            css: currentCss,
+            javascript: currentJs,
             type: "css",
           }),
         }
@@ -466,15 +502,17 @@ const Editor = ({ isDarkMode }) => {
       if (!responseCss.ok) {
         throw new Error("Failed to refactor CSS.");
       }
-
       const resultCss = await responseCss.json();
-      setCode((prevCode) => ({
-        html: prevCode.html,
-        css: resultCss.css || prevCode.css,
-        javascript: prevCode.js,
-      }));
+      updateCodeState(null, resultCss.css, null);
 
-      refactorsetBtnTxt("Refactoring js...");
+      editorCode = JSON.parse(sessionStorage.getItem(storageKey));
+      const {
+        html: finalHtml,
+        css: finalCss,
+        javascript: currentJs2,
+      } = editorCode;
+
+      refactorsetBtnTxt("Refactoring JS...");
 
       const responseJs = await fetch(
         `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
@@ -484,9 +522,9 @@ const Editor = ({ isDarkMode }) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            html: resultHtml.html || code.html,
-            css: resultCss.css || code.css,
-            javascript: code.js,
+            html: finalHtml || html,
+            css: finalCss || css,
+            javascript: currentJs2,
             type: "js",
           }),
         }
@@ -495,21 +533,136 @@ const Editor = ({ isDarkMode }) => {
       if (!responseJs.ok) {
         throw new Error("Failed to refactor JS.");
       }
-
       const resultJs = await responseJs.json();
-      setCode((prevCode) => ({
-        html: prevCode.html,
-        css: prevCode.css,
-        javascript: resultJs.js,
-      }));
-      getRefactorCodeCount();
-    } catch (error) {
+      updateCodeState(null, null, resultJs.js);
+
+      if (isLoggedIn) {
+        await getRefactorCodeCount();
+      }
+    } catch {
       Swal.fire("Error", "Failed to refactor code.", "error");
     } finally {
       refactorsetBtnTxt("Refactor");
       setisRefactorBtnPressed(false);
       setIsEditorReadOnly(false);
       setLoadingAction(null);
+    }
+  };
+
+  const shareLink = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    const editorCode = JSON.parse(sessionStorage.getItem(storageKey));
+    const language = "htmlcssjs";
+    const defaultTitle = `${language}-untitled-${Math.random()
+      .toString(36)
+      .substring(2, 7)}`;
+
+    if (!editorCode) {
+      Swal.fire({
+        icon: "error",
+        title: "Missing Information",
+        text: "Please provide the code before uploading.",
+      });
+      return;
+    }
+
+    const { isDismissed } = await Swal.fire({
+      title: "Create Share link",
+      html: ShareLinkModal(defaultTitle),
+      showCancelButton: true,
+      allowOutsideClick: false,
+      footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You Delete shared links anytime from the <span class="font-bold">Homepage</span>.</p>`,
+    });
+
+    if (isDismissed) {
+      return;
+    }
+
+    const finalTitle =
+      document.getElementById("titleInput").value || defaultTitle;
+    const expiryTime =
+      parseInt(
+        document.querySelector('input[name="expiryTime"]:checked').value
+      ) || 10;
+
+    Swal.fire({
+      title: "Generating...",
+      text: "Please wait while your Share Link is being generated.",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      const load = JSON.stringify({
+        code: editorCode,
+        language: language,
+        title: finalTitle,
+        expiryTime,
+      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_TEMP_SHARE_URL}/temp-file-upload`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: load,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to upload the code");
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data?.fileUrl) {
+          const url = new URL(data.fileUrl);
+          const shareId = url.pathname.split("/").pop();
+          const shareableLink = `${window.location.origin}/${shareId}`;
+
+          if (isLoggedIn) {
+            try {
+              await saveSharedLinkCount(shareId, finalTitle);
+            } catch {
+              console.error(err);
+            }
+          }
+
+          Swal.close();
+
+          Swal.fire({
+            icon: "success",
+            title: "Share Link is generated",
+            html: `<p class="mb-2">Your code is accessible at:</p><pre class="bg-gray-100 dark:bg-neutral-800 text-neutral-800 dark:text-white p-2 rounded text-sm overflow-x-auto whitespace-pre-wrap break-words">${shareableLink}</pre>`,
+            confirmButtonText: "Copy",
+            showCancelButton: true,
+            cancelButtonText: "Close",
+            showDenyButton: true,
+            denyButtonText: "Open",
+            allowOutsideClick: false,
+            footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You Delete shared links anytime from the <span class="font-bold">Homepage</span>.</p>`,
+          }).then(async (result) => {
+            if (result.isConfirmed) {
+              await navigator.clipboard.writeText(shareableLink);
+              Swal.fire("URL Copied!", "", "success");
+            } else if (result.isDenied) {
+              window.open(shareableLink, "_blank");
+            }
+          });
+        }
+      }
+    } catch (error) {
+      Swal.close();
+      console.error(err);
     }
   };
 
@@ -554,6 +707,42 @@ const Editor = ({ isDarkMode }) => {
 
     if (!response.ok) {
       throw new Error("Failed to send request");
+    }
+  };
+
+  const saveSharedLinkCount = async (shareId, title) => {
+    try {
+      const username = localStorage.getItem("username");
+
+      if (!username) {
+        throw new Error("Username not found.");
+      }
+
+      const countResponse = await fetch(
+        `${import.meta.env.VITE_BACKEND_API_URL}/api/sharedLink/count`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username,
+            shareId,
+            title,
+          }),
+        }
+      );
+
+      if (!countResponse.ok) {
+        const errorResponse = await countResponse.json();
+        throw new Error(
+          `Failed to save shared link count: ${
+            errorResponse.msg || countResponse.statusText
+          }`
+        );
+      }
+    } catch (err) {
+      throw err;
     }
   };
 
@@ -618,10 +807,20 @@ const Editor = ({ isDarkMode }) => {
       loadingAction: "refactor",
       iconLoading: <FaSpinner className="mr-2 mt-1 animate-spin" />,
     },
+    {
+      onClick: shareLink,
+      color: "bg-fuchsia-500",
+      icon: <FaShare className="mr-2 mt-1" />,
+      text: "Share",
+      disabled:
+        code.html.length === 0 &&
+        code.css.length === 0 &&
+        code.javascript.length === 0,
+    },
   ];
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="mx-auto p-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-4">
         {languages.map((language) => (
           <EditorSection
@@ -640,7 +839,7 @@ const Editor = ({ isDarkMode }) => {
           <button
             key={index}
             onClick={onClick}
-            className={`px-6 py-2 text-white inline-flex place-content-center rounded-md w-full sm:w-auto md:hover:scale-105 transition-transform duration-200 ${color}`}
+            className={`px-6 py-2 ${color} text-white inline-flex place-content-center rounded-md w-full transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none`}
             disabled={disabled}
           >
             {icon}
@@ -661,9 +860,9 @@ const Editor = ({ isDarkMode }) => {
           <SlSizeFullscreen className="inline-flex text-xl pb-[3px]" />
         </button>
         <iframe
-          id="previewFrame"
+          ref={iframeRef}
           title="Preview"
-          className="w-full mt-4 h-96 border-2 dark:border-gray-700 dark:text-black dark:bg-white"
+          className="w-full mt-4 h-96 bg-white text-black"
         />
       </div>
     </div>

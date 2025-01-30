@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2/dist/sweetalert2.js";
-import "sweetalert2/src/sweetalert2.scss";
 
 const InputField = ({
   label,
@@ -22,7 +21,6 @@ const InputField = ({
     </label>
     <div className="relative">
       <input
-        id={name}
         type={showPassword ? "text" : type}
         className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-400"
         value={value}
@@ -342,6 +340,9 @@ const Accounts = () => {
 
             localStorage.removeItem("token");
             localStorage.removeItem("username");
+            localStorage.removeItem("login");
+            sessionStorage.removeItem("sharedLinks");
+
             navigate("/login");
             location.reload();
           } else {
@@ -393,6 +394,9 @@ const Accounts = () => {
           if (response.ok) {
             localStorage.removeItem("token");
             localStorage.removeItem("username");
+            localStorage.removeItem("login");
+            sessionStorage.removeItem("sharedLinks");
+
             Swal.fire({
               title: "Deleted!",
               text: "Your account has been deleted.",

@@ -1,4 +1,6 @@
-An Online IDE with login functionality enables users to run code, generate new code, and refactor existing code through secure login.
+An Online IDE with login functionality enables users to run code, generate new code refactor existing code through secure login  and share the code with anyone.
+
+![Homepage](Images/Homepage.png)
 
 ![Lines of code](https://sloc.xyz/github/gladw-in/online-ide)
 
@@ -8,12 +10,21 @@ An Online IDE with login functionality enables users to run code, generate new c
 #Frontend
 VITE_GEMINI_API_URL=
 VITE_BACKEND_API_URL=
+VITE_TEMP_SHARE_URL=
+
 #Login
-MONGO_URI=mongodb+srv://username:pass@cluster0.<abcs1234>.mongodb.net/<databaseName>?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://username:pass@<abcs1234>.<abcs1234>.mongodb.net/<databaseName>?retryWrites=true&w=majority
 JWT_SECRET=
 PORT=
+
 #GenAi
 GEMINI_API_KEY=
+
+#TempFile
+REDIS_HOST=
+REDIS_PASSWORD=
+REDIS_PORT=6379
+TEMP_FILE_URL=
 ```
 
 ## Frontend Dependencies:
@@ -25,11 +36,9 @@ GEMINI_API_KEY=
 - **[rollup](https://rollupjs.org/)**: A plugin for minifying JavaScript code with Terser, improving performance by reducing bundle size.
 - **[terser](https://github.com/terser/terser)**: A fast JavaScript minifier used with bundlers like Rollup to optimize file sizes.
 - **[sweetalert2](https://sweetalert2.github.io/)**: A customizable library for creating responsive, beautiful popup alerts in JavaScript applications.
-- **[autoprefixer](https://github.com/postcss/autoprefixer)**: A PostCSS plugin that automatically adds vendor prefixes to CSS for cross-browser compatibility.
 - **[eslint](https://eslint.org/)**: A tool to identify and fix JavaScript code issues, enforcing best practices and style consistency.
 - **[globals](https://www.npmjs.com/package/globals)**: A package that provides a list of common global variables used across JavaScript environments for linting.
-- **[postcss](https://postcss.org/)**: A tool for transforming CSS with JavaScript plugins, enabling features like autoprefixing and minification.
-- **[sass-embedded](https://github.com/sass/sass)**: A modern version of Sass embedded for improved performance and support for advanced CSS features.
+- **[sass](https://github.com/sass/sass)**: A modern version of Sass embedded for improved performance and support for advanced CSS features.
 - **[tailwindcss](https://tailwindcss.com/)**: A utility-first CSS framework designed for rapid styling with predefined classes.
 - **[tailwindcss-motion](https://github.com/romboHQ/tailwindcss-motion)**: A plugin for adding animations and transitions to Tailwind CSS projects.
 - **[vite](https://vitejs.dev/)**: A fast build tool and development server for modern frontend development, featuring hot module replacement (HMR).
@@ -50,6 +59,9 @@ GEMINI_API_KEY=
 - **[flask](https://flask.palletsprojects.com/)**: A lightweight Python web framework used for building web applications.
 - **[os](https://docs.python.org/3/library/os.html)**: A module in Python providing a way of using operating system-dependent functionality, such as reading or writing to the file system.
 - **[re](https://docs.python.org/3/library/re.html)**: A module in Python used for working with regular expressions, allowing pattern matching and text manipulation.
+- **[redis](https://pypi.org/project/redis/)**: A Python client for interacting with Redis, an in-memory data structure store, used for caching, message brokering, and more.
+- **[uuid](https://docs.python.org/3/library/uuid.html)**: A Python module for generating universally unique identifiers (UUIDs), useful for creating unique keys or identifiers.
+- **[datetime](https://docs.python.org/3/library/datetime.html)**: A module in Python for manipulating dates and times, including working with time zones and formatting.
 
 ## How to Set Up and Use
 
@@ -57,18 +69,88 @@ To set up and run:
 
 ### What You Need
 
-- [Node.js](https://nodejs.org/) (version 20.0 or newer)
+- [Node.js](https://nodejs.org/) (latest version)
 - npm (usually comes with Node.js)
 - [Git](https://git-scm.com/) (version control system)
 - [Python](https://www.python.org/) (version 3.11 or newer)
 - [Pip](https://pip.pypa.io/en/stable/) Python package installer
 
-## Frontend
-
-1. Clone the repository:
+## Clone the repository:
 ```
 git clone https://github.com/gladw-in/online-ide.git
-cd online-ide/Frontend
+```
+
+## Backend Login
+
+1. Go to the Backend/Login folder:
+```
+cd Backend/Login
+```
+
+2. Install dependencies:
+```
+npm install
+```
+
+3. Remember to have the **.env**.
+
+4. Run the server:
+```
+node server.js
+```
+
+### Note: 
+Ensure that **Genai** and **TempFile** are assigned different ports.
+
+*You can modify the port by:*
+```python
+if __name__ == "__main__":
+    app.run(debug=False, port = <port>)
+```
+
+## GenAi
+
+1. Go to the Backend/Genai folder:
+```
+cd Backend/Genai
+```
+
+2. Install packages:
+```
+pip install -r requirements.txt
+```
+
+3. Remember to have the **.env**.
+
+4. Run it:
+```
+python app.py
+```
+
+## TempFile
+
+1. Go to the Backend/TempFile folder:
+```
+cd Backend/TempFile
+```
+
+2. Install packages:
+```
+pip install -r requirements.txt
+```
+
+3. Remember to have the **.env**.
+
+4. Run it:
+```
+python app.py
+```
+
+## Frontend
+
+1. Go to the Frontend folder:
+```
+cd ./Frontend
 ```
 
 2. Install dependencies:
@@ -104,43 +186,6 @@ To see how the release version looks:
 
 ```
 npm run preview
-```
-
-## Backend Login
-
-1. Clone the repository:
-```
-cd Backend/Login
-```
-
-2. Install dependencies:
-```
-npm install
-```
-
-3. Remember to have the **.env**.
-
-4. Run the server:
-```
-node server.js
-```
-## GenAi
-
-1. Clone the repository:
-```
-cd Backend/Genai
-```
-
-2. Install packages:
-```
-pip install -r requirements.txt
-```
-
-3. Remember to have the **.env**.
-
-4. Run it:
-```
-python app.py
 ```
 
 # Screenshots

@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "tailwindcss-motion";
+@custom-variant dark (&:where(.dark, .dark *));
 
 .dark div:where(.swal2-container) div:where(.swal2-popup) {
   background: #333;

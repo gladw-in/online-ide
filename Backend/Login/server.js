@@ -8,6 +8,8 @@ require('dotenv').config();
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 const corsOptions = {
 	origin: '*',
 	methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -28,7 +30,10 @@ const updateLanguageCount = (user, countType, language) => {
 			user[countType].set('js', (user[countType].get('js') || 0) + 1);
 			break;
 		case 'HtmlJsCss':
-			user[countType].set('HtmlJsCss', (user[countType].get('HtmlJsCss') || 0) + 1);
+			user[countType].set(
+				'HtmlJsCss',
+				(user[countType].get('HtmlJsCss') || 0) + 1
+			);
 			break;
 		case 'c':
 			user[countType].set('c', (user[countType].get('c') || 0) + 1);
@@ -97,29 +102,29 @@ const userSchema = new mongoose.Schema({
 	username: {
 		type: String,
 		required: true,
-		unique: true
+		unique: true,
 	},
 	email: {
 		type: String,
 		required: true,
-		unique: true
+		unique: true,
 	},
 	password: {
 		type: String,
-		required: true
+		required: true,
 	},
 	lastLogin: {
 		type: Date,
-		default: null
+		default: null,
 	},
 	createdDate: {
 		type: Date,
-		default: Date.now
+		default: Date.now,
 	},
 	generateCodeCount: {
 		type: Map,
 		of: Number,
-		default: {
+		default: () => ({
 			py: 0,
 			js: 0,
 			HtmlJsCss: 0,
@@ -139,13 +144,13 @@ const userSchema = new mongoose.Schema({
 			kt: 0,
 			perl: 0,
 			scala: 0,
-			julia: 0
-		}
+			julia: 0,
+		}),
 	},
 	refactorCodeCount: {
 		type: Map,
 		of: Number,
-		default: {
+		default: () => ({
 			py: 0,
 			js: 0,
 			HtmlJsCss: 0,
@@ -165,13 +170,13 @@ const userSchema = new mongoose.Schema({
 			kt: 0,
 			perl: 0,
 			scala: 0,
-			julia: 0
-		}
+			julia: 0,
+		}),
 	},
 	runCodeCount: {
 		type: Map,
 		of: Number,
-		default: {
+		default: () => ({
 			py: 0,
 			js: 0,
 			c: 0,
@@ -190,51 +195,69 @@ const userSchema = new mongoose.Schema({
 			kt: 0,
 			perl: 0,
 			scala: 0,
-			julia: 0
-		}
-	}
+			julia: 0,
+		}),
+	},
+	sharedLinks: {
+		type: [{
+			shareId: {
+				type: String,
+				required: true,
+				unique: true,
+			},
+			title: {
+				type: String,
+				required: true,
+			},
+		}, ],
+		default: [],
+	},
 });
 
 const logsSchema = new mongoose.Schema({
 	username: {
 		type: String,
-		required: true
+		required: true,
 	},
 	email: {
 		type: String,
-		required: true
+		required: true,
 	},
 	lastLogin: {
 		type: Date,
-		default: null
+		default: null,
 	},
 	createdDate: {
 		type: Date,
-		default: Date.now
+		default: Date.now,
 	},
 	generateCodeCount: {
 		type: Map,
 		of: Number,
-		default: {}
+		default: {},
 	},
 	refactorCodeCount: {
 		type: Map,
 		of: Number,
-		default: {}
+		default: {},
 	},
 	runCodeCount: {
 		type: Map,
 		of: Number,
-		default: {}
+		default: {},
+	},
+	sharedLinks: {
+		type: Object,
+		default: {},
 	},
 	actionType: {
 		type: String,
-		required: true
+		required: true,
 	},
 	timestamp: {
 		type: Date,
-		default: Date.now
-	}
+		default: Date.now,
+	},
 });
 
 const User = mongoose.model('user', userSchema);
@@ -244,7 +267,8 @@ const Log = mongoose.model('log', logsSchema);
 async function checkAndConnectDB() {
 	if (mongoose.connection.readyState === 0) {
 		try {
-			await mongoose.connect(MONGO_URI)
+			await mongoose
+				.connect(MONGO_URI)
 				.then(() => console.log('MongoDB connected'))
 				.catch((err) => console.log('Error connecting to MongoDB:', err));
 			console.log('MongoDB connected');
@@ -259,7 +283,7 @@ async function logUserAction(user, actionType) {
 	try {
 		let log = await Log.findOne({
 			username: user.username,
-			email: user.email
+			email: user.email,
 		});
 
 		if (log) {
@@ -268,6 +292,7 @@ async function logUserAction(user, actionType) {
 			log.generateCodeCount = user.generateCodeCount;
 			log.refactorCodeCount = user.refactorCodeCount;
 			log.runCodeCount = user.runCodeCount;
+			log.sharedLinks = user.sharedLinks;
 			log.actionType = actionType;
 		} else {
 			log = new Log({
@@ -278,7 +303,8 @@ async function logUserAction(user, actionType) {
 				generateCodeCount: user.generateCodeCount,
 				refactorCodeCount: user.refactorCodeCount,
 				runCodeCount: user.runCodeCount,
-				actionType: actionType
+				sharedLinks: user.sharedLinks,
+				actionType: actionType,
 			});
 		}
 
@@ -316,46 +342,46 @@ app.post('/api/register', async (req, res) => {
 		await checkAndConnectDB();
 
 		const existingEmail = await User.findOne({
-			email
+			email,
 		});
 
 		if (existingEmail) {
 			return res.status(400).json({
-				msg: 'Email already in use'
+				msg: 'Email already in use',
 			});
 		}
 
 		const existingUsername = await User.findOne({
-			username
+			username,
 		});
 
 		if (existingUsername) {
 			return res.status(400).json({
-				msg: 'Username already taken'
+				msg: 'Username already taken',
 			});
 		}
 
 		if (!usernameRegex.test(username)) {
 			return res.status(400).json({
-				msg: 'Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters).'
+				msg: 'Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters).',
 			});
 		}
 
 		if (username.length < 5 || username.length > 30) {
 			return res.status(400).json({
-				msg: 'Username should be between 5 and 30 characters'
+				msg: 'Username should be between 5 and 30 characters',
 			});
 		}
 
 		if (!emailRegex.test(email)) {
 			return res.status(400).json({
-				msg: 'Invalid email format'
+				msg: 'Invalid email format',
 			});
 		}
 
 		if (password.length < 8) {
 			return res.status(400).json({
-				msg: 'Password must be at least 8 characters long'
+				msg: 'Password must be at least 8 characters long',
 			});
 		}
 
@@ -375,12 +401,12 @@ app.post('/api/register', async (req, res) => {
 		await newUser.save();
 
 		res.status(201).json({
-			msg: 'User registered successfully'
+			msg: 'User registered successfully',
 		});
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
-			msg: 'Server error'
+			msg: 'Server error',
 		});
 	}
 });
@@ -393,13 +419,13 @@ app.post('/api/login', async (req, res) => {
 
 	if (!emailRegex.test(email)) {
 		return res.status(400).json({
-			msg: 'Invalid email format'
+			msg: 'Invalid email format',
 		});
 	}
 
 	if (password.length < 8) {
 		return res.status(400).json({
-			msg: 'Password must be at least 8 characters long'
+			msg: 'Password must be at least 8 characters long',
 		});
 	}
 
@@ -407,12 +433,12 @@ app.post('/api/login', async (req, res) => {
 		await checkAndConnectDB();
 
 		const user = await User.findOne({
-			email
+			email,
 		});
 
 		if (!user) {
 			return res.status(400).json({
-				msg: 'Invalid credentials'
+				msg: 'Invalid credentials',
 			});
 		}
 
@@ -420,7 +446,7 @@ app.post('/api/login', async (req, res) => {
 
 		if (!isMatch) {
 			return res.status(400).json({
-				msg: 'Invalid credentials'
+				msg: 'Invalid credentials',
 			});
 		}
 
@@ -431,19 +457,21 @@ app.post('/api/login', async (req, res) => {
 		await user.save();
 
 		const token = jwt.sign({
-			userId: user._id
-		}, process.env.JWT_SECRET, {
-			algorithm: 'HS256'
-		});
+				userId: user._id,
+			},
+			process.env.JWT_SECRET, {
+				algorithm: 'HS256',
+			}
+		);
 
 		res.json({
 			token,
-			username: user.username
+			username: user.username,
 		});
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
-			msg: 'Server error'
+			msg: 'Server error',
 		});
 	}
 });
@@ -453,7 +481,7 @@ app.get('/api/protected', async (req, res) => {
 
 	if (!token) {
 		return res.status(403).json({
-			msg: 'No token provided'
+			msg: 'No token provided',
 		});
 	}
 
@@ -465,14 +493,14 @@ app.get('/api/protected', async (req, res) => {
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
 		const includeEmail = req.query.email === 'true';
 		const response = {
 			msg: 'Protected data',
-			username: user.username
+			username: user.username,
 		};
 
 		if (includeEmail) {
@@ -482,7 +510,7 @@ app.get('/api/protected', async (req, res) => {
 		res.json(response);
 	} catch (err) {
 		res.status(403).json({
-			msg: 'Invalid or expired token'
+			msg: 'Invalid or expired token',
 		});
 	}
 });
@@ -495,25 +523,25 @@ app.put('/api/change-username', async (req, res) => {
 
 	if (!token) {
 		return res.status(403).json({
-			msg: 'No token provided'
+			msg: 'No token provided',
 		});
 	}
 
 	if (!newUsername) {
 		return res.status(400).json({
-			msg: 'New username is required'
+			msg: 'New username is required',
 		});
 	}
 
 	if (!usernameRegex.test(newUsername)) {
 		return res.status(400).json({
-			msg: 'Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters).'
+			msg: 'Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters).',
 		});
 	}
 
 	if (newUsername.length < 5 || newUsername.length > 30) {
 		return res.status(400).json({
-			msg: 'Username should be between 5 and 30 characters'
+			msg: 'Username should be between 5 and 30 characters',
 		});
 	}
 
@@ -525,17 +553,17 @@ app.put('/api/change-username', async (req, res) => {
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
 		const existingUser = await User.findOne({
-			username: newUsername
+			username: newUsername,
 		});
 
 		if (existingUser) {
 			return res.status(400).json({
-				msg: 'Username is already taken'
+				msg: 'Username is already taken',
 			});
 		}
 
@@ -543,14 +571,13 @@ app.put('/api/change-username', async (req, res) => {
 		await user.save();
 
 		res.json({
-			msg: 'Username updated successfully'
+			msg: 'Username updated successfully',
 		});
-
 	} catch (err) {
 		console.error('Error updating username:', err);
 		res.status(401).json({
 			msg: 'Invalid or expired token',
-			error: err.message
+			error: err.message,
 		});
 	}
 });
@@ -563,19 +590,19 @@ app.put('/api/change-email', async (req, res) => {
 
 	if (!token) {
 		return res.status(403).json({
-			msg: 'No token provided'
+			msg: 'No token provided',
 		});
 	}
 
 	if (!newEmail) {
 		return res.status(400).json({
-			msg: 'New email is required'
+			msg: 'New email is required',
 		});
 	}
 
 	if (!emailRegex.test(newEmail)) {
 		return res.status(400).json({
-			msg: 'Invalid email format'
+			msg: 'Invalid email format',
 		});
 	}
 
@@ -587,17 +614,17 @@ app.put('/api/change-email', async (req, res) => {
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
 		const existingUser = await User.findOne({
-			email: newEmail
+			email: newEmail,
 		});
 
 		if (existingUser) {
 			return res.status(400).json({
-				msg: 'Email is already taken'
+				msg: 'Email is already taken',
 			});
 		}
 
@@ -605,13 +632,12 @@ app.put('/api/change-email', async (req, res) => {
 		await user.save();
 
 		res.json({
-			msg: 'Email updated successfully'
+			msg: 'Email updated successfully',
 		});
-
 	} catch (err) {
 		console.error('Error updating email:', err);
 		res.status(401).json({
-			msg: 'Invalid or expired token'
+			msg: 'Invalid or expired token',
 		});
 	}
 });
@@ -626,25 +652,25 @@ app.put('/api/change-password', async (req, res) => {
 
 	if (!token) {
 		return res.status(403).json({
-			msg: 'No token provided'
+			msg: 'No token provided',
 		});
 	}
 
 	if (!newPassword || !confirmPassword) {
 		return res.status(400).json({
-			msg: 'New password and confirm password are required'
+			msg: 'New password and confirm password are required',
 		});
 	}
 
 	if (newPassword !== confirmPassword) {
 		return res.status(400).json({
-			msg: 'New password and confirm password do not match'
+			msg: 'New password and confirm password do not match',
 		});
 	}
 
 	if (newPassword.length < 8) {
 		return res.status(400).json({
-			msg: 'Password must be at least 8 characters long'
+			msg: 'Password must be at least 8 characters long',
 		});
 	}
 
@@ -656,7 +682,7 @@ app.put('/api/change-password', async (req, res) => {
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
@@ -666,20 +692,22 @@ app.put('/api/change-password', async (req, res) => {
 		await user.save();
 
 		const newToken = jwt.sign({
-			userId: user._id
-		}, process.env.JWT_SECRET, {
-			algorithm: 'HS256'
-		});
+				userId: user._id,
+			},
+			process.env.JWT_SECRET, {
+				algorithm: 'HS256',
+			}
+		);
 
 		res.json({
 			msg: 'Password updated successfully',
 			token: newToken,
-			username: user.username
+			username: user.username,
 		});
 	} catch (err) {
 		console.error('Error updating password:', err);
 		res.status(401).json({
-			msg: 'Invalid or expired token'
+			msg: 'Invalid or expired token',
 		});
 	}
 });
@@ -689,7 +717,7 @@ app.delete('/api/account', async (req, res) => {
 
 	if (!token) {
 		return res.status(403).json({
-			msg: 'No token provided'
+			msg: 'No token provided',
 		});
 	}
 
@@ -701,7 +729,7 @@ app.delete('/api/account', async (req, res) => {
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
@@ -710,12 +738,12 @@ app.delete('/api/account', async (req, res) => {
 		await User.findByIdAndDelete(decoded.userId);
 
 		res.json({
-			msg: 'Account deleted successfully'
+			msg: 'Account deleted successfully',
 		});
 	} catch (err) {
 		console.error(err);
 		res.status(403).json({
-			msg: 'Invalid or expired token'
+			msg: 'Invalid or expired token',
 		});
 	}
 });
@@ -728,13 +756,13 @@ app.post('/api/verify-password', async (req, res) => {
 
 	if (!token) {
 		return res.status(403).json({
-			msg: 'No token provided'
+			msg: 'No token provided',
 		});
 	}
 
 	if (password.length < 8) {
 		return res.status(400).json({
-			msg: 'Password must be at least 8 characters long'
+			msg: 'Password must be at least 8 characters long',
 		});
 	}
 
@@ -746,24 +774,24 @@ app.post('/api/verify-password', async (req, res) => {
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
 		const isMatch = await bcrypt.compare(password, user.password);
 		if (!isMatch) {
 			return res.status(400).json({
-				msg: 'Incorrect password'
+				msg: 'Incorrect password',
 			});
 		}
 
 		res.json({
-			msg: 'Password verified'
+			msg: 'Password verified',
 		});
 	} catch (err) {
 		console.error(err);
 		res.status(403).json({
-			msg: 'Invalid or expired token'
+			msg: 'Invalid or expired token',
 		});
 	}
 });
@@ -778,18 +806,18 @@ app.post('/api/runCode/count', async (req, res) => {
 		await checkAndConnectDB();
 
 		const user = await User.findOne({
-			username
+			username,
 		});
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
 		if (!updateLanguageCount(user, 'runCodeCount', language)) {
 			return res.status(400).json({
-				msg: 'Unsupported language'
+				msg: 'Unsupported language',
 			});
 		}
 
@@ -800,7 +828,7 @@ app.post('/api/runCode/count', async (req, res) => {
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
-			msg: 'Server error'
+			msg: 'Server error',
 		});
 	}
 });
@@ -815,18 +843,18 @@ app.post('/api/generateCode/count', async (req, res) => {
 		await checkAndConnectDB();
 
 		const user = await User.findOne({
-			username
+			username,
 		});
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
 		if (!updateLanguageCount(user, 'generateCodeCount', language)) {
 			return res.status(400).json({
-				msg: 'Unsupported language'
+				msg: 'Unsupported language',
 			});
 		}
 
@@ -837,7 +865,7 @@ app.post('/api/generateCode/count', async (req, res) => {
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
-			msg: 'Server error'
+			msg: 'Server error',
 		});
 	}
 });
@@ -852,18 +880,18 @@ app.post('/api/refactorCode/count', async (req, res) => {
 		await checkAndConnectDB();
 
 		const user = await User.findOne({
-			username
+			username,
 		});
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User not found'
+				msg: 'User not found',
 			});
 		}
 
 		if (!updateLanguageCount(user, 'refactorCodeCount', language)) {
 			return res.status(400).json({
-				msg: 'Unsupported language'
+				msg: 'Unsupported language',
 			});
 		}
 
@@ -874,7 +902,203 @@ app.post('/api/refactorCode/count', async (req, res) => {
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
-			msg: 'Server error'
+			msg: 'Server error',
+		});
+	}
+});
+
+app.post('/api/sharedLink/count', async (req, res) => {
+	const {
+		username,
+		shareId,
+		title
+	} = req.body;
+
+	if (!username || !shareId || !title) {
+		return res.status(400).json({
+			msg: 'Missing required fields: username, shareId, or title',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			username,
+		});
+
+		if (!user) {
+			return res.status(404).json({
+				msg: 'User not found',
+			});
+		}
+
+		const linkExists = user.sharedLinks.some(
+			(link) => link.shareId === shareId
+		);
+
+		if (!linkExists) {
+			user.sharedLinks.push({
+				shareId,
+				title,
+			});
+
+			await logUserAction(user, 'update');
+			await user.save();
+		}
+
+		res.status(204).send();
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: 'Server error',
+		});
+	}
+});
+
+app.post('/api/user/sharedLinks', async (req, res) => {
+	const token = req.headers['authorization']?.split(' ')[1];
+
+	if (!token) {
+		return res.status(403).json({
+			msg: 'No token provided',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+		const user = await User.findById(decoded.userId);
+
+		if (!user) {
+			return res.status(404).json({
+				msg: 'User not found',
+			});
+		}
+
+		const sharedLinksWithoutId = user.sharedLinks.map((link) => {
+			const {
+				_id,
+				...linkWithoutId
+			} = link.toObject();
+			return linkWithoutId;
+		});
+
+		res.status(200).json({
+			sharedLinks: sharedLinksWithoutId,
+		});
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: 'Server error',
+		});
+	}
+});
+
+app.delete('/api/sharedLink', async (req, res) => {
+	const {
+		shareId
+	} = req.body;
+
+	if (!shareId) {
+		return res.status(400).json({
+			msg: 'ShareId is required',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			'sharedLinks.shareId': shareId,
+		});
+
+		if (!user) {
+			return res.status(404).json({
+				msg: 'Shared link not found',
+			});
+		}
+
+		const linkIndex = user.sharedLinks.findIndex(
+			(link) => link.shareId === shareId
+		);
+
+		if (linkIndex === -1) {
+			return res.status(404).json({
+				msg: 'Shared link not found',
+			});
+		}
+
+		user.sharedLinks.splice(linkIndex, 1);
+
+		await logUserAction(user, 'update');
+
+		await user.save();
+
+		return res.status(200).json({
+			msg: 'Shared link deleted successfully',
+		});
+	} catch (err) {
+		console.error(err);
+		return res.status(500).json({
+			msg: 'Server error',
+		});
+	}
+});
+
+app.delete('/api/user/sharedLink/:shareId', async (req, res) => {
+	const {
+		shareId
+	} = req.params;
+	const token = req.headers['authorization']?.split(' ')[1];
+
+	try {
+		await checkAndConnectDB();
+
+		let user;
+
+		if (token) {
+			const decoded = jwt.verify(token, process.env.JWT_SECRET);
+			user = await User.findById(decoded.userId);
+		} else {
+			user = await User.findOne({
+				'sharedLinks.shareId': shareId,
+			});
+		}
+
+		if (!user) {
+			return res.status(404).json({
+				msg: 'User or Shared link not found',
+			});
+		}
+
+		const linkIndex = user.sharedLinks.findIndex(link => link.shareId === shareId);
+		if (linkIndex === -1) {
+			return res.status(404).json({
+				msg: 'Shared link not found',
+			});
+		}
+
+		user.sharedLinks.splice(linkIndex, 1);
+		await logUserAction(user, 'update');
+		await user.save();
+
+		res.status(200).json({
+			msg: 'Shared link deleted successfully',
+		});
+	} catch (err) {
+		console.error(err);
+
+		if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+			return res.status(403).json({
+				msg: 'Invalid or expired token',
+			});
+		}
+
+		res.status(500).json({
+			msg: 'Server error',
 		});
 	}
 });

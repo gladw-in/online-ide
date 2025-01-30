@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
+import ShareLinkModal from "./utils/ShareLinkModal.js";
 import { useNavigate } from "react-router-dom";
 import {
   FaSpinner,
@@ -8,23 +9,25 @@ import {
   FaCopy,
   FaWrench,
 } from "react-icons/fa6";
-import { FaMagic, FaTrashAlt } from "react-icons/fa";
+import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
 import { BiTerminal } from "react-icons/bi";
 import Swal from "sweetalert2/dist/sweetalert2.js";
-import "sweetalert2/src/sweetalert2.scss";
 
 const CodeEditor = ({
   language,
-  icon,
+  reactIcon,
   apiEndpoint,
   isDarkMode,
   defaultCode,
+  shareIdData,
 }) => {
+  const storageKey = shareIdData || language;
+
   const [code, setCode] = useState(
-    sessionStorage.getItem(`${language}Code`) || defaultCode || ""
+    sessionStorage.getItem(`${storageKey}Code`) || defaultCode || ""
   );
   const [output, setOutput] = useState(
-    sessionStorage.getItem(`${language}Output`) || ""
+    sessionStorage.getItem(`${shareIdData || language}Output`) || ""
   );
   const [deviceType, setDeviceType] = useState("pc");
   const [cpyBtnState, setCpyBtnState] = useState("Copy");
@@ -54,8 +57,8 @@ const CodeEditor = ({
   )} Editor - Online IDE`;
 
   useEffect(() => {
-    const savedCode = sessionStorage.getItem(`${language}Code`);
-    const savedOutput = sessionStorage.getItem(`${language}Output`);
+    const savedCode = sessionStorage.getItem(`${storageKey}Code`);
+    const savedOutput = sessionStorage.getItem(`${storageKey}Output`);
 
     if (savedCode) {
       setCode(savedCode);
@@ -90,15 +93,15 @@ const CodeEditor = ({
   }, [language]);
 
   useEffect(() => {
-    if (code !== sessionStorage.getItem(`${language}Code`) || code === "") {
-      sessionStorage.setItem(`${language}Code`, code);
+    if (code !== sessionStorage.getItem(`${storageKey}Code`) || code === "") {
+      sessionStorage.setItem(`${storageKey}Code`, code);
     }
 
     if (
-      output !== sessionStorage.getItem(`${language}Output`) ||
+      output !== sessionStorage.getItem(`${shareIdData || language}Output`) ||
       output === ""
     ) {
-      sessionStorage.setItem(`${language}Output`, output);
+      sessionStorage.setItem(`${storageKey}Output`, output);
     }
   }, [code, output, language]);
 
@@ -127,8 +130,9 @@ const CodeEditor = ({
 
       if (response.ok) {
         setOutput(result.output || "No output returned.");
+
         if (isLoggedIn) {
-          getRunCodeCount(language);
+          await getRunCodeCount(language);
         }
       } else {
         setOutput(`Error: ${result.error}`);
@@ -151,7 +155,7 @@ const CodeEditor = ({
   };
 
   const handleCopy = async () => {
-    const content = sessionStorage.getItem(`${language}Code`);
+    const content = sessionStorage.getItem(`${storageKey}Code`);
 
     if (cpyBtnState === "Copying..." || content.length === 0) return;
 
@@ -195,7 +199,7 @@ const CodeEditor = ({
 
     const { value: prompt } = await Swal.fire({
       title: "Enter",
-      input: "text",
+      input: "textarea",
       inputLabel: "What code do you want?",
       inputPlaceholder: "e.g., simple calculator",
       showCancelButton: true,
@@ -234,7 +238,8 @@ const CodeEditor = ({
 
         const result = await response.json();
         setCode(result.code || "No code generated.");
-        getGenerateCodeCount();
+
+        await getGenerateCodeCount();
       } catch (error) {
         Swal.fire("Error", "Failed to generate code.", "error");
       } finally {
@@ -280,13 +285,130 @@ const CodeEditor = ({
 
       const result = await response.json();
       setCode(result.code || "No refactored code returned.");
-      getRefactorCodeCount();
+
+      await getRefactorCodeCount();
     } catch (error) {
       Swal.fire("Error", "Failed to refactor code.", "error");
     } finally {
       setLoadingActionRefactor(null);
       setIsEditorReadOnly(false);
       setisRefactorBtnPressed(false);
+    }
+  };
+
+  const shareLink = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    if (!code || !language) {
+      Swal.fire({
+        icon: "error",
+        title: "Missing Information",
+        text: "Please provide both code and language before uploading.",
+      });
+      return;
+    }
+
+    const defaultTitle = `${language}-untitled-${Math.random()
+      .toString(36)
+      .substring(2, 7)}`;
+
+    const { isDismissed } = await Swal.fire({
+      title: "Create Share link",
+      html: ShareLinkModal(defaultTitle),
+      showCancelButton: true,
+      allowOutsideClick: false,
+      footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You Delete shared links anytime from the <span class="font-bold">Homepage</span>.</p>`,
+    });
+
+    if (isDismissed) {
+      return;
+    }
+
+    const title = document.getElementById("titleInput").value;
+    const expiryTime =
+      parseInt(
+        document.querySelector('input[name="expiryTime"]:checked').value
+      ) || 10;
+
+    const finalTitle = title.slice(0, 60) || defaultTitle;
+
+    Swal.fire({
+      title: "Generating...",
+      text: "Please wait while your Share Link is being generated.",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      const load = JSON.stringify({
+        language,
+        code,
+        title: finalTitle,
+        expiryTime,
+      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_TEMP_SHARE_URL}/temp-file-upload`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: load,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to upload the code");
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data?.fileUrl) {
+          const url = new URL(data.fileUrl);
+          const shareId = url.pathname.split("/").pop();
+          const shareableLink = `${window.location.origin}/${shareId}`;
+
+          if (isLoggedIn) {
+            try {
+              await saveSharedLinkCount(shareId, finalTitle);
+            } catch (err) {
+              console.error(err);
+            }
+          }
+
+          Swal.close();
+
+          Swal.fire({
+            icon: "success",
+            title: "Share Link is generated",
+            html: `<p class="mb-2">Your code is accessible at:</p><pre class="bg-gray-100 dark:bg-neutral-800 text-neutral-800 dark:text-white p-2 rounded text-sm overflow-x-auto whitespace-pre-wrap break-words">${shareableLink}</pre>`,
+            confirmButtonText: "Copy",
+            showCancelButton: true,
+            cancelButtonText: "Close",
+            showDenyButton: true,
+            denyButtonText: "Open",
+            allowOutsideClick: false,
+            footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You Delete shared links anytime from the <span class="font-bold">Homepage</span>.</p>`,
+          }).then(async (result) => {
+            if (result.isConfirmed) {
+              await navigator.clipboard.writeText(shareableLink);
+              Swal.fire("URL Copied!", "", "success");
+            } else if (result.isDenied) {
+              window.open(shareableLink, "_blank");
+            }
+          });
+        }
+      }
+    } catch (err) {
+      Swal.close();
+      console.error(err);
     }
   };
 
@@ -350,6 +472,44 @@ const CodeEditor = ({
 
     if (!response.ok) {
       throw new Error("Failed to send request");
+    }
+  };
+
+  const saveSharedLinkCount = async (shareId, title) => {
+    try {
+      const username = localStorage.getItem("username");
+
+      if (!username) {
+        throw new Error(
+          "Username not found in localStorage. User might not be logged in."
+        );
+      }
+
+      const countResponse = await fetch(
+        `${import.meta.env.VITE_BACKEND_API_URL}/api/sharedLink/count`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username,
+            shareId,
+            title,
+          }),
+        }
+      );
+
+      if (!countResponse.ok) {
+        const errorResponse = await countResponse.json();
+        throw new Error(
+          `Failed to save shared link count: ${
+            errorResponse.msg || countResponse.statusText
+          }`
+        );
+      }
+    } catch (err) {
+      throw err;
     }
   };
 
@@ -452,7 +612,11 @@ const CodeEditor = ({
   };
 
   const handleCtrlS = (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.key === "s" &&
+      code.length !== 0
+    ) {
       event.preventDefault();
       downloadFile(code, "file", language);
     }
@@ -525,6 +689,13 @@ const CodeEditor = ({
       disabled:
         code.length === 0 || isDownloadBtnPressed || isGenerateBtnPressed,
     },
+    {
+      action: shareLink,
+      bgColor: "bg-fuchsia-500",
+      icon: <FaShare className="mr-2 mt-1" />,
+      text: "Share",
+      disabled: code.length === 0,
+    },
   ];
 
   const RenderOutput = () => (
@@ -551,7 +722,8 @@ const CodeEditor = ({
     <div className="mx-auto p-4">
       <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-lg">
         <div className="flex items-center my-2 ml-3 pt-2">
-          {icon && React.createElement(icon, { className: "text-xl mr-2" })}
+          {reactIcon &&
+            React.createElement(reactIcon, { className: "text-xl mr-2" })}
           <h2 className="text-xl">
             {language.charAt(0).toUpperCase() + language.slice(1)} Editor
           </h2>
@@ -579,6 +751,7 @@ const CodeEditor = ({
             cursorStyle: "line",
             fontSize: fontSizeMap[deviceType],
             readOnly: isEditorReadOnly,
+            scrollBeyondLastLine: false,
           }}
         />
       </div>
@@ -588,7 +761,7 @@ const CodeEditor = ({
             <button
               key={index}
               onClick={action}
-              className={`px-6 py-2 ${bgColor} text-white inline-flex place-content-center rounded-md w-full sm:w-auto md:hover:scale-105 transition-transform duration-200`}
+              className={`px-6 py-2 ${bgColor} text-white inline-flex place-content-center rounded-md w-full transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none`}
               disabled={disabled}
             >
               {icon}

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
+import SharedLinks from "./SharedLinks";
 
 const navLinks = [
   {
@@ -108,24 +109,27 @@ const NavigationLinks = () => {
   const baseUrl = window.location.origin;
 
   useEffect(() => {
-    document.title = "Online IDE";
+    document.title = "Online IDE - Glad432";
   }, []);
 
   return (
-    <div className="flex justify-center items-center min-h-[75vh] p-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mb-6 px-4 sm:px-6 md:px-8 lg:px-8">
-        {navLinks.map(({ to, text, classes }) => (
-          <Link
-            key={to}
-            to={`${baseUrl}${to}`}
-            title={text}
-            className={`w-full px-8 py-4 text-xl font-semibold motion-preset-rebound-down ${classes} text-white text-center rounded-lg shadow-lg whitespace-nowrap overflow-hidden text-ellipsis hover:scale-105 transform transition-all duration-300 sm:px-6 sm:py-3 sm:text-lg md:px-8 md:py-4 lg:px-8 lg:py-4`}
-          >
-            {text}
-          </Link>
-        ))}
+    <>
+      <div className="flex justify-center items-center min-h-[65vh] p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mb-4 px-4 sm:px-6 md:px-8 lg:px-8">
+          {navLinks.map(({ to, text, classes }) => (
+            <Link
+              key={to}
+              to={`${baseUrl}${to}`}
+              title={text}
+              className={`w-full px-8 py-4 text-xl font-semibold motion-preset-rebound-down ${classes} text-white text-center rounded-lg shadow-lg whitespace-nowrap overflow-hidden text-ellipsis hover:scale-105 transform transition-all duration-300 sm:px-6 sm:py-3 sm:text-lg md:px-8 md:py-4 lg:px-8 lg:py-4`}
+            >
+              {text}
+            </Link>
+          ))}
+        </div>
       </div>
-    </div>
+      <SharedLinks />
+    </>
   );
 };
 

@@ -30,6 +30,7 @@ import NotFound from "./NotFound";
 import NavigationLinks from "./NavigationLinks";
 import Editor from "./Editor";
 import CodeEditor from "./CodeEditor";
+import ShareEditor from "./ShareEditor";
 import samplePy from "./samples/python.py?raw";
 import sampleJs from "./samples/javascript.js?raw";
 import sampleC from "./samples/c.c?raw";
@@ -49,8 +50,17 @@ import sampleKotlin from "./samples/kotlin.kt?raw";
 import samplePerl from "./samples/perl.pl?raw";
 import sampleScala from "./samples/scala.scala?raw";
 import sampleJulia from "./samples/julia.jl?raw";
+import sampleHtml from "./samples/index.html?raw";
+import sampleCSS from "./samples/style.css?raw";
+import sampleJavaScript from "./samples/script.js?raw";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
+
+const htmlCode = {
+  html: sampleHtml,
+  css: sampleCSS,
+  javascript: sampleJavaScript,
+};
 
 const ProtectedRoute = ({ element }) => {
   return isAuthenticated() ? element : <Navigate to="/login" />;
@@ -184,13 +194,25 @@ const EditorRoutes = ({ isDarkMode }) => (
         path="/register"
         element={<RedirectedRoute element={<Register isDarkMode />} />}
       />
+
       <Route path="/login" element={<RedirectedRoute element={<Login />} />} />
+
       <Route
         path="/accounts"
         element={<ProtectedRoute element={<Accounts />} />}
       />
+
       <Route path="/" element={<NavigationLinks />} />
-      <Route path="/htmlcssjs" element={<Editor isDarkMode={isDarkMode} />} />
+
+      <Route
+        path="/htmlcssjs"
+        element={<Editor value={htmlCode} isDarkMode={isDarkMode} />}
+      />
+
+      <Route
+        path="/:shareId"
+        element={<ShareEditor isDarkMode={isDarkMode} />}
+      />
 
       {languages.map(({ path, language, icon, sampleCode }) => (
         <Route
@@ -199,7 +221,7 @@ const EditorRoutes = ({ isDarkMode }) => (
           element={
             <CodeEditor
               language={language}
-              icon={icon}
+              reactIcon={icon}
               apiEndpoint={`${import.meta.env.VITE_GEMINI_API_URL}/get-output`}
               isDarkMode={isDarkMode}
               defaultCode={sampleCode}
