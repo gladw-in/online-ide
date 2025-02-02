@@ -10,7 +10,7 @@ An Online IDE with login functionality enables users to run code, generate new c
 #Frontend
 VITE_GEMINI_API_URL=
 VITE_BACKEND_API_URL=
-VITE_TEMP_SHARE_URL=
+VITE_TEMP_SHARE_URL= #same as TEMP_FILE_URL
 
 #Login
 MONGO_URI=mongodb+srv://username:pass@<abcs1234>.<abcs1234>.mongodb.net/<databaseName>?retryWrites=true&w=majority
@@ -24,7 +24,7 @@ GEMINI_API_KEY=
 REDIS_HOST=
 REDIS_PASSWORD=
 REDIS_PORT=6379
-TEMP_FILE_URL=
+TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
 ```
 
 ## Frontend Dependencies:

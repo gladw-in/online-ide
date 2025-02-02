@@ -9,8 +9,13 @@
         const savedTheme = localStorage.getItem("theme");
         const isDarkMode = savedTheme === "dark";
         document.documentElement.classList.toggle("dark", isDarkMode);
+
+        const validKeys = ["theme", "token", "username", "login"];
+
         window.addEventListener('storage', (event) => {
-          location.reload();
+          if (validKeys.includes(event.key)) {
+            location.reload();
+          }
         });
       })();
     </script>

@@ -11,12 +11,12 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0-rc.0",
-    "@tailwindcss/vite": "^4.0.1",
+    "@tailwindcss/vite": "^4.0.3",
     "lodash": "^4.17.21",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.4.0",
-    "react-router-dom": "^7.1.4",
+    "react-router-dom": "^7.1.5",
     "rollup-plugin-terser": "^7.0.2",
     "sweetalert2": "^11.15.10",
     "vite-plugin-html": "^3.2.2"
@@ -33,7 +33,7 @@
     "globals": "^15.14.0",
     "install": "^0.13.0",
     "sass": "^1.83.4",
-    "tailwindcss": "^4.0.1",
+    "tailwindcss": "^4.0.3",
     "tailwindcss-motion": "^1.0.1",
     "vite": "^6.0.11"
   }
