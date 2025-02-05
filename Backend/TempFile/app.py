@@ -13,17 +13,20 @@ app = Flask(__name__)
 CORS(app)
 
 
-try:
-    redis_client = redis.StrictRedis(
-        host=os.getenv("REDIS_HOST"),
-        port=int(os.getenv("REDIS_PORT")),
-        password=os.getenv("REDIS_PASSWORD"),
-        ssl=True,
-    )
-    redis_client.ping()
-except redis.ConnectionError as e:
-    app.logger.error(f"Redis connection error: {e}")
-    raise
+def get_redis_connection():
+    try:
+        redis_client = redis.StrictRedis(
+            host=os.getenv("REDIS_HOST"),
+            port=int(os.getenv("REDIS_PORT")),
+            password=os.getenv("REDIS_PASSWORD"),
+            ssl=True,
+        )
+        redis_client.ping()
+        return redis_client
+    except redis.ConnectionError as e:
+        app.logger.error(f"Redis connection error: {e}")
+        return None
+
 
 TEMP_FILE_URL = os.getenv("TEMP_FILE_URL")
 
@@ -35,6 +38,10 @@ def index():
 
 @app.route("/temp-file-upload", methods=["POST"])
 def upload_file():
+    redis_client = get_redis_connection()
+    if not redis_client:
+        return jsonify({"error": "Failed to connect to Redis"}), 503
+
     try:
         data = request.get_json()
 
@@ -78,10 +85,10 @@ def upload_file():
             "expiry_time": formatted_expiry_time,
         }
 
-        redis_client.setex(
+        redis_client.set(
             f"file:{language}-{file_id}:data",
-            expiry_time_minutes * 60,
             json.dumps(file_data),
+            ex=expiry_time_minutes * 60,
         )
 
         file_url = f"{TEMP_FILE_URL}/file/{language}-{file_id}"
@@ -102,9 +109,16 @@ def upload_file():
         app.logger.error(f"Unexpected error during file upload: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
+    finally:
+        redis_client.close()
+
 
 @app.route("/file/<file_id>", methods=["GET"])
 def get_file(file_id):
+    redis_client = get_redis_connection()
+    if not redis_client:
+        return jsonify({"error": "Failed to connect to Redis"}), 503
+
     try:
         language, file_id = file_id.split("-", 1)
 
@@ -132,9 +146,16 @@ def get_file(file_id):
         app.logger.error(f"Unexpected error during file retrieval: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
+    finally:
+        redis_client.close()
+
 
 @app.route("/file/<file_id>/delete", methods=["DELETE"])
 def delete_file(file_id):
+    redis_client = get_redis_connection()
+    if not redis_client:
+        return jsonify({"error": "Failed to connect to Redis"}), 503
+
     try:
         language, file_id = file_id.split("-", 1)
 
@@ -154,6 +175,9 @@ def delete_file(file_id):
     except Exception as e:
         app.logger.error(f"Unexpected error during file deletion: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
+
+    finally:
+        redis_client.close()
 
 
 if __name__ == "__main__":

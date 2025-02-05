@@ -1,5 +1,4 @@
 Flask
 flask-cors
 redis
-werkzeug
 python-dotenv
