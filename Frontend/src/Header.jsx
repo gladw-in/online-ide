@@ -15,7 +15,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 
   const baseUrl = window.location.origin;
 
-  const handleStorageChange = () => {
+  useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUsername = localStorage.getItem("username");
 
@@ -30,16 +30,6 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       setIsLoggedIn(false);
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    handleStorageChange();
-
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
   }, []);
 
   const fetchUserData = async (token, storedUsername) => {
