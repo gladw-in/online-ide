@@ -594,6 +594,7 @@ HTML:
 ```html
 {html_content}
 ```
+
 CSS:
 ```css
 {css_content}
@@ -619,6 +620,7 @@ CSS:
 ```css
 {css_content}
 ```
+
 JAVASCRIPT:
 ```js
 {js_content}
