@@ -37,14 +37,17 @@ if not api_key:
 
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    code_generation_model = genai.GenerativeModel("gemini-2.0-flash")
+    code_execution_model = genai.GenerativeModel("gemini-1.5-flash")
+    refactoring_model = genai.GenerativeModel("gemini-2.0-flash")
+    html_css_js_model = genai.GenerativeModel("gemini-2.0-flash")
 except Exception as e:
-    print(f"Error configuring the model: {e}")
+    raise RuntimeError(f"Error configuring Gemini models: {e}")
 
 
 def get_generated_code(problem_description, language):
     try:
-        response = model.generate_content(
+        response = code_generation_model.generate_content(
             generate_code_prompt.format(
                 problem_description=problem_description, language=language
             )
@@ -61,16 +64,15 @@ def get_output(code, language):
         else:
             return "Error: Language not supported."
 
-        response = model.generate_content(prompt)
+        response = code_execution_model.generate_content(prompt)
         return response.text
-
     except Exception as e:
         return f"Error: Unable to process the code. {str(e)}"
 
 
 def refactor_code(code, language):
     try:
-        response = model.generate_content(
+        response = refactoring_model.generate_content(
             refactor_code_prompt.format(code=code, language=language)
         )
         return response.text.strip()
@@ -82,19 +84,16 @@ def refactor_code(code, language):
 def generate_code_html_css_js(prompt, params):
     try:
         formatted_prompt = prompt.format(**params)
-
-        response = model.generate_content(formatted_prompt)
-
+        response = html_css_js_model.generate_content(formatted_prompt)
         result = response.text.strip()
         return result
-
     except Exception as e:
         return f"Error: {e}"
 
 
 def generate_html(prompt):
     formatted_prompt = html_prompt.format(prompt=prompt)
-    response = model.generate_content(formatted_prompt)
+    response = html_css_js_model.generate_content(formatted_prompt)
     return extract_code(response.text)
 
 
@@ -102,7 +101,7 @@ def generate_css(html_content, project_description):
     formatted_prompt = css_prompt.format(
         html_content=html_content, project_description=project_description
     )
-    response = model.generate_content(formatted_prompt)
+    response = html_css_js_model.generate_content(formatted_prompt)
     return extract_code(response.text)
 
 
@@ -112,7 +111,7 @@ def generate_js(html_content, css_content, project_description):
         css_content=css_content,
         project_description=project_description,
     )
-    response = model.generate_content(formatted_prompt)
+    response = html_css_js_model.generate_content(formatted_prompt)
     return extract_code(response.text)
 
 
