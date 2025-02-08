@@ -6,6 +6,12 @@ const ShareLinkModal = (defaultTitle) => {
 	titleInput.className = 'w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-gray-100 dark:focus:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-400';
 	titleInput.placeholder = defaultTitle;
 
+	modalContent.appendChild(titleInput);
+
+	setTimeout(() => {
+		titleInput.focus();
+	}, 0);
+
 	const expiryContainer = document.createElement('div');
 	expiryContainer.className = 'mt-4 select-none';
 
@@ -53,7 +59,6 @@ const ShareLinkModal = (defaultTitle) => {
 		expiryContainer.appendChild(expiryWrapper);
 	});
 
-	modalContent.appendChild(titleInput);
 	modalContent.appendChild(expiryContainer);
 
 	return modalContent;

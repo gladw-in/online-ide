@@ -117,9 +117,29 @@ const SharedLinks = () => {
           setSharedLinks((prevLinks) =>
             prevLinks.filter((link) => link.shareId !== shareId)
           );
+
+          const updatedLinks = sharedLinks.filter(
+            (link) => link.shareId !== shareId
+          );
+          const totalPages = Math.ceil(updatedLinks.length / itemsPerPage);
+
+          if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+          } else {
+            const currentPageStartIndex = (currentPage - 1) * itemsPerPage;
+            if (updatedLinks.length <= currentPageStartIndex) {
+              setCurrentPage(Math.max(currentPage - 1, 1));
+            }
+          }
+
+          sessionStorage.removeItem("sharedLinks");
         } else {
           Swal.close();
-          Swal.fire("Error", "Failed to delete link. Refresh and try again.", "error");
+          Swal.fire(
+            "Error",
+            "Failed to delete link. Refresh and try again.",
+            "error"
+          );
         }
 
         sessionStorage.removeItem("sharedLinks");
@@ -188,10 +208,10 @@ const SharedLinks = () => {
       setIsLoggedIn(false);
     }
 
-    if(!isLoggedIn){
+    if (!isLoggedIn) {
       return;
     }
-  
+
     const sharedLink = sessionStorage.getItem("sharedLinks");
     if (isNull(sharedLink) || sharedLink === "[]") {
       fetchSharedLinks();
