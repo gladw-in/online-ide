@@ -506,7 +506,7 @@ Generate HTML code for the following project, suitable for placement directly wi
 **VERY IMPORTANT**: Regarding external libraries/CDNs:
 
 *   **Do not use external libraries/CDNs if they are not required by the project.**
-*   If the project description *explicitly mentions* a specific library (e.g., "use Bootstrap"), **include it using the appropriate `<link>` or `<script>` tag within the `<body>`**.
+*   If the project description *explicitly mentions* a specific library (e.g., "use Bootstrap"), **include it using the appropriate `<link>` or `<script>` tag within the `<body>` ans use those classes in html code**.
 *   If the project requires functionality that is *commonly provided by a well-known library* (e.g., date/time picking, charting, complex UI components) and the project description does *not explicitly forbid* their use, **you *may* include the appropriate CDN link within the `<body>`**.
 *   **If including a CDN, use the most common and reputable CDN provider** (e.g., cdnjs, unpkg).
 *   **Include only those CDNs that are *directly relevant* to the functionality of the page as described in the project description**.
@@ -518,6 +518,7 @@ Project description: {prompt}
 
 css_prompt = """
 Generate CSS to style the following HTML.
+**If a CSS `CDN version` or styling framework (like Tailwind, etc) is used, simply reference the specific library in the CSS comments without including any HTML code or extra details.**
 
 *   The CSS should be valid and well-formatted.
 *   Make the design responsive for various screen sizes using media queries.
@@ -535,6 +536,7 @@ HTML:
 
 js_prompt = """
 Generate JavaScript to add interactivity to the following HTML.
+**Return only the JavaScript code, without including HTML or CSS.**
 
 *   The JavaScript should be valid and well-formatted.
 *   Use the provided id and class attributes from the HTML to select elements.
@@ -558,6 +560,7 @@ CSS:
 
 refactor_html_prompt = """
 Refactor HTML code for the following project, suitable for placement directly within the `<body>` tag.
+**If styling frameworks like Tailwind or Bootstrap, don't remove them—just improve them.**
 
 *   Exclude all `<html>`, `<head>`, and `<body>` tags.
 *   **Absolutely do not include any inline JavaScript** (e.g., `<script>...</script>` within HTML tags, event handlers like `onclick="..."`, or any other form of inline scripting). The HTML should be purely structural.
@@ -583,6 +586,7 @@ HTML:
 
 refactor_css_prompt = """
 Refactor CSS to style the following HTML.
+**If a CSS `CDN version` or styling framework (like Tailwind, etc) is used, simply reference the specific library in the CSS comments without including any HTML code or extra details.**
 
 *   The CSS should be valid and well-formatted.
 *   Make the design responsive for various screen sizes using media queries.
@@ -603,6 +607,7 @@ CSS:
 
 refactor_js_prompt = """
 Refactor JavaScript to add interactivity to the following HTML.
+**Return only the JavaScript code, without including HTML or CSS.**
 
 *   The JavaScript should be valid and well-formatted.
 *   Use the provided id and class attributes from the HTML to select elements.

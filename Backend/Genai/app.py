@@ -164,8 +164,12 @@ def htmlcssjs_generate():
     data = request.get_json()
     project_description = data.get("prompt")
     code_type = data.get("type")
-    html_content = data.get("htmlContent")
-    css_content = data.get("cssContent")
+    html_content = (
+        data.get("htmlContent", "") if len(data.get("htmlContent", "")) > 0 else ""
+    )
+    css_content = (
+        data.get("cssContent", "") if len(data.get("cssContent", "")) > 0 else ""
+    )
 
     if not project_description:
         return jsonify({"error": "Project description is required"}), 400
@@ -206,9 +210,9 @@ def htmlcssjs_generate():
 def htmlcssjs_refactor():
     try:
         data = request.get_json()
-        html_content = data.get("html")
-        css_content = data.get("css")
-        js_content = data.get("js")
+        html_content = data.get("html") if len(data.get("html", "")) > 0 else ""
+        css_content = data.get("css") if len(data.get("css", "")) > 0 else ""
+        js_content = data.get("js") if len(data.get("js", "")) > 0 else ""
         code_type = data.get("type")
 
         if not code_type:
