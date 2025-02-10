@@ -176,7 +176,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
           <div className="flex items-center space-x-4">
             <button
               onClick={toggleTheme}
-              className="text-xl focus:outline-none p-2 rounded-full focus:outline-none hover:bg-gray-700 transition-colors duration-200"
+              className="text-xl focus:outline-none p-2 rounded-full hover:bg-gray-700 transition-colors duration-200"
             >
               {isDarkMode ? (
                 <RxMoon className="text-white" />
@@ -187,7 +187,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="text-xl focus:outline-none p-2 rounded-full focus:outline-none hover:bg-gray-700 transition-colors duration-200 md:hidden"
+              className="text-xl focus:outline-none p-2 rounded-full hover:bg-gray-700 transition-colors duration-200 md:hidden"
             >
               <FaBarsStaggered className="text-white" />
             </button>

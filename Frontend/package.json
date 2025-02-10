@@ -11,14 +11,14 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0-rc.0",
-    "@tailwindcss/vite": "^4.0.4",
+    "@tailwindcss/vite": "^4.0.6",
     "lodash": "^4.17.21",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.4.0",
     "react-router-dom": "^7.1.5",
     "rollup-plugin-terser": "^7.0.2",
-    "sweetalert2": "^11.15.10",
+    "sweetalert2": "^11.16.0",
     "vite-plugin-html": "^3.2.2"
   },
   "devDependencies": {
@@ -29,11 +29,11 @@
     "eslint": "^9.20.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-react-refresh": "^0.4.18",
+    "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.14.0",
     "install": "^0.13.0",
     "sass": "^1.84.0",
-    "tailwindcss": "^4.0.4",
+    "tailwindcss": "^4.0.6",
     "tailwindcss-motion": "^1.0.1",
     "vite": "^6.1.0"
   }

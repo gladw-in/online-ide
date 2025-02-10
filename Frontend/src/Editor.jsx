@@ -5,6 +5,7 @@ import ShareLinkModal from "./utils/ShareLinkModal.js";
 import { useNavigate } from "react-router-dom";
 import { PiFileHtmlFill, PiFileCssFill, PiFileJsFill } from "react-icons/pi";
 import { MdPreview } from "react-icons/md";
+import { IoMdRefreshCircle } from "react-icons/io";
 import { SlSizeFullscreen } from "react-icons/sl";
 import { FaSpinner, FaDownload, FaWrench } from "react-icons/fa6";
 import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
@@ -91,6 +92,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
   const [isRefactorBtnPressed, setisRefactorBtnPressed] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const iframeRef = useRef(null);
 
@@ -206,6 +208,14 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
       </html>
     `);
     newWindow.document.close();
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    updatePreview();
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 1000);
   };
 
   useEffect(() => {
@@ -859,6 +869,17 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
         >
           <SlSizeFullscreen className="inline-flex text-xl pb-[3px]" />
         </button>
+
+        <button
+          onClick={handleRefresh}
+          className={`absolute top-2 right-2 w-10 h-10 bg-transparent text-white rounded-md transition-all duration-300 hover:text-gray-500 ${
+            isRefreshing ? "animate-spin" : ""
+          }`}
+          title="Refresh Preview"
+        >
+          <IoMdRefreshCircle className="inline-flex text-4xl" />
+        </button>
+
         <iframe
           ref={iframeRef}
           title="Preview"
