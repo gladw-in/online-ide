@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FaSpinner, FaBarsStaggered } from "react-icons/fa6";
 import { RxMoon, RxSun } from "react-icons/rx";
 import Swal from "sweetalert2/dist/sweetalert2.js";
@@ -11,22 +11,24 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoading, setLoading] = useState(true);
 
-  const navigate = useNavigate();
-
   const baseUrl = window.location.origin;
+
+  const clearAuthState = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("login");
+    sessionStorage.removeItem("sharedLinks");
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUsername = localStorage.getItem("username");
+    const login = localStorage.getItem("login");
 
-    if (token && storedUsername) {
+    if (token && storedUsername && login === "true") {
       fetchUserData(token, storedUsername);
     } else {
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      localStorage.removeItem("login");
-      sessionStorage.removeItem("sharedLinks");
-
+      clearAuthState();
       setIsLoggedIn(false);
       setLoading(false);
     }
@@ -47,8 +49,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 
       if (data.username) {
         if (data.username !== storedUsername) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("username");
+          clearAuthState();
           setIsLoggedIn(false);
           setUsername("");
           location.reload();
@@ -58,11 +59,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         setUsername(data.username);
         setIsLoggedIn(true);
       } else {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
-        localStorage.removeItem("login");
-        sessionStorage.removeItem("sharedLinks");
-
+        clearAuthState();
         setIsLoggedIn(false);
         setUsername("");
         location.reload();
@@ -86,16 +83,9 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       allowOutsideClick: false,
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
-        localStorage.removeItem("login");
-        sessionStorage.removeItem("sharedLinks");
-
+        clearAuthState();
         setIsLoggedIn(false);
         setUsername("");
-
-        navigate(window.history.length > 2 ? -1 : "/");
-
         location.reload();
       }
     });
@@ -119,7 +109,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   return (
     <>
       {isLoading && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex justify-center items-center z-50 overflow-hidden">
+        <div className="fixed inset-0 bg-opacity-50 bg-transparent dark:bg-opacity-70 flex justify-center items-center z-50 overflow-hidden">
           <div className="flex items-center space-x-3 bg-white p-4 rounded-lg shadow-lg dark:bg-gray-800 dark:text-white">
             <FaSpinner className="text-4xl animate-spin" />
             <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">
