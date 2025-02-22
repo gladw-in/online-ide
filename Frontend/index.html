@@ -4,21 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <script>
-      (() => {
-        const savedTheme = localStorage.getItem("theme");
-        const isDarkMode = savedTheme === "dark";
-        document.documentElement.classList.toggle("dark", isDarkMode);
-
-        const validKeys = ["theme", "token", "username", "login"];
-
-        window.addEventListener('storage', (event) => {
-          if (validKeys.includes(event.key)) {
-            location.reload();
-          }
-        });
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

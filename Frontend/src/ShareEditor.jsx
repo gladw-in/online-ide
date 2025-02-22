@@ -3,6 +3,13 @@ import { useParams } from "react-router-dom";
 import NotFound from "./NotFound";
 import CodeEditor from "./CodeEditor";
 import Editor from "./Editor";
+import {
+  SESSION_STORAGE_FETCH_STATUS_KEY,
+  SESSION_STORAGE_SHARELINKS_KEY,
+  TEMP_SHARE_API_URL,
+  GENAI_API_URL,
+  BACKEND_API_URL,
+} from "./utils/constants";
 import { FaSpinner, FaGolang } from "react-icons/fa6";
 import { IoLogoPython } from "react-icons/io5";
 import {
@@ -51,7 +58,7 @@ const languageIcons = {
 
 const isUUIDMatch = (inputString) => {
   const regex =
-    /(c|cpp|csharp|dart|go|htmlcssjs|java|javascript|julia|kotlin|mongodb|perl|python|ruby|rust|scala|shell|sql|swift|typescript)-([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/;
+    /(c|cpp|csharp|dart|go|htmlcssjs|java|javascript|julia|kotlin|mongodb|perl|python|ruby|rust|scala|sql|swift|typescript|verilog)-([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/;
   return regex.test(inputString);
 };
 
@@ -92,7 +99,9 @@ const ShareEditor = ({ isDarkMode }) => {
       return;
     }
 
-    const fetchStatus = sessionStorage.getItem("fetchStatus");
+    const fetchStatus = sessionStorage.getItem(
+      SESSION_STORAGE_FETCH_STATUS_KEY
+    );
     if (fetchStatus === "true") {
       const cachedData = sessionStorage.getItem(shareId);
       if (cachedData) {
@@ -111,9 +120,7 @@ const ShareEditor = ({ isDarkMode }) => {
 
     try {
       setState((prev) => ({ ...prev, loading: true }));
-      const response = await fetch(
-        `${import.meta.env.VITE_TEMP_SHARE_URL}/file/${shareId}`
-      );
+      const response = await fetch(`${TEMP_SHARE_API_URL}/file/${shareId}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -158,7 +165,7 @@ const ShareEditor = ({ isDarkMode }) => {
               title: data.title,
             })
           );
-          sessionStorage.setItem("fetchStatus", "true");
+          sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "true");
         }
       } else {
         setState({
@@ -169,7 +176,7 @@ const ShareEditor = ({ isDarkMode }) => {
           shareIdNotFound: true,
           loading: false,
         });
-        sessionStorage.setItem("fetchStatus", "false");
+        sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
       }
     } catch (error) {
       setState({
@@ -180,21 +187,18 @@ const ShareEditor = ({ isDarkMode }) => {
         shareIdNotFound: true,
         loading: false,
       });
-      sessionStorage.setItem("fetchStatus", "false");
+      sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
     }
   }, [shareId]);
 
   const deleteSharedLink = async (shareId) => {
-    const linkResponse = await fetch(
-      `${import.meta.env.VITE_BACKEND_API_URL}/api/sharedLink`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ shareId }),
-      }
-    );
+    const linkResponse = await fetch(`${BACKEND_API_URL}/api/sharedLink`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ shareId }),
+    });
 
     const responseJson = await linkResponse.json();
 
@@ -202,6 +206,8 @@ const ShareEditor = ({ isDarkMode }) => {
       throw new Error(
         `Error deleting shared link: ${linkResponse.status} - ${responseJson.msg}`
       );
+    } else {
+      sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
     }
   };
 
@@ -243,7 +249,7 @@ const ShareEditor = ({ isDarkMode }) => {
   return (
     <div>
       {expiryTime && title && (
-        <div className="ml-5 text-sm text-gray-500 font-medium pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-start">
+        <div className="ml-5 text-sm text-gray-500 select-text font-medium pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-start">
           <div className="mb-2 sm:mb-0">
             <span className="mr-2">Title:</span>
             <span title={title}>{formattedTitle}</span>
@@ -257,15 +263,17 @@ const ShareEditor = ({ isDarkMode }) => {
       {language === "htmlcssjs" ? (
         <Editor
           shareIdData={shareId}
+          title={title}
           value={code}
           isDarkMode={isDarkMode}
         />
       ) : (
         <CodeEditor
           shareIdData={shareId}
+          title={title}
           language={language}
           reactIcon={icon}
-          apiEndpoint={`${import.meta.env.VITE_GEMINI_API_URL}/get-output`}
+          apiEndpoint={`${GENAI_API_URL}/get-output`}
           isDarkMode={isDarkMode}
           defaultCode={code}
         />

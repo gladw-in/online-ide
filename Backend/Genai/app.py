@@ -17,6 +17,28 @@ from prompts import (
     refactor_code_prompt,
 )
 
+valid_languages = {
+    "python",
+    "javascript",
+    "rust",
+    "mongodb",
+    "swift",
+    "ruby",
+    "dart",
+    "perl",
+    "scala",
+    "julia",
+    "go",
+    "java",
+    "cpp",
+    "csharp",
+    "c",
+    "sql",
+    "typescript",
+    "kotlin",
+    "verilog",
+}
+
 app = Flask(__name__)
 CORS(app)
 
@@ -47,6 +69,9 @@ except Exception as e:
 
 def get_generated_code(problem_description, language):
     try:
+        if language not in valid_languages:
+            return "Error: Unsupported language."
+
         response = code_generation_model.generate_content(
             generate_code_prompt.format(
                 problem_description=problem_description, language=language
@@ -72,6 +97,9 @@ def get_output(code, language):
 
 def refactor_code(code, language):
     try:
+        if language not in valid_languages:
+            return "Error: Unsupported language."
+
         response = refactoring_model.generate_content(
             refactor_code_prompt.format(code=code, language=language)
         )

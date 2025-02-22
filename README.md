@@ -16,6 +16,9 @@ VITE_TEMP_SHARE_URL= #same as TEMP_FILE_URL
 MONGO_URI=mongodb+srv://username:pass@<abcs1234>.<abcs1234>.mongodb.net/<databaseName>?retryWrites=true&w=majority
 JWT_SECRET=
 PORT=
+OTP_EMAIL_SERVICE=
+OTP_EMAIL_USER=
+OTP_EMAIL_PASS=
 
 #GenAi
 GEMINI_API_KEY=
@@ -37,7 +40,6 @@ TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
 - **[terser](https://github.com/terser/terser)**: A fast JavaScript minifier used with bundlers like Rollup to optimize file sizes.
 - **[sweetalert2](https://sweetalert2.github.io/)**: A customizable library for creating responsive, beautiful popup alerts in JavaScript applications.
 - **[eslint](https://eslint.org/)**: A tool to identify and fix JavaScript code issues, enforcing best practices and style consistency.
-- **[globals](https://www.npmjs.com/package/globals)**: A package that provides a list of common global variables used across JavaScript environments for linting.
 - **[sass](https://github.com/sass/sass)**: A modern version of Sass embedded for improved performance and support for advanced CSS features.
 - **[tailwindcss](https://tailwindcss.com/)**: A utility-first CSS framework designed for rapid styling with predefined classes.
 - **[tailwindcss-motion](https://github.com/romboHQ/tailwindcss-motion)**: A plugin for adding animations and transitions to Tailwind CSS projects.
@@ -50,6 +52,9 @@ TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
 - **[express](https://expressjs.com/)**: A minimal and flexible Node.js web framework for building web and mobile applications.
 - **[jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)**: A library for creating and verifying JSON Web Tokens (JWT) to securely transmit data between parties.
 - **[mongoose](https://mongoosejs.com/)**: A MongoDB Object Data Modeling (ODM) library for Node.js, offering schema-based data modeling.
+- **[crypto](https://nodejs.org/api/crypto.html)**: A Node.js core module that provides cryptographic functionality, such as hashing, HMAC, and encryption.
+- **[nodemailer](https://nodemailer.com/)**: A module for sending emails from Node.js applications using SMTP, with support for attachments and HTML content.
+- **[path](https://nodejs.org/api/path.html)**: A Node.js core module for working with file and directory paths.
 
 ## Python Libraries:
 - **[google-generativeai](https://ai.google.dev/gemini-api/docs/quickstart?lang=python)**: A collection of Google APIs and tools for integrating generative AI models into applications.
@@ -220,8 +225,8 @@ npm run preview
 ### Go
 ![Go](Images/Go.png)
 
-### Shell
-![Shell](Images/Shell.png)
+### Verilog
+![Verilog](Images/Verilog.png)
 
 ### SQL
 ![SQL](Images/Sql.png)

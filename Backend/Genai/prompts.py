@@ -7,7 +7,7 @@ languages_prompts = {
     ```
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors, such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Python interpreter would report.
@@ -34,7 +34,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a JavaScript interpreter would report.
@@ -60,7 +60,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a C compiler would report (e.g., "expected ‘;’ before").
@@ -86,7 +86,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a C++ compiler would report (e.g., "expected ‘;’ before").
@@ -112,7 +112,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide all the most probable error message a Java compiler would report.
@@ -138,7 +138,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a C# compiler would report (e.g., "CS1002: ; expected").
@@ -164,7 +164,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Rust compiler would report (e.g., "unexpected closing delimiter").
@@ -190,7 +190,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Go compiler would report (e.g., "syntax error: unexpected ...").
@@ -206,8 +206,8 @@ languages_prompts = {
     If the code is not valid Go:
     - Output: "Language not supported."
     """,
-    "shell": """
-    Analyze the following Shell script:
+    "verilog": """
+    Analyze the following verilog code:
 
     ```
     {code}
@@ -215,21 +215,21 @@ languages_prompts = {
 
     Output:
 
-    Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or simulation issues.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
-    - Syntax errors: Provide the most probable error message a shell interpreter would report (e.g., "syntax error near unexpected token").
-    - Runtime errors: Provide a clear description (e.g., "command not found", "permission denied").
+    - Syntax errors: Provide the most probable error message a Verilog simulator would report (e.g., "Syntax error in module declaration").
+    - Simulation errors: Provide a clear description (e.g., "Unknown variable", "Undefined state").
     - Only provide the error message, not the code or explanations.
     - Review the code repeatedly to ensure it is error-free before proceeding with the output.
 
     If the code is likely error-free:
-    - If there's an infinite loop, show the first 20 iterations followed by "..."
-    - If the code uses randomness, show the output with different values for each run.
-    - Otherwise, show the full output.
+    - If there's an infinite loop in the simulation, show the first 20 iterations followed by "..."
+    - If the code involves randomization or non-deterministic behavior, show the output with different values for each run.
+    - Otherwise, show the full output of the simulation.
 
-    If the code is not valid Shell:
+    If the code is not valid Verilog:
     - Output: "Language not supported."
     """,
     "sql": """
@@ -242,7 +242,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided SQL query for potential issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a SQL engine would report (e.g., "Syntax error near...").
@@ -269,7 +269,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided MongoDB query for potential issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a MongoDB engine would report (e.g., "Unexpected token", "Unknown operator").
@@ -294,7 +294,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Swift compiler would report (e.g., "Expected ‘;’").
@@ -320,7 +320,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Ruby interpreter would report (e.g., "syntax error, unexpected ...").
@@ -346,7 +346,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a TypeScript compiler would report (e.g., "Property 'x' does not exist on type 'y'").
@@ -372,7 +372,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Dart compiler would report (e.g., "The method 'x' isn't defined for the class 'y'").
@@ -398,7 +398,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Kotlin compiler would report (e.g., "Unresolved reference: x").
@@ -424,7 +424,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Perl interpreter would report (e.g., "syntax error at ...").
@@ -450,7 +450,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Scala compiler would report (e.g., "not found: value x").
@@ -476,7 +476,7 @@ languages_prompts = {
     Output:
 
     Carefully examine the provided code line-by-line and character-by-character. Focus on errors such as syntax or runtime issues.
-    - If the snippet is a comment, then do not execute the commented-out snippet.
+    **If the snippet is a comment, then do not execute the commented snippet.**
 
     If errors are found:
     - Syntax errors: Provide the most probable error message a Julia interpreter would report (e.g., "syntax: unexpected ...").

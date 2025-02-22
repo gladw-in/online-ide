@@ -1,45 +1,14 @@
 import React, { useState, useEffect } from "react";
+import InputField from "./utils/InputField";
+import {
+  SESSION_STORAGE_SHARELINKS_KEY,
+  LOCAL_STORAGE_TOKEN_KEY,
+  LOCAL_STORAGE_USERNAME_KEY,
+  LOCAL_STORAGE_LOGIN_KEY,
+  BACKEND_API_URL,
+} from "./utils/constants";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2/dist/sweetalert2.js";
-
-const InputField = ({
-  label,
-  type,
-  value,
-  onChange,
-  required,
-  name,
-  showPassword,
-  togglePasswordVisibility,
-}) => (
-  <div className="mb-4">
-    <label
-      htmlFor={name}
-      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-    >
-      {label}
-    </label>
-    <div className="relative">
-      <input
-        type={showPassword ? "text" : type}
-        className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-400"
-        value={value}
-        onChange={onChange}
-        required={required}
-        name={name}
-      />
-      {togglePasswordVisibility && (
-        <button
-          type="button"
-          className="absolute right-3 top-[50%] transform -translate-y-1/2 text-gray-500 dark:text-gray-300"
-          onClick={togglePasswordVisibility}
-        >
-          {showPassword ? "Hide" : "Show"}
-        </button>
-      )}
-    </div>
-  </div>
-);
 
 const Accounts = () => {
   const [formData, setFormData] = useState({
@@ -59,14 +28,20 @@ const Accounts = () => {
 
   const navigate = useNavigate();
 
-  document.title = "Accounts";
-
   useEffect(() => {
+    document.title = "Accounts";
     fetchUserData();
   }, []);
 
+  const clearSession = () => {
+    localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
+    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+  }
+
   const fetchUserData = async () => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
     if (!token) {
       navigate("/login");
       location.reload();
@@ -75,7 +50,7 @@ const Accounts = () => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API_URL}/api/protected?email=true`,
+        `${BACKEND_API_URL}/api/protected?email=true`,
         {
           method: "GET",
           headers: {
@@ -101,7 +76,7 @@ const Accounts = () => {
   const handlePasswordVerification = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
     if (!token) {
       navigate("/login");
       location.reload();
@@ -113,17 +88,14 @@ const Accounts = () => {
     try {
       setBtnState(true);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API_URL}/api/verify-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ password: currentPassword }),
-        }
-      );
+      const response = await fetch(`${BACKEND_API_URL}/api/verify-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: currentPassword }),
+      });
 
       const data = await response.json();
       if (response.ok) {
@@ -142,7 +114,7 @@ const Accounts = () => {
   const handleUpdateUsername = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
     if (!token) {
       navigate("/login");
       location.reload();
@@ -168,7 +140,7 @@ const Accounts = () => {
       if (result.isConfirmed) {
         try {
           const response = await fetch(
-            `${import.meta.env.VITE_BACKEND_API_URL}/api/change-username`,
+            `${BACKEND_API_URL}/api/change-username`,
             {
               method: "PUT",
               headers: {
@@ -181,7 +153,7 @@ const Accounts = () => {
 
           const data = await response.json();
           if (response.ok) {
-            localStorage.setItem("username", username);
+            localStorage.setItem(LOCAL_STORAGE_USERNAME_KEY, username);
             Swal.fire({
               title: "Updated!",
               text: "Your username has been updated successfully.",
@@ -204,7 +176,7 @@ const Accounts = () => {
   const handleUpdateEmail = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
     if (!token) {
       navigate("/login");
       location.reload();
@@ -229,17 +201,14 @@ const Accounts = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(
-            `${import.meta.env.VITE_BACKEND_API_URL}/api/change-email`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ newEmail: email }),
-            }
-          );
+          const response = await fetch(`${BACKEND_API_URL}/api/change-email`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ newEmail: email }),
+          });
 
           const data = await response.json();
           if (response.ok) {
@@ -287,7 +256,7 @@ const Accounts = () => {
       return;
     }
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
     if (!token) {
       navigate("/login");
       location.reload();
@@ -306,7 +275,7 @@ const Accounts = () => {
       if (result.isConfirmed) {
         try {
           const response = await fetch(
-            `${import.meta.env.VITE_BACKEND_API_URL}/api/change-password`,
+            `${BACKEND_API_URL}/api/change-password`,
             {
               method: "PUT",
               headers: {
@@ -338,10 +307,7 @@ const Accounts = () => {
               currentPassword: "",
             });
 
-            localStorage.removeItem("token");
-            localStorage.removeItem("username");
-            localStorage.removeItem("login");
-            sessionStorage.removeItem("sharedLinks");
+            clearSession();
 
             navigate("/login");
             location.reload();
@@ -372,37 +338,32 @@ const Accounts = () => {
       allowOutsideClick: false,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
         if (!token) {
-          navigate("/login");
+          navigate("/");
           location.reload();
           return;
         }
 
         try {
-          const response = await fetch(
-            `${import.meta.env.VITE_BACKEND_API_URL}/api/account`,
-            {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await fetch(`${BACKEND_API_URL}/api/account`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const data = await response.json();
           if (response.ok) {
-            localStorage.removeItem("token");
-            localStorage.removeItem("username");
-            localStorage.removeItem("login");
-            sessionStorage.removeItem("sharedLinks");
+            clearSession();
 
             Swal.fire({
               title: "Deleted!",
               text: "Your account has been deleted.",
               icon: "success",
+              timer: 1500,
             }).then(() => {
-              navigate("/login");
+              navigate("/");
               location.reload();
             });
           } else {
@@ -454,6 +415,15 @@ const Accounts = () => {
           >
             {btnState ? "Verifying..." : "Verify Password"}
           </button>
+
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+            <button
+              onClick={() => navigate("/forgot-password")}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Forgot Password?
+            </button>
+          </p>
         </form>
       )}
 

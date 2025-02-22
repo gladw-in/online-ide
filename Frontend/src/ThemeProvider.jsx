@@ -1,10 +1,11 @@
 import React, { createContext, useState, useEffect } from "react";
+import { LOCAL_STORAGE_THEME_KEY } from "./utils/constants";
 
 const ThemeContext = createContext();
 
 const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem("theme");
+    const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY);
     if (savedTheme) {
       return savedTheme === "dark";
     }
@@ -14,7 +15,7 @@ const ThemeProvider = ({ children }) => {
   const toggleTheme = () => {
     setIsDarkMode((prev) => {
       const newMode = !prev;
-      localStorage.setItem("theme", newMode ? "dark" : "light");
+      localStorage.setItem(LOCAL_STORAGE_THEME_KEY, newMode ? "dark" : "light");
       return newMode;
     });
   };

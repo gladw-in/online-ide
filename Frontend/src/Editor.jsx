@@ -2,6 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { debounce } from "lodash";
 import MonacoEditor from "@monaco-editor/react";
 import ShareLinkModal from "./utils/ShareLinkModal.js";
+import {
+  SESSION_STORAGE_SHARELINKS_KEY,
+  LOCAL_STORAGE_TOKEN_KEY,
+  LOCAL_STORAGE_USERNAME_KEY,
+  GENAI_API_URL,
+  TEMP_SHARE_API_URL,
+  BACKEND_API_URL,
+} from "./utils/constants";
 import { useNavigate } from "react-router-dom";
 import { PiFileHtmlFill, PiFileCssFill, PiFileJsFill } from "react-icons/pi";
 import { MdPreview } from "react-icons/md";
@@ -70,8 +78,8 @@ const EditorSection = ({
   );
 };
 
-const Editor = ({ isDarkMode, value, shareIdData }) => {
-  const storageKey = `${shareIdData || "htmlcssjs"}code`;
+const Editor = ({ isDarkMode, value, title, shareIdData }) => {
+  const storageKey = `__${shareIdData || "htmlcssjs"}code__`;
 
   const [code, setCode] = useState(() => {
     const savedCode = sessionStorage.getItem(storageKey);
@@ -104,7 +112,24 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
 
   const languages = ["html", "css", "javascript"];
 
-  document.title = "HTML, CSS, JS Editor - Online IDE";
+  useEffect(() => {
+    const capitalizeFirstLetter = (str) => {
+      if (!str) return "";
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    };
+
+    const formattedTitle = title
+      ? title.length > 30
+        ? `${title.slice(0, 30)}...${title.slice(-3)}`
+        : title
+      : "";
+
+    document.title = formattedTitle
+      ? `${capitalizeFirstLetter(
+          formattedTitle
+        )} - HTML, CSS, JS Editor - Online IDE`
+      : "HTML, CSS, JS Editor - Online IDE";
+  }, [title]);
 
   const navigate = useNavigate();
 
@@ -112,7 +137,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
     const storedCode = JSON.stringify(code);
     sessionStorage.setItem(storageKey, storedCode);
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
     if (token) {
       setIsLoggedIn(true);
     }
@@ -159,6 +184,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
 
         iframeDocument.open();
         iframeDocument.write(`
+          <!DOCTYPE html>
           <html style="scrollbar-width: thin;">
             <head>
               <style>${css}</style>
@@ -187,7 +213,8 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
     const { html, css, javascript } = code;
     const newWindow = window.open("", "_blank");
     newWindow.document.write(`
-      <html style="scrollbar-width: thin;">
+      <!DOCTYPE html>
+      <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Preview</title>
@@ -211,9 +238,16 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
   };
 
   const handleRefresh = () => {
+    let refreshTimeout;
+
+    if (refreshTimeout) {
+      clearTimeout(refreshTimeout);
+    }
+
     setIsRefreshing(true);
-    updatePreview();
-    setTimeout(() => {
+
+    refreshTimeout = setTimeout(() => {
+      updatePreview();
       setIsRefreshing(false);
     }, 1000);
   };
@@ -239,6 +273,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
 
       iframeDocument.open();
       iframeDocument.write(`
+        <!DOCTYPE html>
         <html>
           <head>
             <style>${css}</style>
@@ -276,6 +311,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
       .replace(/<body.*?>|<\/body>/gi, "");
 
     const finalHtml = `
+      <!DOCTYPE html>
       <html>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -348,7 +384,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
         setIsEditorReadOnly(true);
 
         const responseHtml = await fetch(
-          `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
+          `${GENAI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -373,7 +409,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
         generatesetBtnTxt("Generating CSS...");
 
         const responseCss = await fetch(
-          `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
+          `${GENAI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -399,7 +435,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
         generatesetBtnTxt("Generating JS...");
 
         const responseJs = await fetch(
-          `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsgenerate-code`,
+          `${GENAI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -463,7 +499,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
       let { html, css, javascript } = editorCode;
 
       const responseHtml = await fetch(
-        `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
+        `${GENAI_API_URL}/htmlcssjsrefactor-code`,
         {
           method: "POST",
           headers: {
@@ -494,7 +530,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
       } = editorCode;
 
       const responseCss = await fetch(
-        `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
+        `${GENAI_API_URL}/htmlcssjsrefactor-code`,
         {
           method: "POST",
           headers: {
@@ -525,7 +561,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
       refactorsetBtnTxt("Refactoring JS...");
 
       const responseJs = await fetch(
-        `${import.meta.env.VITE_GEMINI_API_URL}/htmlcssjsrefactor-code`,
+        `${GENAI_API_URL}/htmlcssjsrefactor-code`,
         {
           method: "POST",
           headers: {
@@ -616,16 +652,13 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
         expiryTime,
       });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_TEMP_SHARE_URL}/temp-file-upload`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: load,
-        }
-      );
+      const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: load,
+      });
 
       if (!response.ok) {
         throw new Error("Failed to upload the code");
@@ -641,13 +674,15 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
 
           if (isLoggedIn) {
             try {
-              await saveSharedLinkCount(shareId, finalTitle);
+              await saveSharedLinkCount(shareId, finalTitle, expiryTime);
             } catch {
               console.error(err);
             }
           }
 
           Swal.close();
+
+          sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
 
           Swal.fire({
             icon: "success",
@@ -659,7 +694,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
             showDenyButton: true,
             denyButtonText: "Open",
             allowOutsideClick: false,
-            footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You Delete shared links anytime from the <span class="font-bold">Homepage</span>.</p>`,
+            footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from the <span class="font-bold">Homepage</span>.</p>`,
           }).then(async (result) => {
             if (result.isConfirmed) {
               await navigator.clipboard.writeText(shareableLink);
@@ -677,21 +712,18 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
   };
 
   const getGenerateCodeCount = async () => {
-    const username = localStorage.getItem("username");
+    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
-    const response = await fetch(
-      `${import.meta.env.VITE_BACKEND_API_URL}/api/generateCode/count`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          language: "HtmlJsCss",
-        }),
-      }
-    );
+    const response = await fetch(`${BACKEND_API_URL}/api/generateCode/count`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: username,
+        language: "HtmlJsCss",
+      }),
+    });
 
     if (!response.ok) {
       throw new Error("Failed to send request");
@@ -699,37 +731,34 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
   };
 
   const getRefactorCodeCount = async () => {
-    const username = localStorage.getItem("username");
+    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
-    const response = await fetch(
-      `${import.meta.env.VITE_BACKEND_API_URL}/api/refactorCode/count`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          language: "HtmlJsCss",
-        }),
-      }
-    );
+    const response = await fetch(`${BACKEND_API_URL}/api/refactorCode/count`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: username,
+        language: "HtmlJsCss",
+      }),
+    });
 
     if (!response.ok) {
       throw new Error("Failed to send request");
     }
   };
 
-  const saveSharedLinkCount = async (shareId, title) => {
+  const saveSharedLinkCount = async (shareId, title, expiryTime) => {
     try {
-      const username = localStorage.getItem("username");
+      const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
       if (!username) {
         throw new Error("Username not found.");
       }
 
       const countResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_API_URL}/api/sharedLink/count`,
+        `${BACKEND_API_URL}/api/sharedLink/count`,
         {
           method: "POST",
           headers: {
@@ -739,6 +768,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
             username,
             shareId,
             title,
+            expiryTime,
           }),
         }
       );
@@ -771,9 +801,11 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
       icon: <FaDownload className="mr-2 mt-1" />,
       onClick: downloadFile,
       disabled:
-        code.html.length === 0 &&
-        code.css.length === 0 &&
-        code.javascript.length === 0,
+        (code.html.length === 0 &&
+          code.css.length === 0 &&
+          code.javascript.length === 0) ||
+        loadingAction === "generate" ||
+        loadingAction === "refactor",
       color: "bg-orange-500",
       loadingAction: null,
       iconLoading: null,
@@ -823,9 +855,11 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
       icon: <FaShare className="mr-2 mt-1" />,
       text: "Share",
       disabled:
-        code.html.length === 0 &&
-        code.css.length === 0 &&
-        code.javascript.length === 0,
+        (code.html.length === 0 &&
+          code.css.length === 0 &&
+          code.javascript.length === 0) ||
+        loadingAction === "generate" ||
+        loadingAction === "refactor",
     },
   ];
 
@@ -872,6 +906,7 @@ const Editor = ({ isDarkMode, value, shareIdData }) => {
 
         <button
           onClick={handleRefresh}
+          disabled={isRefreshing}
           className={`absolute top-2 right-2 w-10 h-10 bg-transparent text-white rounded-md transition-all duration-300 hover:text-gray-500 ${
             isRefreshing ? "animate-spin" : ""
           }`}

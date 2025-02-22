@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import ShareLinkModal from "./utils/ShareLinkModal.js";
+import {
+  SESSION_STORAGE_SHARELINKS_KEY,
+  LOCAL_STORAGE_TOKEN_KEY,
+  LOCAL_STORAGE_USERNAME_KEY,
+  GENAI_API_URL,
+  TEMP_SHARE_API_URL,
+  BACKEND_API_URL,
+} from "./utils/constants";
 import { useNavigate } from "react-router-dom";
 import {
   FaSpinner,
@@ -14,6 +22,7 @@ import { BiTerminal } from "react-icons/bi";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 
 const CodeEditor = ({
+  title,
   language,
   reactIcon,
   apiEndpoint,
@@ -21,13 +30,14 @@ const CodeEditor = ({
   defaultCode,
   shareIdData,
 }) => {
-  const storageKey = shareIdData || language;
+  const codeStorageKey = `__${shareIdData || language}Code__`;
+  const outputStorageKey = `__${shareIdData || language}Output__`;
 
   const [code, setCode] = useState(
-    sessionStorage.getItem(`${storageKey}Code`) || defaultCode || ""
+    sessionStorage.getItem(codeStorageKey) || defaultCode || ""
   );
   const [output, setOutput] = useState(
-    sessionStorage.getItem(`${shareIdData || language}Output`) || ""
+    sessionStorage.getItem(outputStorageKey) || ""
   );
   const [deviceType, setDeviceType] = useState("pc");
   const [cpyBtnState, setCpyBtnState] = useState("Copy");
@@ -52,13 +62,30 @@ const CodeEditor = ({
     mobile: 12,
   };
 
-  document.title = `${language.charAt(0).toUpperCase()}${language.slice(
-    1
-  )} Editor - Online IDE`;
+  useEffect(() => {
+    const capitalizeFirstLetter = (str) => {
+      if (!str) return "";
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    };
+
+    const formattedTitle = title
+      ? title.length > 30
+        ? `${capitalizeFirstLetter(title.slice(0, 30))}...${title.slice(-3)}`
+        : capitalizeFirstLetter(title)
+      : "";
+
+    const formattedLanguage = capitalizeFirstLetter(language);
+
+    const pageTitle = formattedTitle
+      ? `${formattedTitle} - ${formattedLanguage}`
+      : formattedLanguage;
+
+    document.title = `${pageTitle} Editor - Online IDE`;
+  }, [title, language]);
 
   useEffect(() => {
-    const savedCode = sessionStorage.getItem(`${storageKey}Code`);
-    const savedOutput = sessionStorage.getItem(`${storageKey}Output`);
+    const savedCode = sessionStorage.getItem(codeStorageKey);
+    const savedOutput = sessionStorage.getItem(outputStorageKey);
 
     if (savedCode) {
       setCode(savedCode);
@@ -70,7 +97,7 @@ const CodeEditor = ({
       setOutput(savedOutput);
     }
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
     if (token) {
       setIsLoggedIn(true);
     }
@@ -93,15 +120,12 @@ const CodeEditor = ({
   }, [language]);
 
   useEffect(() => {
-    if (code !== sessionStorage.getItem(`${storageKey}Code`) || code === "") {
-      sessionStorage.setItem(`${storageKey}Code`, code);
+    if (code !== sessionStorage.getItem(codeStorageKey) || code === "") {
+      sessionStorage.setItem(codeStorageKey, code);
     }
 
-    if (
-      output !== sessionStorage.getItem(`${shareIdData || language}Output`) ||
-      output === ""
-    ) {
-      sessionStorage.setItem(`${storageKey}Output`, output);
+    if (output !== sessionStorage.getItem(outputStorageKey) || output === "") {
+      sessionStorage.setItem(outputStorageKey, output);
     }
   }, [code, output, language]);
 
@@ -155,7 +179,7 @@ const CodeEditor = ({
   };
 
   const handleCopy = async () => {
-    const content = sessionStorage.getItem(`${storageKey}Code`);
+    const content = sessionStorage.getItem(codeStorageKey);
 
     if (cpyBtnState === "Copying..." || content.length === 0) return;
 
@@ -218,19 +242,16 @@ const CodeEditor = ({
         setIsEditorReadOnly(true);
         setisGenerateBtnPressed(true);
 
-        const response = await fetch(
-          `${import.meta.env.VITE_GEMINI_API_URL}/generate_code`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              problem_description: prompt,
-              language: language,
-            }),
-          }
-        );
+        const response = await fetch(`${GENAI_API_URL}/generate_code`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            problem_description: prompt,
+            language: language,
+          }),
+        });
 
         if (!response.ok) {
           throw new Error("Failed to generate code.");
@@ -265,19 +286,16 @@ const CodeEditor = ({
       setIsEditorReadOnly(true);
       setisRefactorBtnPressed(true);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_GEMINI_API_URL}/refactor_code`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            language,
-            code,
-          }),
-        }
-      );
+      const response = await fetch(`${GENAI_API_URL}/refactor_code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          language,
+          code,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to refactor code.");
@@ -352,16 +370,13 @@ const CodeEditor = ({
         expiryTime,
       });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_TEMP_SHARE_URL}/temp-file-upload`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: load,
-        }
-      );
+      const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: load,
+      });
 
       if (!response.ok) {
         throw new Error("Failed to upload the code");
@@ -377,13 +392,15 @@ const CodeEditor = ({
 
           if (isLoggedIn) {
             try {
-              await saveSharedLinkCount(shareId, finalTitle);
+              await saveSharedLinkCount(shareId, finalTitle, expiryTime);
             } catch (err) {
               console.error(err);
             }
           }
 
           Swal.close();
+
+          sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
 
           Swal.fire({
             icon: "success",
@@ -395,7 +412,7 @@ const CodeEditor = ({
             showDenyButton: true,
             denyButtonText: "Open",
             allowOutsideClick: false,
-            footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You Delete shared links anytime from the <span class="font-bold">Homepage</span>.</p>`,
+            footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from the <span class="font-bold">Homepage</span>.</p>`,
           }).then(async (result) => {
             if (result.isConfirmed) {
               await navigator.clipboard.writeText(shareableLink);
@@ -413,18 +430,15 @@ const CodeEditor = ({
   };
 
   const getRunCodeCount = async (language) => {
-    const username = localStorage.getItem("username");
+    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
-    const response = await fetch(
-      `${import.meta.env.VITE_BACKEND_API_URL}/api/runCode/count`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, language }),
-      }
-    );
+    const response = await fetch(`${BACKEND_API_URL}/api/runCode/count`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, language }),
+    });
 
     if (!response.ok) {
       throw new Error("Failed to fetch run count");
@@ -432,21 +446,18 @@ const CodeEditor = ({
   };
 
   const getGenerateCodeCount = async () => {
-    const username = localStorage.getItem("username");
+    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
-    const response = await fetch(
-      `${import.meta.env.VITE_BACKEND_API_URL}/api/generateCode/count`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          language: language,
-        }),
-      }
-    );
+    const response = await fetch(`${BACKEND_API_URL}/api/generateCode/count`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: username,
+        language: language,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error("Failed to send request");
@@ -454,30 +465,27 @@ const CodeEditor = ({
   };
 
   const getRefactorCodeCount = async () => {
-    const username = localStorage.getItem("username");
+    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
-    const response = await fetch(
-      `${import.meta.env.VITE_BACKEND_API_URL}/api/refactorCode/count`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          language: language,
-        }),
-      }
-    );
+    const response = await fetch(`${BACKEND_API_URL}/api/refactorCode/count`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: username,
+        language: language,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error("Failed to send request");
     }
   };
 
-  const saveSharedLinkCount = async (shareId, title) => {
+  const saveSharedLinkCount = async (shareId, title, expiryTime) => {
     try {
-      const username = localStorage.getItem("username");
+      const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
       if (!username) {
         throw new Error(
@@ -486,7 +494,7 @@ const CodeEditor = ({
       }
 
       const countResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_API_URL}/api/sharedLink/count`,
+        `${BACKEND_API_URL}/api/sharedLink/count`,
         {
           method: "POST",
           headers: {
@@ -496,6 +504,7 @@ const CodeEditor = ({
             username,
             shareId,
             title,
+            expiryTime,
           }),
         }
       );

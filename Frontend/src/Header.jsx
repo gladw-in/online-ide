@@ -4,6 +4,14 @@ import { FaSpinner, FaBarsStaggered } from "react-icons/fa6";
 import { RxMoon, RxSun } from "react-icons/rx";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
+import {
+  SESSION_STORAGE_SHARELINKS_KEY,
+  LOCAL_STORAGE_TOKEN_KEY,
+  LOCAL_STORAGE_USERNAME_KEY,
+  LOCAL_STORAGE_LOGIN_KEY,
+  LOCAL_STORAGE_THEME_KEY,
+  BACKEND_API_URL,
+} from "./utils/constants";
 
 const Header = ({ isDarkMode, toggleTheme }) => {
   const [username, setUsername] = useState("");
@@ -14,16 +22,16 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const baseUrl = window.location.origin;
 
   const clearAuthState = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    localStorage.removeItem("login");
-    sessionStorage.removeItem("sharedLinks");
+    localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
+    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUsername = localStorage.getItem("username");
-    const login = localStorage.getItem("login");
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+    const storedUsername = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+    const login = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
 
     if (token && storedUsername && login === "true") {
       fetchUserData(token, storedUsername);
@@ -34,16 +42,34 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     }
   }, []);
 
+  useEffect(() => {
+    (() => {
+      const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY);
+      const isDarkMode = savedTheme === "dark";
+      document.documentElement.classList.toggle("dark", isDarkMode);
+
+      const validKeys = [
+        LOCAL_STORAGE_THEME_KEY,
+        LOCAL_STORAGE_TOKEN_KEY,
+        LOCAL_STORAGE_USERNAME_KEY,
+        LOCAL_STORAGE_LOGIN_KEY,
+      ];
+
+      window.addEventListener("storage", (event) => {
+        if (validKeys.includes(event.key)) {
+          location.reload();
+        }
+      });
+    })();
+  }, []);
+
   const fetchUserData = async (token, storedUsername) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API_URL}/api/protected`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${BACKEND_API_URL}/api/protected`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 
@@ -109,7 +135,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   return (
     <>
       {isLoading && (
-        <div className="fixed inset-0 bg-opacity-50 bg-transparent dark:bg-opacity-70 flex justify-center items-center z-50 overflow-hidden">
+        <div className="fixed inset-0 bg-opacity-50 bg-transparent backdrop-blur-[2px] dark:bg-opacity-70 flex justify-center items-center z-50 overflow-hidden">
           <div className="flex items-center space-x-3 bg-white p-4 rounded-lg shadow-lg dark:bg-gray-800 dark:text-white">
             <FaSpinner className="text-4xl animate-spin" />
             <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">

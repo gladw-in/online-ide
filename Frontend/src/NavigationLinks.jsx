@@ -49,8 +49,8 @@ const navLinks = [
     classes: "bg-green-700 motion-delay-[800ms]",
   },
   {
-    to: "/shell",
-    text: "Shell",
+    to: "/verilog",
+    text: "Verilog",
     classes: "bg-gray-600 motion-delay-[850ms]",
   },
   {

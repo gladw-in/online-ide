@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { IoLogoPython } from "react-icons/io5";
+import { IoLogoPython, IoHardwareChipOutline } from "react-icons/io5";
 import {
   SiJavascript,
   SiRust,
@@ -20,17 +20,18 @@ import {
   PiFileCFill,
   PiFileSqlFill,
 } from "react-icons/pi";
-import { VscTerminalBash } from "react-icons/vsc";
 import { TbBrandKotlin } from "react-icons/tb";
 import { BiLogoTypescript } from "react-icons/bi";
 import Register from "./Register";
 import Login from "./Login";
+import ForgotPassword from "./ForgotPassword";
 import Accounts from "./Accounts";
 import NotFound from "./NotFound";
 import NavigationLinks from "./NavigationLinks";
 import Editor from "./Editor";
 import CodeEditor from "./CodeEditor";
 import ShareEditor from "./ShareEditor";
+import { LOCAL_STORAGE_TOKEN_KEY, GENAI_API_URL } from "./utils/constants";
 import samplePy from "./samples/python.py?raw";
 import sampleJs from "./samples/javascript.js?raw";
 import sampleC from "./samples/c.c?raw";
@@ -39,7 +40,7 @@ import sampleJava from "./samples/java.java?raw";
 import sampleCsharp from "./samples/csharp.cs?raw";
 import sampleRust from "./samples/rust.rs?raw";
 import sampleGo from "./samples/go.go?raw";
-import sampleBash from "./samples/bash.sh?raw";
+import sampleVerilog from "./samples/verolog.v?raw";
 import sampleSQL from "./samples/sql.sql?raw";
 import sampleMongoDB from "./samples/mongodb.js?raw";
 import sampleSwift from "./samples/swift.swift?raw";
@@ -54,7 +55,7 @@ import sampleHtml from "./samples/index.html?raw";
 import sampleCSS from "./samples/style.css?raw";
 import sampleJavaScript from "./samples/script.js?raw";
 
-const isAuthenticated = () => !!localStorage.getItem("token");
+const isAuthenticated = () => !!localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
 const htmlCode = {
   html: sampleHtml,
@@ -120,10 +121,10 @@ const languages = [
     sampleCode: sampleGo,
   },
   {
-    path: "/shell",
-    language: "shell",
-    icon: VscTerminalBash,
-    sampleCode: sampleBash,
+    path: "/verilog",
+    language: "verilog",
+    icon: IoHardwareChipOutline,
+    sampleCode: sampleVerilog,
   },
   {
     path: "/sql",
@@ -197,6 +198,8 @@ const EditorRoutes = ({ isDarkMode }) => (
 
       <Route path="/login" element={<RedirectedRoute element={<Login />} />} />
 
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+
       <Route
         path="/accounts"
         element={<ProtectedRoute element={<Accounts />} />}
@@ -222,7 +225,7 @@ const EditorRoutes = ({ isDarkMode }) => (
             <CodeEditor
               language={language}
               reactIcon={icon}
-              apiEndpoint={`${import.meta.env.VITE_GEMINI_API_URL}/get-output`}
+              apiEndpoint={`${GENAI_API_URL}/get-output`}
               isDarkMode={isDarkMode}
               defaultCode={sampleCode}
             />

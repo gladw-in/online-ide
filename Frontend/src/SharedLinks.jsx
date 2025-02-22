@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from "react";
+import {
+  SESSION_STORAGE_SHARELINKS_KEY,
+  LOCAL_STORAGE_TOKEN_KEY,
+  LOCAL_STORAGE_USERNAME_KEY,
+  LOCAL_STORAGE_LOGIN_KEY,
+  BACKEND_API_URL,
+  TEMP_SHARE_API_URL,
+} from "./utils/constants";
 import { Link } from "react-router-dom";
 import { CgTrash } from "react-icons/cg";
 import { HiRefresh } from "react-icons/hi";
 import { FiClipboard } from "react-icons/fi";
 import { MdDone } from "react-icons/md";
 import Swal from "sweetalert2/dist/sweetalert2.js";
-import { isNull } from "lodash";
 
 const SharedLinks = () => {
   const [sharedLinks, setSharedLinks] = useState([]);
@@ -32,24 +39,21 @@ const SharedLinks = () => {
 
   const fetchSharedLinks = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const isLogin = localStorage.getItem("login");
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      const isLogin = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
 
       if (!token || !isLogin) {
-        sessionStorage.removeItem("sharedLinks");
+        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
         return;
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API_URL}/api/user/sharedLinks`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${BACKEND_API_URL}/api/user/sharedLinks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -57,7 +61,10 @@ const SharedLinks = () => {
       const data = await response.json();
       if (data.sharedLinks && Array.isArray(data.sharedLinks)) {
         const reversedLinks = data.sharedLinks.reverse();
-        sessionStorage.setItem("sharedLinks", JSON.stringify(reversedLinks));
+        sessionStorage.setItem(
+          SESSION_STORAGE_SHARELINKS_KEY,
+          JSON.stringify(reversedLinks)
+        );
         setSharedLinks(reversedLinks);
       }
     } catch {
@@ -87,16 +94,14 @@ const SharedLinks = () => {
         });
 
         const linkResponse = await fetch(
-          `${
-            import.meta.env.VITE_BACKEND_API_URL
-          }/api/user/sharedLink/${shareId}`,
+          `${BACKEND_API_URL}/api/user/sharedLink/${shareId}`,
           {
             method: "DELETE",
           }
         );
 
         const fileResponse = await fetch(
-          `${import.meta.env.VITE_TEMP_SHARE_URL}/file/${shareId}/delete`,
+          `${TEMP_SHARE_API_URL}/file/${shareId}/delete`,
           {
             method: "DELETE",
           }
@@ -106,7 +111,7 @@ const SharedLinks = () => {
           Swal.close();
           Swal.fire("Error", "There was an issue deleting the link.", "error");
 
-          sessionStorage.removeItem("sharedLinks");
+          sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
           return;
         }
 
@@ -132,7 +137,7 @@ const SharedLinks = () => {
             }
           }
 
-          sessionStorage.removeItem("sharedLinks");
+          sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
         } else {
           Swal.close();
           Swal.fire(
@@ -142,7 +147,7 @@ const SharedLinks = () => {
           );
         }
 
-        sessionStorage.removeItem("sharedLinks");
+        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
       }
     });
   };
@@ -174,11 +179,17 @@ const SharedLinks = () => {
   };
 
   const handleRefresh = () => {
+    let refreshTimeout;
+
+    if (refreshTimeout) {
+      clearTimeout(refreshTimeout);
+    }
+
     setIsRefreshing(true);
-    sessionStorage.removeItem("sharedLinks");
+    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
     fetchSharedLinks();
 
-    setTimeout(() => {
+    refreshTimeout = setTimeout(() => {
       setIsRefreshing(false);
     }, 500);
   };
@@ -194,14 +205,15 @@ const SharedLinks = () => {
   };
 
   useEffect(() => {
-    const isLogin = localStorage.getItem("login");
+    const isLogin = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
 
     if (!isLogin) {
-      sessionStorage.removeItem("sharedLinks");
+      sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+      setIsLoggedIn(false);
       return;
     }
 
-    const username = localStorage.getItem("username");
+    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
     if (username) {
       setIsLoggedIn(true);
     } else {
@@ -212,8 +224,8 @@ const SharedLinks = () => {
       return;
     }
 
-    const sharedLink = sessionStorage.getItem("sharedLinks");
-    if (isNull(sharedLink) || sharedLink === "[]") {
+    const sharedLink = sessionStorage.getItem(SESSION_STORAGE_SHARELINKS_KEY);
+    if (sharedLink === null || sharedLink === "[]") {
       fetchSharedLinks();
     } else {
       setSharedLinks(JSON.parse(sharedLink));
@@ -234,6 +246,7 @@ const SharedLinks = () => {
               </h2>
               <button
                 onClick={handleRefresh}
+                disabled={isRefreshing}
                 title="refresh"
                 className={`bg-blue-500 text-white px-2 py-2 rounded-full mb-4 transform transition duration-200 ease-in-out cursor-pointer hover:bg-blue-600 hover:scale-95 focus:outline-none ${
                   isRefreshing ? "animate-spin" : ""
@@ -246,7 +259,7 @@ const SharedLinks = () => {
 
           {isLoggedIn && visibleLinks.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
-              {visibleLinks.map(({ title, shareId }, index) => {
+              {visibleLinks.map(({ title, shareId, expiryTime }, index) => {
                 const colorClass = buttonColors[index % buttonColors.length];
                 return (
                   <div key={index} className="relative w-full">
@@ -254,7 +267,9 @@ const SharedLinks = () => {
                       <Link
                         to={`${baseUrl}/${shareId}`}
                         aria-label={title}
-                        title={title}
+                        title={`${title}\n${
+                          new Date(expiryTime).toLocaleString() || ""
+                        }`}
                         className={`w-full px-8 py-4 text-xl font-semibold ${colorClass} text-white text-center rounded-lg shadow-lg whitespace-nowrap overflow-hidden text-ellipsis hover:scale-105 transform transition-all duration-300 sm:px-6 sm:py-3 sm:text-lg md:px-8 md:py-4 lg:px-8 lg:py-4`}
                       >
                         {title

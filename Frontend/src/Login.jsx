@@ -1,42 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-const InputField = ({
-  label,
-  type,
-  value,
-  onChange,
-  required,
-  name,
-  showPassword,
-  onTogglePassword,
-}) => (
-  <div className="mb-4 relative">
-    <label
-      htmlFor={name}
-      className="block text-gray-600 dark:text-gray-300 font-medium mb-2"
-    >
-      {label} <span className="text-red-600">*</span>
-    </label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      required={required}
-      className="w-full p-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-    />
-    {name === "password" && (
-      <button
-        type="button"
-        className="absolute right-3 top-[70%] transform -translate-y-1/2 text-gray-500 dark:text-gray-300"
-        onClick={onTogglePassword}
-      >
-        {showPassword ? "Hide" : "Show"}
-      </button>
-    )}
-  </div>
-);
+import InputField from "./utils/InputField";
+import {
+  SESSION_STORAGE_SHARELINKS_KEY,
+  LOCAL_STORAGE_TOKEN_KEY,
+  LOCAL_STORAGE_USERNAME_KEY,
+  LOCAL_STORAGE_LOGIN_KEY,
+  BACKEND_API_URL,
+} from "./utils/constants";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -51,7 +22,9 @@ const Login = () => {
 
   const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
-  document.title = "Login";
+  useEffect(() => {
+    document.title = "Login";
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -89,30 +62,34 @@ const Login = () => {
     const { email, password } = formData;
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API_URL}/api/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      const response = await fetch(`${BACKEND_API_URL}/api/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
       if (!response.ok) {
+        const data = await response.json();
+        if (data.msg === "Email not verified") {
+          setError(
+            "Email is not verified. Go to the register page and verify the email."
+          );
+          return;
+        }
         throw new Error("Invalid credentials!");
       }
 
       const data = await response.json();
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data.username);
-      localStorage.setItem("login", "true");
-      sessionStorage.removeItem("sharedLinks");
+      localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, data.token);
+      localStorage.setItem(LOCAL_STORAGE_USERNAME_KEY, data.username);
+      localStorage.setItem(LOCAL_STORAGE_LOGIN_KEY, "true");
+      sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
 
       navigate(window.history.length > 2 ? -1 : "/");
       location.reload();
@@ -158,7 +135,7 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full py-3 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+            className="w-full py-3 cursor-pointer text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             disabled={loading}
           >
             {loading ? "Logging in..." : "Login"}
@@ -170,9 +147,17 @@ const Login = () => {
             Don't have an account?{" "}
             <button
               onClick={() => navigate("/register")}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 cursor-pointer dark:text-blue-400 hover:underline"
             >
               Register here
+            </button>
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+            <button
+              onClick={() => navigate("/forgot-password")}
+              className="text-blue-600 cursor-pointer dark:text-blue-400 hover:underline"
+            >
+              Forgot Password
             </button>
           </p>
         </div>

@@ -1,6 +1,8 @@
 const express = require('express');
-const path = require('path');
+const path = require('node:path');
 const mongoose = require('mongoose');
+const crypto = require('node:crypto');
+const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
@@ -16,6 +18,14 @@ const corsOptions = {
 	allowedHeaders: ['Content-Type', 'Authorization'],
 	credentials: true,
 };
+
+const transporter = nodemailer.createTransport({
+	service: process.env.OTP_EMAIL_SERVICE,
+	auth: {
+		user: process.env.OTP_EMAIL_USER,
+		pass: process.env.OTP_EMAIL_PASS,
+	},
+});
 
 const usernameRegex = /^[a-zA-Z0-9_.-]{5,30}$/;
 
@@ -53,8 +63,8 @@ const updateLanguageCount = (user, countType, language) => {
 		case 'go':
 			user[countType].set('go', (user[countType].get('go') || 0) + 1);
 			break;
-		case 'shell':
-			user[countType].set('shell', (user[countType].get('shell') || 0) + 1);
+		case 'verilog':
+			user[countType].set('verilog', (user[countType].get('verilog') || 0) + 1);
 			break;
 		case 'sql':
 			user[countType].set('sql', (user[countType].get('sql') || 0) + 1);
@@ -103,11 +113,16 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		required: true,
 		unique: true,
+		trim: true,
+		minlength: 5,
+		maxlength: 30,
 	},
 	email: {
 		type: String,
 		required: true,
 		unique: true,
+		lowercase: true,
+		match: [/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/, 'Please provide a valid email address'],
 	},
 	password: {
 		type: String,
@@ -120,6 +135,18 @@ const userSchema = new mongoose.Schema({
 	createdDate: {
 		type: Date,
 		default: Date.now,
+	},
+	isEmailVerified: {
+		type: Boolean,
+		default: false,
+	},
+	otp: {
+		type: String,
+		default: null,
+	},
+	otpExpires: {
+		type: Date,
+		default: null,
 	},
 	generateCodeCount: {
 		type: Map,
@@ -134,7 +161,6 @@ const userSchema = new mongoose.Schema({
 			cs: 0,
 			rust: 0,
 			go: 0,
-			shell: 0,
 			sql: 0,
 			mongodb: 0,
 			swift: 0,
@@ -145,6 +171,7 @@ const userSchema = new mongoose.Schema({
 			perl: 0,
 			scala: 0,
 			julia: 0,
+			verilog: 0,
 		}),
 	},
 	refactorCodeCount: {
@@ -160,7 +187,6 @@ const userSchema = new mongoose.Schema({
 			cs: 0,
 			rust: 0,
 			go: 0,
-			shell: 0,
 			sql: 0,
 			mongodb: 0,
 			swift: 0,
@@ -171,6 +197,7 @@ const userSchema = new mongoose.Schema({
 			perl: 0,
 			scala: 0,
 			julia: 0,
+			verilog: 0,
 		}),
 	},
 	runCodeCount: {
@@ -185,7 +212,6 @@ const userSchema = new mongoose.Schema({
 			cs: 0,
 			rust: 0,
 			go: 0,
-			shell: 0,
 			sql: 0,
 			mongodb: 0,
 			swift: 0,
@@ -196,6 +222,7 @@ const userSchema = new mongoose.Schema({
 			perl: 0,
 			scala: 0,
 			julia: 0,
+			verilog: 0,
 		}),
 	},
 	sharedLinks: {
@@ -207,6 +234,10 @@ const userSchema = new mongoose.Schema({
 			},
 			title: {
 				type: String,
+				required: true,
+			},
+			expiryTime: {
+				type: Date,
 				required: true,
 			},
 		}, ],
@@ -314,6 +345,37 @@ async function logUserAction(user, actionType) {
 	}
 }
 
+function generateOtp() {
+	return crypto.randomBytes(3).toString('hex');
+}
+
+async function sendOtpEmail(email, otp) {
+	const mailOptions = {
+		from: process.env.OTP_EMAIL_USER,
+		to: email,
+		subject: 'Online IDE - Your OTP for Email Verification',
+		html: `
+            <html>
+                <body>
+                    <h2>Welcome to Our Online IDE!</h2>
+                    <p>We received a request to verify your email address.</p>
+                    <p>To complete your email verification, please use the OTP below:</p>
+                    <h3 style="color: #4CAF50;">Your OTP: <strong>${otp}</strong></h3>
+                    <p><i>This OTP will expire in 10 minutes. If you did not request this, please ignore this email.</i></p>
+                    <p><a href="https://online-ide-cyan.vercel.app/" target="_blank" style="color: #007BFF;">Online IDE</a></p>
+                    <p>Thank you for choosing our service!</p>
+                </body>
+            </html>
+        `,
+	};
+
+	try {
+		await transporter.sendMail(mailOptions);
+	} catch (error) {
+		throw new Error('Failed to send OTP email');
+	}
+}
+
 userSchema.pre('save', function(next) {
 	const user = this;
 	const actionType = user.isNew ? 'create' : 'update';
@@ -346,9 +408,26 @@ app.post('/api/register', async (req, res) => {
 		});
 
 		if (existingEmail) {
-			return res.status(400).json({
-				msg: 'Email already in use',
-			});
+			if (!existingEmail.isEmailVerified) {
+				const otp = generateOtp();
+
+				const salt = await bcrypt.genSalt(10);
+				const hashedOtp = await bcrypt.hash(otp, salt);
+
+				existingEmail.otp = hashedOtp;
+				existingEmail.otpExpires = Date.now() + 10 * 60 * 1000;
+				await existingEmail.save();
+
+				await sendOtpEmail(email, otp);
+
+				return res.status(200).json({
+					msg: 'Email not verified.',
+				});
+			} else {
+				return res.status(400).json({
+					msg: 'Email already in use',
+				});
+			}
 		}
 
 		const existingUsername = await User.findOne({
@@ -385,7 +464,10 @@ app.post('/api/register', async (req, res) => {
 			});
 		}
 
+		const otp = generateOtp();
+
 		const salt = await bcrypt.genSalt(10);
+		const hashedOtp = await bcrypt.hash(otp, salt);
 		const hashedPassword = await bcrypt.hash(password, salt);
 		const currentDate = new Date();
 		const ISTDate = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000);
@@ -394,14 +476,19 @@ app.post('/api/register', async (req, res) => {
 			username,
 			email,
 			password: hashedPassword,
-			lastLogin: null,
+			otp: hashedOtp,
+			otpExpires: Date.now() + 10 * 60 * 1000,
+			isEmailVerified: false,
+			lastLogin: ISTDate,
 			createdDate: ISTDate,
 		});
 
 		await newUser.save();
 
-		res.status(201).json({
-			msg: 'User registered successfully',
+		await sendOtpEmail(email, otp);
+
+		res.status(200).json({
+			msg: 'Registration successful, please check your email for the OTP to verify your email address.',
 		});
 	} catch (err) {
 		console.error(err);
@@ -442,6 +529,12 @@ app.post('/api/login', async (req, res) => {
 			});
 		}
 
+		if (!user.isEmailVerified) {
+			return res.status(400).json({
+				msg: 'Email not verified',
+			});
+		}
+
 		const isMatch = await bcrypt.compare(password, user.password);
 
 		if (!isMatch) {
@@ -472,6 +565,375 @@ app.post('/api/login', async (req, res) => {
 		console.error(err);
 		res.status(500).json({
 			msg: 'Server error',
+		});
+	}
+});
+
+app.post('/api/verify-otp', async (req, res) => {
+	const {
+		email,
+		otp,
+		password
+	} = req.body;
+
+	if (!otp || otp.length === 0) {
+		return res.status(400).json({
+			msg: 'OTP is required',
+		});
+	}
+
+	if (password.length < 8) {
+		return res.status(400).json({
+			msg: 'Password must be at least 8 characters long',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			email
+		});
+
+		if (!user) {
+			return res.status(400).json({
+				msg: 'User not found',
+			});
+		}
+
+		if (user.isEmailVerified) {
+			return res.status(400).json({
+				msg: 'Email is already verified',
+			});
+		}
+
+		const isOtpValid = await bcrypt.compare(otp, user.otp);
+
+		if (!isOtpValid) {
+			return res.status(400).json({
+				msg: 'Invalid OTP',
+			});
+		}
+
+		if (user.otpExpires < Date.now()) {
+			return res.status(400).json({
+				msg: 'OTP has expired',
+			});
+		}
+
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash(password, salt);
+
+		user.password = hashedPassword;
+		user.isEmailVerified = true;
+		user.otp = null;
+		user.otpExpires = null;
+
+		await user.save();
+
+		const token = jwt.sign({
+			userId: user._id
+		}, process.env.JWT_SECRET, {
+			algorithm: 'HS256'
+		});
+
+		res.status(200).json({
+			token,
+			username: user.username,
+		});
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: 'Server error',
+		});
+	}
+});
+
+app.post('/api/resend-otp', async (req, res) => {
+	const {
+		email
+	} = req.body;
+
+	const {
+		'forgot-password': forgotPassword
+	} = req.query;
+
+	if (!email) {
+		return res.status(400).json({
+			msg: 'Email is required',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			email
+		});
+
+		if (!user) {
+			return res.status(400).json({
+				msg: 'User not found',
+			});
+		}
+
+		if (!forgotPassword) {
+			if (user.isEmailVerified) {
+				return res.status(400).json({
+					msg: 'Email is already verified',
+				});
+			}
+		}
+
+		const otp = generateOtp();
+		const otpExpires = Date.now() + 10 * 60 * 1000;
+
+		const salt = await bcrypt.genSalt(10);
+		const hashedOtp = await bcrypt.hash(otp, salt);
+
+		user.otp = hashedOtp;
+		user.otpExpires = otpExpires;
+		await user.save();
+
+		await sendOtpEmail(user.email, otp);
+
+		res.status(200).json({
+			msg: 'OTP resent successfully',
+		});
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: 'Server error',
+		});
+	}
+});
+
+app.delete('/api/wrong-email', async (req, res) => {
+	const {
+		email
+	} = req.body;
+
+	if (!email) {
+		return res.status(400).json({
+			msg: 'Email is required',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			email
+		});
+
+		if (!user) {
+			return res.status(400).json({
+				msg: 'User not found',
+			});
+		}
+
+		if (user.isEmailVerified) {
+			return res.status(400).json({
+				msg: 'Email is already verified',
+			});
+		}
+
+		await User.deleteOne({
+			email
+		});
+
+		res.status(200).json({
+			msg: 'Unverified account deleted successfully',
+		});
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: 'Server error, please try again later',
+		});
+	}
+});
+
+app.post('/api/check-email-exists', async (req, res) => {
+	const {
+		email
+	} = req.body;
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			email
+		});
+		if (!user) {
+			return res.status(400).json({
+				msg: "User not found"
+			});
+		}
+
+		res.status(200).json({
+			msg: "Email exists"
+		});
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: "Server error"
+		});
+	}
+});
+
+app.post('/api/forgot-password', async (req, res) => {
+	const {
+		email
+	} = req.body;
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			email
+		});
+		if (!user) {
+			return res.status(400).json({
+				msg: "User not found"
+			});
+		}
+
+		if (user.isEmailVerified) {
+			const otp = generateOtp();
+			const salt = await bcrypt.genSalt(10);
+			const hashedOtp = await bcrypt.hash(otp, salt);
+
+			user.otp = hashedOtp;
+			user.otpExpires = Date.now() + 10 * 60 * 1000;
+			await user.save();
+
+			await sendOtpEmail(user.email, otp);
+
+			return res.status(200).json({
+				msg: "OTP sent to your email"
+			});
+		} else {
+			return res.status(400).json({
+				msg: "Email not verified"
+			});
+		}
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: "Server error"
+		});
+	}
+});
+
+app.post('/api/reset-password', async (req, res) => {
+	const {
+		email,
+		otp
+	} = req.body;
+
+	if (!otp || typeof otp !== 'string' || otp.trim().length === 0) {
+		return res.status(400).json({
+			msg: 'OTP is required',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			email
+		});
+		if (!user) {
+			return res.status(400).json({
+				msg: "User not found"
+			});
+		}
+
+		const isOtpValid = await bcrypt.compare(otp, user.otp);
+		if (!isOtpValid) {
+			return res.status(400).json({
+				msg: "Invalid OTP"
+			});
+		}
+
+		if (user.otpExpires < Date.now()) {
+			return res.status(400).json({
+				msg: "OTP has expired"
+			});
+		}
+
+		res.status(200).json({
+			msg: "OTP verified successfully"
+		});
+
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: "Server error"
+		});
+	}
+});
+
+app.post('/api/update-password', async (req, res) => {
+	const {
+		email,
+		otp,
+		password
+	} = req.body;
+
+	if (!otp || typeof otp !== 'string' || otp.trim().length === 0) {
+		return res.status(400).json({
+			msg: 'OTP is required',
+		});
+	}
+
+	if (password.length < 8) {
+		return res.status(400).json({
+			msg: 'Password must be at least 8 characters long',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const user = await User.findOne({
+			email
+		});
+		if (!user) {
+			return res.status(400).json({
+				msg: "User not found"
+			});
+		}
+
+		const isOtpValid = await bcrypt.compare(otp, user.otp);
+		if (!isOtpValid) {
+			return res.status(400).json({
+				msg: "Invalid OTP"
+			});
+		}
+
+		if (user.otpExpires < Date.now()) {
+			return res.status(400).json({
+				msg: "OTP has expired"
+			});
+		}
+
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash(password, salt);
+
+		user.password = hashedPassword;
+		user.otp = null;
+		user.otpExpires = null;
+		await user.save();
+
+		res.status(200).json({
+			msg: "Password updated successfully"
+		});
+
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({
+			msg: "Server error"
 		});
 	}
 });
@@ -911,7 +1373,8 @@ app.post('/api/sharedLink/count', async (req, res) => {
 	const {
 		username,
 		shareId,
-		title
+		title,
+		expiryTime,
 	} = req.body;
 
 	if (!username || !shareId || !title) {
@@ -933,6 +1396,9 @@ app.post('/api/sharedLink/count', async (req, res) => {
 			});
 		}
 
+		const expiryMilliseconds = parseInt(expiryTime) * 60 * 1000;
+		const expiryDate = new Date(Date.now() + expiryMilliseconds);
+
 		const linkExists = user.sharedLinks.some(
 			(link) => link.shareId === shareId
 		);
@@ -941,6 +1407,7 @@ app.post('/api/sharedLink/count', async (req, res) => {
 			user.sharedLinks.push({
 				shareId,
 				title,
+				expiryTime: expiryDate,
 			});
 
 			await logUserAction(user, 'update');
@@ -978,6 +1445,14 @@ app.post('/api/user/sharedLinks', async (req, res) => {
 			});
 		}
 
+		const currentDate = new Date();
+		const expiredLinks = user.sharedLinks.filter((link) => new Date(link.expiryTime) <= currentDate);
+
+		if (expiredLinks.length > 0) {
+			user.sharedLinks = user.sharedLinks.filter((link) => new Date(link.expiryTime) > currentDate);
+			await user.save();
+		}
+
 		const sharedLinksWithoutId = user.sharedLinks.map((link) => {
 			const {
 				_id,
@@ -996,6 +1471,7 @@ app.post('/api/user/sharedLinks', async (req, res) => {
 		});
 	}
 });
+
 
 app.delete('/api/sharedLink', async (req, res) => {
 	const {
