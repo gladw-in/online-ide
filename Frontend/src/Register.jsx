@@ -302,7 +302,7 @@ const Register = () => {
             <InputField
               label="Password"
               type={showPassword ? "text" : "password"}
-              name="password"
+              name="newPassword"
               value={formData.password}
               onChange={handleInputChange}
               required
