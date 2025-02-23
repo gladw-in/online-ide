@@ -15,7 +15,7 @@ const Register = () => {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
-    password: "",
+    newPassword: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,7 +81,7 @@ const Register = () => {
       return false;
     }
 
-    if (formData.password.length < 8) {
+    if (formData.newPassword.length < 8) {
       setError("Password must be at least 8 characters long");
       return false;
     }
@@ -103,7 +103,7 @@ const Register = () => {
 
     setLoading(true);
 
-    const { username, email, password } = formData;
+    const { username, email, newPassword } = formData;
 
     try {
       const response = await fetch(`${BACKEND_API_URL}/api/register`, {
@@ -114,7 +114,7 @@ const Register = () => {
         body: JSON.stringify({
           username,
           email,
-          password,
+          password: newPassword,
         }),
       });
 
@@ -154,7 +154,7 @@ const Register = () => {
         body: JSON.stringify({
           email: formData.email,
           otp,
-          password: formData.password,
+          password: formData.newPassword,
         }),
       });
 
@@ -271,7 +271,11 @@ const Register = () => {
               <p className="text-sm text-justify flex-1">
                 Please check your email for the OTP. If you don't see it, be
                 sure to check your{" "}
-                <span className="font-bold">spam folder</span>.
+                <span className="font-bold">spam folder</span>.{" "}
+                <span className="italic">
+                  If the OTP doesn't appear in your inbox, try using a different
+                  email address.
+                </span>
               </p>
             </div>
           </div>
@@ -303,7 +307,7 @@ const Register = () => {
               label="Password"
               type={showPassword ? "text" : "password"}
               name="newPassword"
-              value={formData.password}
+              value={formData.newPassword}
               onChange={handleInputChange}
               required
               showPassword={showPassword}

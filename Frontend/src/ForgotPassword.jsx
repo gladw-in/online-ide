@@ -312,7 +312,11 @@ const ForgotPassword = () => {
                 <p className="text-sm text-justify flex-1">
                   Please check your email for the OTP. If you don't see it, be
                   sure to check your{" "}
-                  <span className="font-bold">spam folder</span>.
+                  <span className="font-bold">spam folder</span>.{" "}
+                  <span className="italic">
+                    If the OTP doesn't appear in your inbox, try using a
+                    different email address.
+                  </span>
                 </p>
               </div>
             </div>
