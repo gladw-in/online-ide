@@ -245,9 +245,9 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     }
 
     setIsRefreshing(true);
+    updatePreview();
 
     refreshTimeout = setTimeout(() => {
-      updatePreview();
       setIsRefreshing(false);
     }, 1000);
   };

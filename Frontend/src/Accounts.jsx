@@ -38,7 +38,7 @@ const Accounts = () => {
     localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
     localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
     sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-  }
+  };
 
   const fetchUserData = async () => {
     const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);

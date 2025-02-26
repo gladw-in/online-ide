@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { terser } from 'rollup-plugin-terser';
 import { createHtmlPlugin } from 'vite-plugin-html';
 import tailwindcss from '@tailwindcss/vite'
 
@@ -24,16 +23,17 @@ export default defineConfig({
   ],
   build: {
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      plugins: [
-        terser({
-          compress: {},
-          mangle: {},
-          format: {
-            comments: false,
-          }
-        })
-      ]
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_debugger: true
+      },
+      output: {
+        comments: false
+      },
+      mangle: {
+        toplevel: true
+      }
     }
   },
 })
