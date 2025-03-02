@@ -166,7 +166,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                  className="text-lg hover:text-gray-300 transition-colors duration-200 cursor-pointer focus:outline-none"
                 >
                   Logout
                 </button>
@@ -192,7 +192,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
           <div className="flex items-center space-x-4">
             <button
               onClick={toggleTheme}
-              className="text-xl focus:outline-none p-2 rounded-full hover:bg-gray-700 transition-colors duration-200"
+              className="text-xl focus:outline-none p-2 rounded-full cursor-pointer hover:bg-gray-700 transition-colors duration-200"
             >
               {isDarkMode ? (
                 <RxMoon className="text-white" />

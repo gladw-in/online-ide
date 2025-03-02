@@ -46,12 +46,12 @@ const ShareLinkModal = (defaultTitle) => {
 		radioButton.type = 'radio';
 		radioButton.value = option.value;
 		radioButton.name = 'expiryTime';
-		radioButton.className = 'text-blue-600 bg-gray-100 border-gray-300 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600';
+		radioButton.className = 'text-blue-600 bg-gray-100 border-gray-300 cursor-pointer dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600';
 		if (index === 1) radioButton.checked = true;
 
 		const label = document.createElement('label');
 		label.setAttribute('for', radioButton.id);
-		label.className = 'py-3 ms-2 w-full text-left text-sm font-medium text-gray-900 dark:text-gray-300';
+		label.className = 'py-3 ms-2 w-full text-left text-sm font-medium cursor-pointer text-gray-900 dark:text-gray-300';
 		label.textContent = option.label;
 
 		expiryWrapper.appendChild(radioButton);

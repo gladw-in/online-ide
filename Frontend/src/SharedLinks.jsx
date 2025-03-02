@@ -10,7 +10,7 @@ import {
 import { Link } from "react-router-dom";
 import { CgTrash } from "react-icons/cg";
 import { HiRefresh } from "react-icons/hi";
-import { FiClipboard } from "react-icons/fi";
+import { FiClipboard, FiArrowLeft, FiArrowRight } from "react-icons/fi";
 import { MdDone } from "react-icons/md";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 
@@ -21,7 +21,16 @@ const SharedLinks = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const itemsPerPage = 8;
+  const getItemsPerPage = () => {
+    const width = window.innerWidth;
+    if (width >= 1024) return 8;
+    if (width >= 768) return 6;
+    if (width >= 640) return 4;
+    return 8;
+  };
+  
+  const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
+
   const baseUrl = window.location.origin;
 
   const buttonColors = [
@@ -82,6 +91,7 @@ const SharedLinks = () => {
       confirmButtonText: "Yes, delete it!",
       confirmButtonColor: "#da4242",
       cancelButtonText: "Cancel",
+      allowOutsideClick: false,
     }).then(async (result) => {
       if (result.isConfirmed) {
         Swal.fire({
@@ -230,6 +240,16 @@ const SharedLinks = () => {
     } else {
       setSharedLinks(JSON.parse(sharedLink));
     }
+
+    const handleResize = () => {
+      setItemsPerPage(getItemsPerPage());
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, [isLoggedIn]);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -284,7 +304,7 @@ const SharedLinks = () => {
                         <button
                           onClick={() => handleCopy(shareId)}
                           title="Copy link"
-                          className="w-full py-1.5 text-white bg-green-500 hover:bg-green-700 rounded-lg focus:outline-none transform transition duration-200 ease-in-out hover:scale-105"
+                          className="w-full py-1.5 text-white bg-green-500 hover:bg-green-700 rounded-lg cursor-pointer focus:outline-none transform transition duration-200 ease-in-out hover:scale-105"
                         >
                           {buttonStates[shareId]?.text === "Copied" ? (
                             <MdDone className="mx-auto" />
@@ -295,7 +315,7 @@ const SharedLinks = () => {
                         <button
                           onClick={() => handleDelete(shareId)}
                           title="Delete"
-                          className="w-full py-1.5 text-white bg-red-500 hover:bg-red-700 rounded-lg focus:outline-none transform transition duration-200 ease-in-out hover:scale-105"
+                          className="w-full py-1.5 text-white bg-red-500 hover:bg-red-700 rounded-lg cursor-pointer focus:outline-none transform transition duration-200 ease-in-out hover:scale-105"
                         >
                           <CgTrash className="mx-auto" />
                         </button>
@@ -307,21 +327,23 @@ const SharedLinks = () => {
             </div>
           )}
 
-          {isLoggedIn && sharedLinks.length > 8 && (
+          {isLoggedIn && sharedLinks.length > itemsPerPage && (
             <div className="flex justify-between mt-6">
               <button
                 onClick={handlePrev}
                 disabled={currentPage === 1}
-                className="bg-blue-500 text-white px-6 py-2 rounded-lg transform transition duration-200 ease-in-out hover:scale-105"
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg cursor-pointer transform transition duration-200 ease-in-out hover:scale-105 flex items-center"
               >
+                <FiArrowLeft className="mr-2" />
                 Previous
               </button>
               <button
                 onClick={handleNext}
                 disabled={currentPage * itemsPerPage >= sharedLinks.length}
-                className="bg-blue-500 text-white px-6 py-2 rounded-lg transform transition duration-200 ease-in-out hover:scale-105"
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg cursor-pointer transform transition duration-200 ease-in-out hover:scale-105 flex items-center"
               >
                 Next
+                <FiArrowRight className="ml-2" />
               </button>
             </div>
           )}

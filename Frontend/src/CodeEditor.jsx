@@ -222,7 +222,7 @@ const CodeEditor = ({
     }
 
     const { value: prompt } = await Swal.fire({
-      title: "Enter",
+      title: "Generate Code",
       input: "textarea",
       inputLabel: "What code do you want?",
       inputPlaceholder: "e.g., simple calculator",
@@ -719,7 +719,7 @@ const CodeEditor = ({
 
         <pre className="select-text font-mono text-xs font-semibold lg:text-sm  min-h-20 max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]">
           {output
-            .replace(/^```text[\r\n]*/m, "")
+            .replace(/^```(text|javascript)[\r\n]*/m, "")
             .replace(/^```[\r\n]*/m, "")
             .replace(/[\r\n]*```$/m, "") ||
             "Run your code to see output here..."}
@@ -774,7 +774,7 @@ const CodeEditor = ({
             <button
               key={index}
               onClick={action}
-              className={`px-6 py-2 ${bgColor} text-white inline-flex place-content-center rounded-md w-full transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none`}
+              className={`px-6 py-2 ${bgColor} text-white inline-flex place-content-center rounded-md w-full cursor-pointer transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none`}
               disabled={disabled}
             >
               {icon}

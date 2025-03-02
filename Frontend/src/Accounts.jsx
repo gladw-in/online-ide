@@ -411,7 +411,7 @@ const Accounts = () => {
           />
           <button
             type="submit"
-            className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+            className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
           >
             {btnState ? "Verifying..." : "Verify Password"}
           </button>
@@ -419,7 +419,7 @@ const Accounts = () => {
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
             <button
               onClick={() => navigate("/forgot-password")}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-blue-600 cursor-pointer dark:text-blue-400 hover:underline"
             >
               Forgot Password?
             </button>
@@ -440,7 +440,7 @@ const Accounts = () => {
             />
             <button
               type="submit"
-              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             >
               Update Username
             </button>
@@ -457,7 +457,7 @@ const Accounts = () => {
             />
             <button
               type="submit"
-              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             >
               Update Email
             </button>
@@ -488,7 +488,7 @@ const Accounts = () => {
             />
             <button
               type="submit"
-              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             >
               Update Password
             </button>
@@ -500,7 +500,7 @@ const Accounts = () => {
         <div className="mt-4 text-center">
           <button
             onClick={handleDeleteAccount}
-            className="w-full p-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none transition duration-300 dark:bg-red-600 dark:hover:bg-red-500 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+            className="w-full p-2 text-sm bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600 focus:outline-none transition duration-300 dark:bg-red-600 dark:hover:bg-red-500 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
           >
             Delete Account
           </button>

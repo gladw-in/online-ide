@@ -362,7 +362,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     }
 
     const { value: prompt } = await Swal.fire({
-      title: "Enter",
+      title: "Generate Code",
       input: "textarea",
       inputLabel: "What code do you want?",
       inputPlaceholder: "e.g., simple calculator",
@@ -883,7 +883,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           <button
             key={index}
             onClick={onClick}
-            className={`px-6 py-2 ${color} text-white inline-flex place-content-center rounded-md w-full transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none`}
+            className={`px-6 py-2 ${color} text-white inline-flex place-content-center rounded-md w-full cursor-pointer transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none`}
             disabled={disabled}
           >
             {icon}
@@ -898,7 +898,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         </div>
         <button
           onClick={openPreviewFullScreen}
-          className="absolute top-16 right-2 w-10 h-10 bg-transparent border-2 border-gray-500 text-gray-500 rounded-md transition-all duration-300 hover:bg-gray-700/30 hover:text-white hover:border-gray-700"
+          className="absolute top-16 right-2 w-10 h-10 bg-transparent border-2 border-gray-500 text-gray-500 rounded-md cursor-pointer transition-all duration-300 hover:bg-gray-700/30 hover:text-white hover:border-gray-700"
           title="Fullscreen Preview"
         >
           <SlSizeFullscreen className="inline-flex text-xl pb-[3px]" />
@@ -907,7 +907,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className={`absolute top-2 right-2 w-10 h-10 bg-transparent text-white rounded-md transition-all duration-300 hover:text-gray-500 ${
+          className={`absolute top-2 right-2 w-10 h-10 bg-transparent text-white rounded-md cursor-pointer transition-all duration-300 hover:text-gray-500 ${
             isRefreshing ? "animate-spin" : ""
           }`}
           title="Refresh Preview"
