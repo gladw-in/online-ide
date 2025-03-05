@@ -959,6 +959,14 @@ app.get('/api/protected', async (req, res) => {
 			});
 		}
 
+		const fiveMinutes = 5 * 60 * 1000;
+		const now = Date.now();
+
+		if (!user.lastLogin || now - user.lastLogin > fiveMinutes) {
+			user.lastLogin = now;
+			await user.save();
+		}
+
 		const includeEmail = req.query.email === 'true';
 		const response = {
 			msg: 'Protected data',
