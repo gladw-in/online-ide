@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
+import { TbLoader } from "react-icons/tb";
 import InputField from "./utils/InputField";
 import OtpInputForm from "./utils/OtpInputForm";
 import {
@@ -325,7 +326,14 @@ const Register = () => {
               className="w-full py-3 cursor-pointer text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
               disabled={loading}
             >
-              {loading ? "Registering..." : "Register"}
+              {loading ? (
+                <>
+                  <TbLoader className="animate-spin text-xl inline-block mr-1" />{" "}
+                  Registering...
+                </>
+              ) : (
+                "Register"
+              )}
             </button>
           </form>
         ) : (
@@ -358,7 +366,14 @@ const Register = () => {
               className="w-full py-3 text-sm cursor-pointer bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
               disabled={otpLoading}
             >
-              {otpLoading ? "Verifying OTP..." : "Verify OTP"}
+              {otpLoading ? (
+                <>
+                  <TbLoader className="animate-spin text-xl inline-block mr-1" />{" "}
+                  Verifying OTP...
+                </>
+              ) : (
+                "Verify OTP"
+              )}
             </button>
             <div className="flex gap-4 mt-4">
               <button
@@ -367,11 +382,16 @@ const Register = () => {
                 className="w-full text-sm cursor-pointer text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 focus:outline-none transition duration-300 ease-in-out transform hover:scale-x-95 hover:underline"
                 disabled={resendOtpLoading || !canResendOtp}
               >
-                {resendOtpLoading
-                  ? "Resending OTP..."
-                  : canResendOtp
-                  ? "Resend OTP"
-                  : `Wait ${countdown}s`}
+                {resendOtpLoading ? (
+                  <>
+                    <TbLoader className="animate-spin text-base inline-block mr-1" />{" "}
+                    Resending OTP...
+                  </>
+                ) : canResendOtp ? (
+                  "Resend OTP"
+                ) : (
+                  `Wait ${countdown}s`
+                )}
               </button>
 
               <button
@@ -380,7 +400,14 @@ const Register = () => {
                 disabled={wrongEmailLoading}
                 className="w-full text-sm cursor-pointer text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 focus:outline-none transition duration-300 ease-in-out transform hover:scale-x-95 hover:underline"
               >
-                {wrongEmailLoading ? "Processing..." : "Wrong Email"}
+                {wrongEmailLoading ? (
+                  <>
+                    <TbLoader className="animate-spin text-base inline-block mr-1" />{" "}
+                    Processing...
+                  </>
+                ) : (
+                  "Wrong Email"
+                )}
               </button>
             </div>
           </>

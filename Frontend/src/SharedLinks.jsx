@@ -28,7 +28,7 @@ const SharedLinks = () => {
     if (width >= 640) return 4;
     return 8;
   };
-  
+
   const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
 
   const baseUrl = window.location.origin;

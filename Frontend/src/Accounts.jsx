@@ -8,6 +8,7 @@ import {
   BACKEND_API_URL,
 } from "./utils/constants";
 import { useNavigate } from "react-router-dom";
+import { TbLoader } from "react-icons/tb";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 
 const Accounts = () => {
@@ -413,7 +414,14 @@ const Accounts = () => {
             type="submit"
             className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
           >
-            {btnState ? "Verifying..." : "Verify Password"}
+            {btnState ? (
+              <>
+                <TbLoader className="animate-spin text-xl inline-block mr-1" />{" "}
+                Verifying...
+              </>
+            ) : (
+              "Verify Password"
+            )}
           </button>
 
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">

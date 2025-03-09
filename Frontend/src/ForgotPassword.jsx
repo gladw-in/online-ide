@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
+import { TbLoader } from "react-icons/tb";
 import InputField from "./utils/InputField";
 import OtpInputForm from "./utils/OtpInputForm";
 import {
@@ -299,7 +300,14 @@ const ForgotPassword = () => {
               className="w-full p-2 text-sm cursor-pointer bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
               disabled={loading}
             >
-              {loading ? "Sending OTP..." : "Send OTP"}
+              {loading ? (
+                <>
+                  <TbLoader className="animate-spin inline-block mr-1" />{" "}
+                  Sending OTP...
+                </>
+              ) : (
+                "Send OTP"
+              )}
             </button>
           </form>
         )}
@@ -336,7 +344,14 @@ const ForgotPassword = () => {
               className="w-full p-2 text-sm cursor-pointer bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
               disabled={loading}
             >
-              {loading ? "Verifying OTP..." : "Verify OTP"}
+              {loading ? (
+                <>
+                  <TbLoader className="animate-spin inline-block mr-1" />{" "}
+                  Verifying OTP...
+                </>
+              ) : (
+                "Verify OTP"
+              )}
             </button>
             <button
               type="button"
@@ -344,11 +359,16 @@ const ForgotPassword = () => {
               className="w-full text-sm cursor-pointer text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 focus:outline-none transition duration-300 ease-in-out transform hover:scale-x-95 hover:underline mt-4"
               disabled={resendOtpLoading || !canResendOtp}
             >
-              {resendOtpLoading
-                ? "Resending OTP..."
-                : canResendOtp
-                ? "Resend OTP"
-                : `Wait ${countdown}s`}
+              {resendOtpLoading ? (
+                <>
+                  <TbLoader className="animate-spin text-xl inline-block mr-1" />{" "}
+                  Resending OTP...
+                </>
+              ) : canResendOtp ? (
+                "Resend OTP"
+              ) : (
+                `Wait ${countdown}s`
+              )}
             </button>
           </form>
         )}
@@ -394,7 +414,14 @@ const ForgotPassword = () => {
               className="w-full p-2 cursor-pointer text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
               disabled={loading}
             >
-              {loading ? "Resetting Password..." : "Reset Password"}
+              {loading ? (
+                <>
+                  <TbLoader className="animate-spin text-xl inline-block mr-1" />{" "}
+                  Resetting Password...
+                </>
+              ) : (
+                "Reset Password"
+              )}
             </button>
           </form>
         )}
