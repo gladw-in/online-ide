@@ -502,6 +502,7 @@ Generate HTML code for the following project, suitable for placement directly wi
 *   Do not include any inline styles (e.g., `style="..."`), or links to external CSS/JS files *except for essential CDNs as specified below*.
 *   Don’t give JavaScript in this HTML code; I will ask for that later.
 *   Add the IDs and class names only; no other attributes should be used that are required by JavaScript code.
+*   Make it responsive for all the devices.
 
 **VERY IMPORTANT**: Regarding external libraries/CDNs:
 
@@ -525,6 +526,7 @@ Generate CSS to style the following HTML.
 *   Use the provided `id` and `class` attributes from the HTML for styling. Do not introduce new selectors based on element types unless absolutely necessary (e.g., styling all `<a>` tags for basic link styles).
 *   Prioritize using class names for styling, and use id names only when styling a specific element that is unique on the page.
 *   Use modern CSS techniques (flexbox, grid) for layout where appropriate.
+*   Make it responsive for all the devices.
 
 {project_description}
 
@@ -567,6 +569,7 @@ Refactor HTML code for the following project, suitable for placement directly wi
 *   Do not include any inline styles (e.g., `style="..."`), or links to external CSS/JS files *except for essential CDNs as specified below*.
 *   Don’t give JavaScript in this HTML code; I will ask for that later.
 *   Add the IDs and class names only; no other attributes should be used that are required by JavaScript code.
+*   Make it responsive for all the devices.
 
 **VERY IMPORTANT**: Regarding external libraries/CDNs:
 
@@ -593,6 +596,7 @@ Refactor CSS to style the following HTML.
 *   Use the provided `id` and `class` attributes from the HTML for styling. Do not introduce new selectors based on element types unless absolutely necessary (e.g., styling all `<a>` tags for basic link styles).
 *   Prioritize using class names for styling, and use id names only when styling a specific element that is unique on the page.
 *   Use modern CSS techniques (flexbox, grid) for layout where appropriate.
+*   Make it responsive for all the devices.
 
 HTML:
 ```html

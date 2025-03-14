@@ -1,4 +1,4 @@
-google-generativeai
+google-genai
 python-dotenv
 absl-py
 flask_cors

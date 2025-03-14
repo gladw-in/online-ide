@@ -6,7 +6,7 @@ import {
   LOCAL_STORAGE_LOGIN_KEY,
   BACKEND_API_URL,
   TEMP_SHARE_API_URL,
-} from "./utils/constants";
+} from "../utils/constants";
 import { Link } from "react-router-dom";
 import { CgTrash } from "react-icons/cg";
 import { HiRefresh } from "react-icons/hi";

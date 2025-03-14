@@ -1,21 +1,11 @@
 import os
 import re
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import absl.logging
-from prompts import (
-    languages_prompts,
-    html_prompt,
-    css_prompt,
-    js_prompt,
-    refactor_html_prompt,
-    refactor_css_prompt,
-    refactor_js_prompt,
-    generate_code_prompt,
-    refactor_code_prompt,
-)
+from prompts import *
 
 valid_languages = {
     "python",
@@ -40,9 +30,11 @@ valid_languages = {
 }
 
 app = Flask(__name__)
+
 CORS(app)
 
 os.environ["GRPC_VERBOSITY"] = "NONE"
+
 absl.logging.set_verbosity(absl.logging.ERROR)
 
 try:
@@ -53,18 +45,8 @@ except Exception as e:
 CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
 
 api_key = os.getenv("GEMINI_API_KEY")
-
-if not api_key:
-    print("API key is missing in environment variables.")
-
-try:
-    genai.configure(api_key=api_key)
-    code_generation_model = genai.GenerativeModel("gemini-2.0-flash")
-    code_execution_model = genai.GenerativeModel("gemini-1.5-flash")
-    refactoring_model = genai.GenerativeModel("gemini-2.0-flash")
-    html_css_js_model = genai.GenerativeModel("gemini-2.0-flash")
-except Exception as e:
-    raise RuntimeError(f"Error configuring Gemini models: {e}")
+gemini_model = os.getenv("GEMINI_MODEL")
+gemini_model_1 = os.getenv("GEMINI_MODEL_1")
 
 
 def get_generated_code(problem_description, language):
@@ -72,10 +54,13 @@ def get_generated_code(problem_description, language):
         if language not in valid_languages:
             return "Error: Unsupported language."
 
-        response = code_generation_model.generate_content(
-            generate_code_prompt.format(
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model=gemini_model,
+            contents=generate_code_prompt.format(
                 problem_description=problem_description, language=language
-            )
+            ),
         )
         return response.text.strip()
     except Exception as e:
@@ -89,7 +74,13 @@ def get_output(code, language):
         else:
             return "Error: Language not supported."
 
-        response = code_execution_model.generate_content(prompt)
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model=gemini_model,
+            contents=prompt,
+        )
+
         return response.text
     except Exception as e:
         return f"Error: Unable to process the code. {str(e)}"
@@ -100,9 +91,13 @@ def refactor_code(code, language):
         if language not in valid_languages:
             return "Error: Unsupported language."
 
-        response = refactoring_model.generate_content(
-            refactor_code_prompt.format(code=code, language=language)
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model=gemini_model,
+            contents=refactor_code_prompt.format(code=code, language=language),
         )
+
         return response.text.strip()
     except Exception as e:
         print(f"Error analyzing code: {e}")
@@ -112,7 +107,14 @@ def refactor_code(code, language):
 def generate_code_html_css_js(prompt, params):
     try:
         formatted_prompt = prompt.format(**params)
-        response = html_css_js_model.generate_content(formatted_prompt)
+
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model=gemini_model_1,
+            contents=formatted_prompt,
+        )
+
         result = response.text.strip()
         return result
     except Exception as e:
@@ -121,7 +123,13 @@ def generate_code_html_css_js(prompt, params):
 
 def generate_html(prompt):
     formatted_prompt = html_prompt.format(prompt=prompt)
-    response = html_css_js_model.generate_content(formatted_prompt)
+
+    client = genai.Client(api_key=api_key)
+
+    response = client.models.generate_content(
+        model=gemini_model_1,
+        contents=formatted_prompt,
+    )
     return extract_code(response.text)
 
 
@@ -129,7 +137,14 @@ def generate_css(html_content, project_description):
     formatted_prompt = css_prompt.format(
         html_content=html_content, project_description=project_description
     )
-    response = html_css_js_model.generate_content(formatted_prompt)
+
+    client = genai.Client(api_key=api_key)
+
+    response = client.models.generate_content(
+        model=gemini_model_1,
+        contents=formatted_prompt,
+    )
+
     return extract_code(response.text)
 
 
@@ -139,7 +154,14 @@ def generate_js(html_content, css_content, project_description):
         css_content=css_content,
         project_description=project_description,
     )
-    response = html_css_js_model.generate_content(formatted_prompt)
+
+    client = genai.Client(api_key=api_key)
+
+    response = client.models.generate_content(
+        model=gemini_model_1,
+        contents=formatted_prompt,
+    )
+
     return extract_code(response.text)
 
 

@@ -22,6 +22,8 @@ OTP_EMAIL_PASS=
 
 #GenAi
 GEMINI_API_KEY=
+GEMINI_MODEL=
+GEMINI_MODEL_1=
 
 #TempFile
 REDIS_HOST=
@@ -29,6 +31,10 @@ REDIS_PASSWORD=
 REDIS_PORT=6379
 TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
 ```
+
+## Diagram
+
+![Diagram](Images/Diagram.png)
 
 ## Frontend Dependencies:
 - **[monaco-editor](https://microsoft.github.io/monaco-editor/)**: A fast code editor React wrapper, commonly used in applications like Visual Studio Code.

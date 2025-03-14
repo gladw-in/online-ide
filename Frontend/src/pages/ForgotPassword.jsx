@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
-import InputField from "./utils/InputField";
-import OtpInputForm from "./utils/OtpInputForm";
+import InputField from "../utils/InputField";
+import OtpInputForm from "../utils/OtpInputForm";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
   SESSION_STORAGE_FETCH_STATUS_KEY,
@@ -11,7 +11,7 @@ import {
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
   BACKEND_API_URL,
-} from "./utils/constants";
+} from "../utils/constants";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");

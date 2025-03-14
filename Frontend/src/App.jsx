@@ -1,9 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router } from "react-router-dom";
-import Header from "./Header";
-import Footer from "./Footer";
-import EditorRoutes from "./EditorRoutes";
-import { ThemeProvider, ThemeContext } from "./ThemeProvider";
+import { ThemeProvider, ThemeContext } from "./context/ThemeProvider";
+import MainBody from "./components/MainBody";
 
 const App = () => {
   return (
@@ -11,11 +9,7 @@ const App = () => {
       <Router>
         <ThemeContext.Consumer>
           {({ isDarkMode, toggleTheme }) => (
-            <div className="min-h-screen flex flex-col bg-[#f3f3f3] dark:bg-gray-900 dark:text-white select-none dark:[color-scheme:dark]">
-              <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
-              <EditorRoutes isDarkMode={isDarkMode} />
-              <Footer />
-            </div>
+            <MainBody isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
           )}
         </ThemeContext.Consumer>
       </Router>

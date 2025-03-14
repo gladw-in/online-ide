@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import NotFound from "./NotFound";
+import NotFound from "../pages/NotFound";
 import CodeEditor from "./CodeEditor";
 import Editor from "./Editor";
 import {
@@ -9,9 +9,9 @@ import {
   TEMP_SHARE_API_URL,
   GENAI_API_URL,
   BACKEND_API_URL,
-} from "./utils/constants";
+} from "../utils/constants";
 import { FaSpinner, FaGolang } from "react-icons/fa6";
-import { IoLogoPython } from "react-icons/io5";
+import { IoLogoPython, IoHardwareChipOutline } from "react-icons/io5";
 import {
   SiJavascript,
   SiRust,
@@ -30,7 +30,6 @@ import {
   PiFileCFill,
   PiFileSqlFill,
 } from "react-icons/pi";
-import { VscTerminalBash } from "react-icons/vsc";
 import { TbBrandKotlin } from "react-icons/tb";
 import { BiLogoTypescript } from "react-icons/bi";
 
@@ -51,7 +50,7 @@ const languageIcons = {
   csharp: PiFileCSharpFill,
   c: PiFileCFill,
   sql: PiFileSqlFill,
-  shell: VscTerminalBash,
+  verilog: IoHardwareChipOutline,
   typescript: BiLogoTypescript,
   kotlin: TbBrandKotlin,
 };
