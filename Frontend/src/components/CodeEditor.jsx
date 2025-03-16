@@ -559,9 +559,9 @@ const CodeEditor = ({
         mimeType = "text/x-rust";
         fileExtension = "rs";
         break;
-      case "shell":
-        mimeType = "application/x-sh";
-        fileExtension = "sh";
+      case "verilog":
+        mimeType = "text/x-verilog";
+        fileExtension = "v";
         break;
       case "sql":
         mimeType = "application/sql";
