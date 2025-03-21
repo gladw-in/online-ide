@@ -400,16 +400,19 @@ const Accounts = () => {
         <form onSubmit={handlePasswordVerification}>
           <InputField
             label="Enter Current Password"
-            type="password"
+            type={showCurrentPassword ? "text" : "password"}
             value={formData.currentPassword}
             onChange={handleInputChange}
             required
             name="currentPassword"
             showPassword={showCurrentPassword}
-            togglePasswordVisibility={() =>
-              setShowCurrentPassword(!showCurrentPassword)
+            onTogglePassword={() =>
+              setShowCurrentPassword(
+                (showCurrentPassword) => !showCurrentPassword
+              )
             }
           />
+
           <button
             type="submit"
             className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
@@ -474,24 +477,27 @@ const Accounts = () => {
           <form onSubmit={handleUpdatePassword}>
             <InputField
               label="New Password"
-              type="password"
+              type={showNewPassword ? "text" : "password"}
               value={formData.newPassword}
               onChange={handleInputChange}
               name="newPassword"
               showPassword={showNewPassword}
-              togglePasswordVisibility={() =>
-                setShowNewPassword(!showNewPassword)
+              onTogglePassword={() =>
+                setShowNewPassword((showNewPassword) => !showNewPassword)
               }
             />
+
             <InputField
               label="Confirm New Password"
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               value={formData.confirmPassword}
               onChange={handleInputChange}
               name="confirmPassword"
               showPassword={showConfirmPassword}
-              togglePasswordVisibility={() =>
-                setShowConfirmPassword(!showConfirmPassword)
+              onTogglePassword={() =>
+                setShowConfirmPassword(
+                  (showConfirmPassword) => !showConfirmPassword
+                )
               }
             />
             <button

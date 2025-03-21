@@ -14,6 +14,7 @@ const InputField = ({
     "password",
     "newPassword",
     "confirmPassword",
+    "currentPassword",
   ].includes(name);
 
   const getAutoCompleteValue = () => {
