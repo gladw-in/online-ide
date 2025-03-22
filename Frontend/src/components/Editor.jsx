@@ -101,6 +101,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isOverlayVisible, setIsOverlayVisible] = useState(false);
+  const [OverlayText, setOverlayText] = useState(false);
 
   const iframeRef = useRef(null);
 
@@ -378,8 +380,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
     if (prompt) {
       setLoadingAction("generate");
+      setIsOverlayVisible(true);
       try {
-        generatesetBtnTxt("Generating HTML...");
+        generatesetBtnTxt("Generating...");
+        setOverlayText("Generating HTML...");
         setisGenerateBtnPressed(true);
         setIsEditorReadOnly(true);
 
@@ -406,7 +410,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           javascript: "",
         });
 
-        generatesetBtnTxt("Generating CSS...");
+        setOverlayText("Generating CSS...");
 
         const responseCss = await fetch(
           `${GENAI_API_URL}/htmlcssjsgenerate-code`,
@@ -432,7 +436,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           javascript: prevCode.javascript,
         }));
 
-        generatesetBtnTxt("Generating JS...");
+        setOverlayText("Generating JS...");
 
         const responseJs = await fetch(
           `${GENAI_API_URL}/htmlcssjsgenerate-code`,
@@ -471,6 +475,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         setisGenerateBtnPressed(false);
         setIsEditorReadOnly(false);
         setLoadingAction(null);
+        setIsOverlayVisible(false);
+        setOverlayText(null);
       }
     }
   };
@@ -482,8 +488,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     }
 
     setLoadingAction("refactor");
+    setIsOverlayVisible(true);
     try {
-      refactorsetBtnTxt("Refactoring HTML...");
+      refactorsetBtnTxt("Refactoring...");
+      setOverlayText("Refactoring HTML...");
       setisRefactorBtnPressed(true);
       setIsEditorReadOnly(true);
 
@@ -520,7 +528,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       const resultHtml = await responseHtml.json();
       updateCodeState(resultHtml.html, null, null);
 
-      refactorsetBtnTxt("Refactoring CSS...");
+      setOverlayText("Refactoring CSS...");
 
       editorCode = JSON.parse(sessionStorage.getItem(storageKey));
       const {
@@ -558,7 +566,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         javascript: currentJs2,
       } = editorCode;
 
-      refactorsetBtnTxt("Refactoring JS...");
+      setOverlayText("Refactoring JS...");
 
       const responseJs = await fetch(
         `${GENAI_API_URL}/htmlcssjsrefactor-code`,
@@ -592,6 +600,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       setisRefactorBtnPressed(false);
       setIsEditorReadOnly(false);
       setLoadingAction(null);
+      setIsOverlayVisible(false);
+      setOverlayText(null);
     }
   };
 
@@ -892,7 +902,18 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         ))}
       </div>
       <div className="mt-4 relative flex flex-col items-start dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg">
-        <div className="flex items-center">
+        {isOverlayVisible && OverlayText && (
+          <div className="absolute inset-0 bg-transparent flex justify-center items-center z-[2] rounded-lg backdrop-blur-[2px]">
+            <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg flex items-center space-x-2 sm:w-auto dark:bg-gray-800 dark:text-white">
+              <FaSpinner className="text-2xl animate-spin" />
+              <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                {OverlayText}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center z-[3]">
           <MdPreview className="text-2xl mt-3 ml-3" />
           <h2 className="text-xl mt-3 ml-3">Preview</h2>
         </div>

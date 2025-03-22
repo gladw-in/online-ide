@@ -719,7 +719,7 @@ const CodeEditor = ({
 
         <pre className="select-text font-mono text-xs font-semibold lg:text-sm  min-h-20 max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]">
           {output
-            .replace(/^```(text|javascript)[\r\n]*/m, "")
+            .replace(/^```(text|javascript|json)[\r\n]*/m, "")
             .replace(/^```[\r\n]*/m, "")
             .replace(/[\r\n]*```$/m, "") ||
             "Run your code to see output here..."}
