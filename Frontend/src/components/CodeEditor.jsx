@@ -87,14 +87,23 @@ const CodeEditor = ({
     const savedCode = sessionStorage.getItem(codeStorageKey);
     const savedOutput = sessionStorage.getItem(outputStorageKey);
 
-    if (savedCode) {
+    if (savedCode && savedCode.trim().length !== 0) {
       setCode(savedCode);
     } else {
       setCode(defaultCode || "");
     }
 
-    if (savedOutput) {
+    if (
+      savedOutput &&
+      savedOutput
+        .replace(/^```(text|javascript|json)[\r\n]*/m, "")
+        .replace(/^```[\r\n]*/m, "")
+        .replace(/[\r\n]*```$/m, "")
+        .trim().length !== 0
+    ) {
       setOutput(savedOutput);
+    } else {
+      setOutput("Run your code to see output here...");
     }
 
     const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
@@ -134,7 +143,8 @@ const CodeEditor = ({
   };
 
   const runCode = async () => {
-    if (code.length === 0) return;
+    if (code.trim().length === 0) return;
+
     setLoadingActionRun("run");
     try {
       setisDownloadBtnPressed(true);
@@ -221,6 +231,8 @@ const CodeEditor = ({
       return;
     }
 
+    if (!language) return;
+
     const { value: prompt } = await Swal.fire({
       title: "Generate Code",
       input: "textarea",
@@ -279,7 +291,7 @@ const CodeEditor = ({
       return;
     }
 
-    if (code.length === 0 || !language) return;
+    if (code.trim().length === 0 || !language) return;
 
     setLoadingActionRefactor("refactor");
     try {
@@ -335,7 +347,9 @@ const CodeEditor = ({
 
     const { isDismissed } = await Swal.fire({
       title: "Create Share link",
-      html: ShareLinkModal(defaultTitle),
+      html: ShareLinkModal(
+        defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1)
+      ),
       showCancelButton: true,
       allowOutsideClick: false,
       footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
@@ -351,7 +365,9 @@ const CodeEditor = ({
         document.querySelector('input[name="expiryTime"]:checked').value
       ) || 10;
 
-    const finalTitle = title.slice(0, 60) || defaultTitle;
+    const finalTitle =
+      title.slice(0, 60) ||
+      defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1);
 
     Swal.fire({
       title: "Generating...",
@@ -400,7 +416,11 @@ const CodeEditor = ({
 
           Swal.close();
 
+          sessionStorage.removeItem(codeStorageKey);
+          sessionStorage.removeItem(outputStorageKey);
           sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+
+          navigate(`/${shareId}`);
 
           Swal.fire({
             icon: "success",
@@ -523,6 +543,10 @@ const CodeEditor = ({
   };
 
   const downloadFile = (content, filename, language) => {
+    if (code.trim().length === 0) {
+      return;
+    }
+
     let mimeType;
     let fileExtension;
 
@@ -624,7 +648,7 @@ const CodeEditor = ({
     if (
       (event.ctrlKey || event.metaKey) &&
       event.key === "s" &&
-      code.length !== 0
+      code.trim().length !== 0
     ) {
       event.preventDefault();
       downloadFile(code, "file", language);
@@ -649,28 +673,28 @@ const CodeEditor = ({
           <FaPlay className="mr-2 mt-1" />
         ),
       text: loadingActionRun === "run" ? "Running..." : "Run",
-      disabled: loadingActionRun === "run",
+      disabled: loadingActionRun === "run" || code.trim().length === 0,
     },
     {
       action: clearAll,
       bgColor: "bg-red-500",
       icon: <FaTrashAlt className="mr-2 mt-1" />,
       text: "Clear All",
-      disabled: false,
+      disabled: code.trim().length === 0,
     },
     {
       action: handleCopy,
       bgColor: "bg-purple-500",
       icon: <FaCopy className="mr-2 mt-1" />,
       text: cpyBtnState,
-      disabled: cpyBtnState === "Copying...",
+      disabled: cpyBtnState === "Copying..." || code.trim().length === 0,
     },
     {
       action: () => downloadFile(code, "file", language),
       bgColor: "bg-orange-500",
       icon: <FaDownload className="mr-2 mt-1" />,
       text: "Download",
-      disabled: code.length === 0,
+      disabled: code.trim().length === 0,
     },
     {
       action: generateCodeFromPrompt,
@@ -682,7 +706,8 @@ const CodeEditor = ({
           <FaMagic className="mr-2 mt-1" />
         ),
       text: loadingActionGen === "generate" ? "Generating..." : "Generate",
-      disabled: isDownloadBtnPressed || isRefactorBtnPressed,
+      disabled:
+        isDownloadBtnPressed || isRefactorBtnPressed || isGenerateBtnPressed,
     },
     {
       action: refactorCode,
@@ -696,14 +721,20 @@ const CodeEditor = ({
       text:
         loadingActionRefactor === "refactor" ? "Refactoring..." : "Refactor",
       disabled:
-        code.length === 0 || isDownloadBtnPressed || isGenerateBtnPressed,
+        code.trim().length === 0 ||
+        isDownloadBtnPressed ||
+        isGenerateBtnPressed ||
+        isRefactorBtnPressed,
     },
     {
       action: shareLink,
       bgColor: "bg-fuchsia-500",
       icon: <FaShare className="mr-2 mt-1" />,
       text: "Share",
-      disabled: code.length === 0,
+      disabled:
+        code.trim().length === 0 ||
+        isRefactorBtnPressed ||
+        isGenerateBtnPressed,
     },
   ];
 

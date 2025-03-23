@@ -81,6 +81,13 @@ const SharedLinks = () => {
     }
   };
 
+  const clearSessionData = () => {
+    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+    sessionStorage.removeItem(shareId);
+    sessionStorage.removeItem(`__${shareId}Code__`);
+    sessionStorage.removeItem(`__${shareId}Output__`);
+  };
+
   const handleDelete = async (shareId) => {
     Swal.fire({
       title: "Are you sure?",
@@ -120,8 +127,7 @@ const SharedLinks = () => {
         if (!fileResponse.ok && !linkResponse.ok) {
           Swal.close();
           Swal.fire("Error", "There was an issue deleting the link.", "error");
-
-          sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+          clearSessionData();
           return;
         }
 
@@ -146,8 +152,7 @@ const SharedLinks = () => {
               setCurrentPage(Math.max(currentPage - 1, 1));
             }
           }
-
-          sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+          clearSessionData();
         } else {
           Swal.close();
           Swal.fire(
@@ -156,8 +161,7 @@ const SharedLinks = () => {
             "error"
           );
         }
-
-        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+        clearSessionData();
       }
     });
   };

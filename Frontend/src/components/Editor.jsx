@@ -79,7 +79,7 @@ const EditorSection = ({
 };
 
 const Editor = ({ isDarkMode, value, title, shareIdData }) => {
-  const storageKey = `__${shareIdData || "htmlcssjs"}code__`;
+  const storageKey = `__${shareIdData || "htmlcssjs"}Code__`;
 
   const [code, setCode] = useState(() => {
     const savedCode = sessionStorage.getItem(storageKey);
@@ -166,7 +166,11 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     const editorCode = JSON.parse(sessionStorage.getItem(storageKey));
     const { html, css, javascript } = editorCode;
 
-    if (html.length === 0 && css.length === 0 && javascript.length === 0) {
+    if (
+      html.trim().length === 0 &&
+      css.trim().length === 0 &&
+      javascript.trim().length === 0
+    ) {
       setCode({
         html: value.html || "",
         css: value.css || "",
@@ -307,6 +311,13 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
     const { html, css, javascript } = editorCode;
 
+    if (
+      html.trim().length === 0 &&
+      css.trim().length === 0 &&
+      javascript.trim().length === 0
+    )
+      return;
+
     const cleanedHtml = html
       .replace(/<html.*?>|<\/html>/gi, "")
       .replace(/<head.*?>|<\/head>/gi, "")
@@ -338,12 +349,22 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   };
 
   const handleCtrlS = (event) => {
+    const editorCode = JSON.parse(sessionStorage.getItem(storageKey));
+
+    if (!editorCode) {
+      return;
+    }
+
+    const { html, css, javascript } = editorCode;
+
     if (
       (event.ctrlKey || event.metaKey) &&
       event.key === "s" &&
-      code.html.length !== 0 &&
-      code.css.length !== 0 &&
-      code.javascript.length !== 0
+      !(
+        html.trim().length === 0 &&
+        css.trim().length === 0 &&
+        javascript.trim().length === 0
+      )
     ) {
       event.preventDefault();
       downloadFile();
@@ -628,7 +649,9 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
     const { isDismissed } = await Swal.fire({
       title: "Create Share link",
-      html: ShareLinkModal(defaultTitle),
+      html: ShareLinkModal(
+        defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1)
+      ),
       showCancelButton: true,
       allowOutsideClick: false,
       footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
@@ -639,7 +662,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     }
 
     const finalTitle =
-      document.getElementById("titleInput").value || defaultTitle;
+      document.getElementById("titleInput").value ||
+      defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1);
     const expiryTime =
       parseInt(
         document.querySelector('input[name="expiryTime"]:checked').value
@@ -692,7 +716,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
           Swal.close();
 
+          sessionStorage.removeItem(storageKey);
           sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+
+          navigate(`/${shareId}`);
 
           Swal.fire({
             icon: "success",
@@ -801,7 +828,12 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       text: "Clear All",
       icon: <FaTrashAlt className="mr-2 mt-1" />,
       onClick: clearAll,
-      disabled: false,
+      disabled:
+        (code.html.length === 0 &&
+          code.css.length === 0 &&
+          code.javascript.length === 0) ||
+        loadingAction === "generate" ||
+        loadingAction === "refactor",
       color: "bg-red-500",
       loadingAction: null,
       iconLoading: null,
@@ -811,11 +843,9 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       icon: <FaDownload className="mr-2 mt-1" />,
       onClick: downloadFile,
       disabled:
-        (code.html.length === 0 &&
-          code.css.length === 0 &&
-          code.javascript.length === 0) ||
-        loadingAction === "generate" ||
-        loadingAction === "refactor",
+        code.html.trim().length === 0 &&
+        code.css.trim().length === 0 &&
+        code.javascript.trim().length === 0,
       color: "bg-orange-500",
       loadingAction: null,
       iconLoading: null,
@@ -833,7 +863,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           generateCodeFromPrompt();
         }
       },
-      disabled: loadingAction === "generate",
+      disabled: loadingAction === "generate" || loadingAction === "refactor",
       color: "bg-green-500",
       loadingAction: "generate",
       iconLoading: <FaSpinner className="mr-2 mt-1 animate-spin" />,
@@ -852,9 +882,11 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         }
       },
       disabled:
-        code.html.length === 0 &&
-        code.css.length === 0 &&
-        code.javascript.length === 0,
+        (code.html.trim().length === 0 &&
+          code.css.trim().length === 0 &&
+          code.javascript.trim().length === 0) ||
+        loadingAction === "generate" ||
+        loadingAction === "refactor",
       color: "bg-yellow-500",
       loadingAction: "refactor",
       iconLoading: <FaSpinner className="mr-2 mt-1 animate-spin" />,
@@ -865,9 +897,9 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       icon: <FaShare className="mr-2 mt-1" />,
       text: "Share",
       disabled:
-        (code.html.length === 0 &&
-          code.css.length === 0 &&
-          code.javascript.length === 0) ||
+        (code.html.trim().length === 0 &&
+          code.css.trim().length === 0 &&
+          code.javascript.trim().length === 0) ||
         loadingAction === "generate" ||
         loadingAction === "refactor",
     },
