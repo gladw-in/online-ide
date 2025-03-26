@@ -158,7 +158,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
             {isLoggedIn ? (
               <>
                 <Link
-                  to={`${baseUrl}/accounts`}
+                  to={`${baseUrl}/account`}
                   className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
                   title={username.trim()}
                 >
@@ -216,7 +216,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
               {isLoggedIn ? (
                 <>
                   <Link
-                    to="/accounts"
+                    to="/account"
                     className="block text-lg text-center focus:outline-none hover:text-gray-300"
                     title={username.trim()}
                     onClick={() => setIsDropdownOpen(false)}

@@ -728,16 +728,12 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
             confirmButtonText: "Copy",
             showCancelButton: true,
             cancelButtonText: "Close",
-            showDenyButton: true,
-            denyButtonText: "Open",
             allowOutsideClick: false,
             footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
           }).then(async (result) => {
             if (result.isConfirmed) {
               await navigator.clipboard.writeText(shareableLink);
               Swal.fire("URL Copied!", "", "success");
-            } else if (result.isDenied) {
-              window.open(shareableLink, "_blank");
             }
           });
         }
