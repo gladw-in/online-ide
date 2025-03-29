@@ -31,7 +31,11 @@ import NavigationLinks from "../components/NavigationLinks";
 import Editor from "../components/Editor";
 import CodeEditor from "../components/CodeEditor";
 import ShareEditor from "../components/ShareEditor";
-import { LOCAL_STORAGE_TOKEN_KEY, GENAI_API_URL } from "../utils/constants";
+import {
+  LOCAL_STORAGE_TOKEN_KEY,
+  GENAI_API_URL,
+  LOCAL_STORAGE_USERNAME_KEY,
+} from "../utils/constants";
 import samplePy from "../samples/python.py?raw";
 import sampleJs from "../samples/javascript.js?raw";
 import sampleC from "../samples/c.c?raw";
@@ -69,6 +73,10 @@ const ProtectedRoute = ({ element }) => {
 
 const RedirectedRoute = ({ element }) => {
   return !isAuthenticated() ? element : <Navigate to="/" />;
+};
+
+const GetUsername = () => {
+  return localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY) || "";
 };
 
 const languages = [
@@ -201,7 +209,7 @@ const EditorRoutes = ({ isDarkMode }) => (
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route
-        path="/account"
+        path={`/account/${GetUsername()?.trim()}`}
         element={<ProtectedRoute element={<Accounts />} />}
       />
 

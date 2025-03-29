@@ -68,6 +68,7 @@ const SharedLinks = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
 
       const data = await response.json();
+
       if (data.sharedLinks && Array.isArray(data.sharedLinks)) {
         const reversedLinks = data.sharedLinks.reverse();
         sessionStorage.setItem(
@@ -135,6 +136,10 @@ const SharedLinks = () => {
           Swal.close();
           Swal.fire("Deleted!", "The link has been deleted.", "success");
 
+          sessionStorage.removeItem(shareId);
+          sessionStorage.removeItem(`__${shareId}Code__`);
+          sessionStorage.removeItem(`__${shareId}Output__`);
+
           setSharedLinks((prevLinks) =>
             prevLinks.filter((link) => link.shareId !== shareId)
           );
@@ -142,6 +147,7 @@ const SharedLinks = () => {
           const updatedLinks = sharedLinks.filter(
             (link) => link.shareId !== shareId
           );
+
           const totalPages = Math.ceil(updatedLinks.length / itemsPerPage);
 
           if (currentPage > totalPages) {

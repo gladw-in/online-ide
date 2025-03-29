@@ -20,6 +20,7 @@ const ForgotPassword = () => {
   const [shownewPassword, setshownewPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLogin, setIsLogin] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,6 +42,11 @@ const ForgotPassword = () => {
         ? "Set New Password"
         : "Forgot Password";
   }, [emailVerified, otpVerified]);
+
+  useEffect(() => {
+    const token = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
+    setIsLogin(!!token);
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -424,6 +430,19 @@ const ForgotPassword = () => {
               )}
             </button>
           </form>
+        )}
+
+        {!isLogin && (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+              <button
+                onClick={() => navigate("/login")}
+                className="text-blue-600 cursor-pointer dark:text-blue-400 hover:underline"
+              >
+                Login
+              </button>
+            </p>
+          </div>
         )}
       </div>
     </div>

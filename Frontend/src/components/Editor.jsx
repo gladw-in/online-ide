@@ -671,7 +671,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
     Swal.fire({
       title: "Generating...",
-      text: "Please wait while your Share Link is being generated.",
+      text: "Please wait while your share link is being generated.",
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();

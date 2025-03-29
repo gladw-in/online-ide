@@ -37,7 +37,8 @@ const CodeEditor = ({
     sessionStorage.getItem(codeStorageKey) || defaultCode || ""
   );
   const [output, setOutput] = useState(
-    sessionStorage.getItem(outputStorageKey) || ""
+    sessionStorage.getItem(outputStorageKey) ||
+      "Run your code to see output here..."
   );
   const [deviceType, setDeviceType] = useState("pc");
   const [cpyBtnState, setCpyBtnState] = useState("Copy");
@@ -163,7 +164,16 @@ const CodeEditor = ({
       const result = await response.json();
 
       if (response.ok) {
-        setOutput(result.output || "No output returned.");
+        if (result.output === "") {
+          setOutput("No output returned.");
+        }
+
+        setOutput(
+          result.output
+            .replace(/^```(text|javascript|json)[\r\n]*/m, "")
+            .replace(/^```[\r\n]*/m, "")
+            .replace(/[\r\n]*```$/m, "") || "No output returned."
+        );
 
         if (isLoggedIn) {
           await getRunCodeCount(language);
@@ -185,34 +195,26 @@ const CodeEditor = ({
 
   const clearAll = () => {
     setCode("");
-    setOutput("");
+    setOutput("Run your code to see output here...");
   };
 
   const handleCopy = async () => {
     const content = sessionStorage.getItem(codeStorageKey);
 
-    if (cpyBtnState === "Copying..." || content.length === 0) return;
+    if (content.length === 0) return;
 
-    setCpyBtnState("Copying...");
+    await navigator.clipboard.writeText(content);
 
-    try {
-      await navigator.clipboard.writeText(content);
+    const lastLineNumber = editorRef.current.getModel().getLineCount();
+    editorRef.current.revealLine(lastLineNumber);
+    editorRef.current.setSelection({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: lastLineNumber,
+      endColumn: editorRef.current.getModel().getLineMaxColumn(lastLineNumber),
+    });
 
-      const lastLineNumber = editorRef.current.getModel().getLineCount();
-      editorRef.current.revealLine(lastLineNumber);
-      editorRef.current.setSelection({
-        startLineNumber: 1,
-        startColumn: 1,
-        endLineNumber: lastLineNumber,
-        endColumn: editorRef.current
-          .getModel()
-          .getLineMaxColumn(lastLineNumber),
-      });
-
-      setCpyBtnState("Copied!");
-    } catch (err) {
-      setCpyBtnState("Error!");
-    }
+    setCpyBtnState("Copied!");
 
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -371,7 +373,7 @@ const CodeEditor = ({
 
     Swal.fire({
       title: "Generating...",
-      text: "Please wait while your Share Link is being generated.",
+      text: "Please wait while your share link is being generated.",
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
@@ -683,7 +685,7 @@ const CodeEditor = ({
       bgColor: "bg-purple-500",
       icon: <FaCopy className="mr-2 mt-1" />,
       text: cpyBtnState,
-      disabled: cpyBtnState === "Copying..." || code.trim().length === 0,
+      disabled: code.trim().length === 0,
     },
     {
       action: () => downloadFile(code, "file", language),
@@ -745,11 +747,7 @@ const CodeEditor = ({
         </div>
 
         <pre className="select-text font-mono text-xs font-semibold lg:text-sm  min-h-20 max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]">
-          {output
-            .replace(/^```(text|javascript|json)[\r\n]*/m, "")
-            .replace(/^```[\r\n]*/m, "")
-            .replace(/[\r\n]*```$/m, "") ||
-            "Run your code to see output here..."}
+          {output}
         </pre>
       </div>
       <p className="ml-2 text-sm text-gray-500 italic">

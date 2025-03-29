@@ -34,7 +34,7 @@ const InputField = ({
   };
 
   return (
-    <div className="mb-4 relative">
+    <div className="my-4 relative">
       <label
         htmlFor={name}
         className="block text-gray-600 dark:text-gray-300 font-medium mb-2"

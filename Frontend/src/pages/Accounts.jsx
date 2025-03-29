@@ -30,7 +30,9 @@ const Accounts = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Accounts";
+    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+
+    document.title = `Account - ${username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()}`;
     fetchUserData();
   }, []);
 

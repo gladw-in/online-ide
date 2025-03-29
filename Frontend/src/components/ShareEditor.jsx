@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import CodeEditor from "./CodeEditor";
@@ -32,6 +32,8 @@ import {
 } from "react-icons/pi";
 import { TbBrandKotlin } from "react-icons/tb";
 import { BiLogoTypescript } from "react-icons/bi";
+import { FiClipboard } from "react-icons/fi";
+import { MdDone } from "react-icons/md";
 
 const languageIcons = {
   python: IoLogoPython,
@@ -63,6 +65,7 @@ const isUUIDMatch = (inputString) => {
 
 const ShareEditor = ({ isDarkMode }) => {
   const { shareId } = useParams();
+  const [copiedLink, setCopiedLink] = useState(false);
   const [state, setState] = useState({
     code: "",
     language: "",
@@ -71,6 +74,8 @@ const ShareEditor = ({ isDarkMode }) => {
     shareIdNotFound: false,
     loading: true,
   });
+
+  const copyBtnTimeout = useRef(null);
 
   const { code, language, expiryTime, title, shareIdNotFound, loading } = state;
 
@@ -101,10 +106,13 @@ const ShareEditor = ({ isDarkMode }) => {
     const fetchStatus = sessionStorage.getItem(
       SESSION_STORAGE_FETCH_STATUS_KEY
     );
+
     if (fetchStatus === "true") {
       const cachedData = sessionStorage.getItem(shareId);
+
       if (cachedData) {
         const { code, language, expiry_time, title } = JSON.parse(cachedData);
+
         setState({
           code,
           language,
@@ -134,6 +142,7 @@ const ShareEditor = ({ isDarkMode }) => {
               shareIdNotFound: false,
               loading: false,
             });
+
             deleteSharedLink(shareId);
           } else if (response.status === 404) {
             setState({
@@ -144,6 +153,7 @@ const ShareEditor = ({ isDarkMode }) => {
               shareIdNotFound: true,
               loading: false,
             });
+
             deleteSharedLink(shareId);
           }
         } else {
@@ -155,6 +165,7 @@ const ShareEditor = ({ isDarkMode }) => {
             shareIdNotFound: false,
             loading: false,
           });
+
           sessionStorage.setItem(
             shareId,
             JSON.stringify({
@@ -175,6 +186,7 @@ const ShareEditor = ({ isDarkMode }) => {
           shareIdNotFound: true,
           loading: false,
         });
+
         sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
       }
     } catch (error) {
@@ -186,6 +198,7 @@ const ShareEditor = ({ isDarkMode }) => {
         shareIdNotFound: true,
         loading: false,
       });
+
       sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
     }
   }, [shareId]);
@@ -227,8 +240,55 @@ const ShareEditor = ({ isDarkMode }) => {
       deleteSharedLink(shareId);
     }
 
+    const data = sessionStorage.getItem(shareId);
+
+    if (data) {
+      const { expiry_time } = JSON.parse(data);
+
+      const expiryDate = new Date(expiry_time);
+      const currentDate = new Date();
+
+      if (expiryDate < currentDate) {
+        setState({
+          code: "",
+          language: "",
+          expiryTime: null,
+          title: "",
+          shareIdNotFound: true,
+          loading: false,
+        });
+
+        sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
+
+        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+        sessionStorage.removeItem(shareId);
+        sessionStorage.removeItem(`__${shareId}Code__`);
+        sessionStorage.removeItem(`__${shareId}Output__`);
+
+        return;
+      }
+    }
+
     fetchCode();
   }, [shareId, fetchCode, shareIdNotFound]);
+
+  const handleCopyLink = async () => {
+    const shareLink = new URL(`${window.location.origin}/${shareId}`);
+
+    if (!loading) {
+      await navigator.clipboard.writeText(shareLink.toString());
+    }
+
+    if (copyBtnTimeout.current) {
+      clearTimeout(copyBtnTimeout.current);
+    }
+
+    setCopiedLink(true);
+
+    copyBtnTimeout.current = setTimeout(() => {
+      setCopiedLink(false);
+    }, 1500);
+  };
 
   if (loading) {
     return (
@@ -257,8 +317,24 @@ const ShareEditor = ({ isDarkMode }) => {
             <span className="mr-2 sm:ml-4">Expires on:</span>
             <span>{formattedExpiryTime}</span>
           </div>
+          <div className="mt-2 select-none items-center sm:mt-0 sm:ml-4">
+            <button
+              onClick={handleCopyLink}
+              title="Click to copy the link"
+              className="flex cursor-pointer hover:text-gray-400"
+            >
+              {copiedLink ? (
+                <MdDone className="mr-1 mt-1" />
+              ) : (
+                <FiClipboard className="mr-1 mt-1" />
+              )}
+
+              {copiedLink ? "Link Copied!" : "Copy Link"}
+            </button>
+          </div>
         </div>
       )}
+
       {language === "htmlcssjs" ? (
         <Editor
           shareIdData={shareId}

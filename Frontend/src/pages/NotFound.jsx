@@ -25,7 +25,7 @@ const NotFound = () => {
         <div className="mt-6 flex justify-center">
           <button
             onClick={handleGoHome}
-            className="px-6 py-3 bg-blue-500 text-white rounded-md dark:bg-blue-700 flex items-center space-x-2 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg"
+            className="px-6 py-3 bg-blue-500 text-white rounded-md cursor-pointer dark:bg-blue-700 flex items-center space-x-2 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg"
           >
             <VscHome className="text-xl mr-2" />
             Go to Homepage
