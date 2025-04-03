@@ -3,3 +3,4 @@ python-dotenv
 absl-py
 flask_cors
 flask
+pyjwt

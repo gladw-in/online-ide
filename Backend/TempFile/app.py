@@ -4,6 +4,8 @@ import redis
 import os
 import uuid
 import json
+import jwt
+from functools import wraps
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
@@ -11,6 +13,9 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+TEMP_FILE_URL = os.getenv("TEMP_FILE_URL")
+SECRET_KEY = os.getenv("JWT_SECRET")
 
 
 def get_redis_connection():
@@ -28,7 +33,27 @@ def get_redis_connection():
         return None
 
 
-TEMP_FILE_URL = os.getenv("TEMP_FILE_URL")
+def token_required(f):
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        token = None
+        if "Authorization" in request.headers:
+            auth_header = request.headers["Authorization"]
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+
+        if not token:
+            return jsonify({"message": "Token is missing!"}), 403
+
+        try:
+            decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            request.user_data = decoded
+        except jwt.InvalidTokenError as e:
+            return jsonify({"message": "Invalid token!"}), 401
+
+        return f(*args, **kwargs)
+
+    return decorator
 
 
 @app.route("/", methods=["GET"])
@@ -37,6 +62,7 @@ def index():
 
 
 @app.route("/temp-file-upload", methods=["POST"])
+@token_required
 def upload_file():
     redis_client = get_redis_connection()
     if not redis_client:
@@ -151,6 +177,7 @@ def get_file(file_id):
 
 
 @app.route("/file/<file_id>/delete", methods=["DELETE"])
+@token_required
 def delete_file(file_id):
     redis_client = get_redis_connection()
     if not redis_client:

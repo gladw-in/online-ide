@@ -408,11 +408,16 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         setisGenerateBtnPressed(true);
         setIsEditorReadOnly(true);
 
+        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
         const responseHtml = await fetch(
           `${GENAI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               prompt,
               type: "html",
@@ -437,7 +442,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           `${GENAI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               prompt,
               htmlContent: resultHtml.html,
@@ -463,7 +471,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           `${GENAI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               prompt,
               htmlContent: resultHtml.html,
@@ -527,12 +538,15 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       let editorCode = JSON.parse(sessionStorage.getItem(storageKey));
       let { html, css, javascript } = editorCode;
 
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
       const responseHtml = await fetch(
         `${GENAI_API_URL}/htmlcssjsrefactor-code`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             html: html,
@@ -564,6 +578,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             html: updatedHtml || html,
@@ -595,6 +610,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             html: finalHtml || html,
@@ -686,10 +702,13 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         expiryTime,
       });
 
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
       const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: load,
       });
@@ -956,7 +975,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className={`absolute top-2 right-2 w-10 h-10 bg-transparent text-white rounded-md cursor-pointer transition-all duration-300 hover:text-gray-500 ${
+          className={`absolute top-2 right-2 w-10 h-10 bg-transparent rounded-md cursor-pointer transition-all duration-300 hover:text-gray-500 ${
             isRefreshing ? "animate-spin" : ""
           }`}
           title="Refresh Preview"
@@ -967,7 +986,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         <iframe
           ref={iframeRef}
           title="Preview"
-          className="w-full mt-4 h-96 bg-white text-black"
+          className="w-full mt-4 h-96 bg-white text-black border border-gray-300"
         />
       </div>
     </div>

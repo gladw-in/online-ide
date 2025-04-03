@@ -1,9 +1,11 @@
 import os
 import re
+import jwt
 from google import genai
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+from functools import wraps
 import absl.logging
 from prompts import *
 
@@ -47,6 +49,30 @@ CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
 api_key = os.getenv("GEMINI_API_KEY")
 gemini_model = os.getenv("GEMINI_MODEL")
 gemini_model_1 = os.getenv("GEMINI_MODEL_1")
+SECRET_KEY = os.getenv("JWT_SECRET")
+
+
+def token_required(f):
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        token = None
+        if "Authorization" in request.headers:
+            auth_header = request.headers["Authorization"]
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+
+        if not token:
+            return jsonify({"message": "Token is missing!"}), 403
+
+        try:
+            decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            request.user_data = decoded
+        except jwt.InvalidTokenError as e:
+            return jsonify({"message": "Invalid token!"}), 401
+
+        return f(*args, **kwargs)
+
+    return decorator
 
 
 def get_generated_code(problem_description, language):
@@ -177,6 +203,7 @@ def index():
 
 
 @app.route("/generate_code", methods=["POST"])
+@token_required
 def generate_code():
     try:
         problem_description = request.json["problem_description"]
@@ -199,6 +226,7 @@ def get_output_api():
 
 
 @app.route("/refactor_code", methods=["POST"])
+@token_required
 def refactor_code_api():
     try:
         code = request.json["code"]
@@ -210,6 +238,7 @@ def refactor_code_api():
 
 
 @app.route("/htmlcssjsgenerate-code", methods=["POST"])
+@token_required
 def htmlcssjs_generate():
     data = request.get_json()
     project_description = data.get("prompt")
@@ -257,6 +286,7 @@ def htmlcssjs_generate():
 
 
 @app.route("/htmlcssjsrefactor-code", methods=["POST"])
+@token_required
 def htmlcssjs_refactor():
     try:
         data = request.get_json()
@@ -346,4 +376,4 @@ def htmlcssjs_refactor():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

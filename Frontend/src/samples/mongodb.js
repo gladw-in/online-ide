@@ -22,7 +22,9 @@ db.employees.aggregate([
 // Increase salary of all employees in IT by 10%
 db.employees.updateMany(
   { department: "IT" },
-  { $inc: { salary: { $multiply: [ "$salary", 0.1 ] } } }
+  [
+    { $set: { salary: { $multiply: ["$salary", 1.1] } } }
+  ]
 );
 
 // Verify the salary increase

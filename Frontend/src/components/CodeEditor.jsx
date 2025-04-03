@@ -256,10 +256,13 @@ const CodeEditor = ({
         setIsEditorReadOnly(true);
         setisGenerateBtnPressed(true);
 
+        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
         const response = await fetch(`${GENAI_API_URL}/generate_code`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             problem_description: prompt,
@@ -300,10 +303,13 @@ const CodeEditor = ({
       setIsEditorReadOnly(true);
       setisRefactorBtnPressed(true);
 
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
       const response = await fetch(`${GENAI_API_URL}/refactor_code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           language,
@@ -388,10 +394,13 @@ const CodeEditor = ({
         expiryTime,
       });
 
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
       const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: load,
       });

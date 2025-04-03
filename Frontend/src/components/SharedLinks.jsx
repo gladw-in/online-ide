@@ -82,7 +82,7 @@ const SharedLinks = () => {
     }
   };
 
-  const clearSessionData = () => {
+  const clearSessionData = (shareId) => {
     sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
     sessionStorage.removeItem(shareId);
     sessionStorage.removeItem(`__${shareId}Code__`);
@@ -118,17 +118,22 @@ const SharedLinks = () => {
           }
         );
 
+        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
         const fileResponse = await fetch(
           `${TEMP_SHARE_API_URL}/file/${shareId}/delete`,
           {
             method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
         if (!fileResponse.ok && !linkResponse.ok) {
           Swal.close();
           Swal.fire("Error", "There was an issue deleting the link.", "error");
-          clearSessionData();
+          clearSessionData(shareId);
           return;
         }
 
@@ -158,7 +163,7 @@ const SharedLinks = () => {
               setCurrentPage(Math.max(currentPage - 1, 1));
             }
           }
-          clearSessionData();
+          clearSessionData(shareId);
         } else {
           Swal.close();
           Swal.fire(
@@ -167,7 +172,7 @@ const SharedLinks = () => {
             "error"
           );
         }
-        clearSessionData();
+        clearSessionData(shareId);
       }
     });
   };

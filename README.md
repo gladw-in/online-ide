@@ -13,7 +13,7 @@ VITE_BACKEND_API_URL=
 VITE_TEMP_SHARE_URL= #same as TEMP_FILE_URL
 
 #Login
-MONGO_URI=mongodb+srv://username:pass@<abcs1234>.<abcs1234>.mongodb.net/<databaseName>?retryWrites=true&w=majority
+MONGO_URI=
 JWT_SECRET=
 PORT=
 OTP_EMAIL_SERVICE=
@@ -24,12 +24,14 @@ OTP_EMAIL_PASS=
 GEMINI_API_KEY=
 GEMINI_MODEL=
 GEMINI_MODEL_1=
+JWT_SECRET= #same from Login
 
 #TempFile
 REDIS_HOST=
 REDIS_PASSWORD=
 REDIS_PORT=6379
 TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
+JWT_SECRET= #same from Login
 ```
 
 ## Diagram
@@ -71,6 +73,8 @@ TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
 - **[redis](https://pypi.org/project/redis/)**: A Python client for interacting with Redis, an in-memory data structure store, used for caching, message brokering, and more.
 - **[uuid](https://docs.python.org/3/library/uuid.html)**: A Python module for generating universally unique identifiers (UUIDs), useful for creating unique keys or identifiers.
 - **[datetime](https://docs.python.org/3/library/datetime.html)**: A module in Python for manipulating dates and times, including working with time zones and formatting.
+- **[pyjwt](https://pyjwt.readthedocs.io/en/stable/)**: A library for encoding and decoding JSON Web Tokens (JWT), commonly used for authentication in web applications.
+- **[functools](https://docs.python.org/3/library/functools.html)**: A module in Python providing higher-order functions to work with functions and callable objects, such as `wraps`.
 
 ## How to Set Up and Use
 
