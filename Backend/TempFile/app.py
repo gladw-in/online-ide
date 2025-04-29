@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
 import redis
 import os
@@ -139,18 +139,25 @@ def upload_file():
         redis_client.close()
 
 
-@app.route("/file/<file_id>", methods=["GET"])
-def get_file(file_id):
+@app.route("/file/<shareId>", methods=["GET"])
+def get_file(shareId):
     redis_client = get_redis_connection()
     if not redis_client:
         return jsonify({"error": "Failed to connect to Redis"}), 503
 
     try:
-        language, file_id = file_id.split("-", 1)
+        header_shareId = request.headers.get("X-File-ID")
+        
+        if not header_shareId or header_shareId != shareId:
+            return redirect(url_for('index'))
+        
+        try:
+            language, file_id = shareId.split("-", 1)
+        except ValueError:
+            return jsonify({"error": "Invalid 'shareId' format. It should be 'language-file_id'."}), 400
 
         file_key = f"file:{language}-{file_id}:data"
         file_data = redis_client.get(file_key)
-
         ttl = redis_client.ttl(file_key)
 
         if ttl == -2:

@@ -44,7 +44,7 @@ import sampleJava from "../samples/java.java?raw";
 import sampleCsharp from "../samples/csharp.cs?raw";
 import sampleRust from "../samples/rust.rs?raw";
 import sampleGo from "../samples/go.go?raw";
-import sampleVerilog from "../samples/verolog.v?raw";
+import sampleVerilog from "../samples/verilog.v?raw";
 import sampleSQL from "../samples/sql.sql?raw";
 import sampleMongoDB from "../samples/mongodb.js?raw";
 import sampleSwift from "../samples/swift.swift?raw";

@@ -376,6 +376,23 @@ async function sendOtpEmail(email, otp) {
 	}
 }
 
+async function cleanExpired(req, res, next) {
+	try {
+		await checkAndConnectDB();
+
+		await User.deleteMany({
+			isEmailVerified: false,
+			otpExpires: {
+				$lte: new Date()
+			}
+		});
+		next();
+	} catch (err) {
+		console.error('Error cleaning up expired users:', err);
+		next();
+	}
+}
+
 userSchema.pre('save', function(next) {
 	const user = this;
 	const actionType = user.isNew ? 'create' : 'update';
@@ -393,7 +410,7 @@ app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', cleanExpired, async (req, res) => {
 	const {
 		username,
 		email,
@@ -469,8 +486,6 @@ app.post('/api/register', async (req, res) => {
 		const salt = await bcrypt.genSalt(10);
 		const hashedOtp = await bcrypt.hash(otp, salt);
 		const hashedPassword = await bcrypt.hash(password, salt);
-		const currentDate = new Date();
-		const ISTDate = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000);
 
 		const newUser = new User({
 			username,
@@ -479,8 +494,8 @@ app.post('/api/register', async (req, res) => {
 			otp: hashedOtp,
 			otpExpires: Date.now() + 10 * 60 * 1000,
 			isEmailVerified: false,
-			lastLogin: ISTDate,
-			createdDate: ISTDate,
+			lastLogin: null,
+			createdDate: null,
 		});
 
 		await newUser.save();
@@ -498,7 +513,7 @@ app.post('/api/register', async (req, res) => {
 	}
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', cleanExpired, async (req, res) => {
 	const {
 		email,
 		password
@@ -623,11 +638,15 @@ app.post('/api/verify-otp', async (req, res) => {
 
 		const salt = await bcrypt.genSalt(10);
 		const hashedPassword = await bcrypt.hash(password, salt);
+		const currentDate = new Date();
+		const ISTDate = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000);
 
 		user.password = hashedPassword;
 		user.isEmailVerified = true;
 		user.otp = null;
 		user.otpExpires = null;
+		user.lastLogin = ISTDate;
+		user.createdDate = ISTDate;
 
 		await user.save();
 
@@ -938,7 +957,7 @@ app.post('/api/update-password', async (req, res) => {
 	}
 });
 
-app.get('/api/protected', async (req, res) => {
+app.get('/api/protected', cleanExpired, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -1431,7 +1450,7 @@ app.post('/api/sharedLink/count', async (req, res) => {
 	}
 });
 
-app.post('/api/user/sharedLinks', async (req, res) => {
+app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {

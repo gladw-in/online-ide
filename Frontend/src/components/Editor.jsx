@@ -40,20 +40,23 @@ const EditorSection = ({
     }
   };
 
+  const capFirst = (str) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
   return (
     <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-lg">
       <div className="flex items-center my-2 ml-3">
         {React.createElement(getLanguageIcon(), { className: "mr-2 text-xl" })}
-        <h2 className="text-xl">
-          {language.charAt(0).toUpperCase() + language.slice(1).toLowerCase()}{" "}
-          Editor
-        </h2>
+        <h2 className="text-xl">{capFirst(language)} Editor</h2>
       </div>
       <MonacoEditor
         language={language}
         value={value}
         onChange={(newValue) => onChange(language, newValue)}
         editorDidMount={(editor) => editor.focus()}
+        loading={`Loading ${capFirst(language)} Editor...`}
         options={{
           minimap: { enabled: false },
           matchBrackets: "always",
@@ -114,12 +117,12 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
   const languages = ["html", "css", "javascript"];
 
-  useEffect(() => {
-    const capitalizeFirstLetter = (str) => {
-      if (!str) return "";
-      return str.charAt(0).toUpperCase() + str.slice(1);
-    };
+  const capFirst = (str) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
 
+  useEffect(() => {
     const formattedTitle = title
       ? title.length > 30
         ? `${title.slice(0, 30)}...${title.slice(-3)}`
@@ -127,9 +130,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       : "";
 
     document.title = formattedTitle
-      ? `${capitalizeFirstLetter(
-          formattedTitle
-        )} - HTML, CSS, JS Editor - Online IDE`
+      ? `${capFirst(formattedTitle)} - HTML, CSS, JS Editor - Online IDE`
       : "HTML, CSS, JS Editor - Online IDE";
   }, [title]);
 
@@ -389,28 +390,30 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       input: "textarea",
       inputLabel: "What code do you want?",
       inputPlaceholder: "e.g., simple calculator",
+      confirmButtonText: "Generate",
       showCancelButton: true,
       allowOutsideClick: false,
       footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">Refactor the code if the <span class="font-bold">generated code</span> is not functioning properly.</p>`,
       inputValidator: (value) => {
-        if (!value) {
-          return "This field is mandatory! Please enter a prompt.";
-        }
+        if (!value) return "This field is mandatory! Please enter a prompt.";
       },
     });
 
-    if (prompt) {
-      setLoadingAction("generate");
-      setIsOverlayVisible(true);
-      try {
-        generatesetBtnTxt("Generating...");
-        setOverlayText("Generating HTML...");
-        setisGenerateBtnPressed(true);
-        setIsEditorReadOnly(true);
+    if (!prompt) return;
 
-        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+    setLoadingAction("generate");
+    setIsOverlayVisible(true);
+    generatesetBtnTxt("Generating...");
+    setOverlayText("Generating HTML...");
+    setisGenerateBtnPressed(true);
+    setIsEditorReadOnly(true);
 
-        const responseHtml = await fetch(
+    try {
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      if (!token) return;
+
+      const generateCode = async (type, data) => {
+        const response = await fetch(
           `${GENAI_API_URL}/htmlcssjsgenerate-code`,
           {
             method: "POST",
@@ -418,98 +421,53 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({
-              prompt,
-              type: "html",
-            }),
+            body: JSON.stringify(data),
           }
         );
 
-        if (!responseHtml.ok) {
-          throw new Error("Failed to generate HTML.");
-        }
+        if (!response.ok)
+          throw new Error(`Failed to generate ${type.toUpperCase()}.`);
+        return await response.json();
+      };
 
-        const resultHtml = await responseHtml.json();
-        setCode({
-          html: resultHtml.html || "",
-          css: "",
-          javascript: "",
-        });
-
-        setOverlayText("Generating CSS...");
-
-        const responseCss = await fetch(
-          `${GENAI_API_URL}/htmlcssjsgenerate-code`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              prompt,
-              htmlContent: resultHtml.html,
-              type: "css",
-            }),
-          }
-        );
-
-        if (!responseCss.ok) {
-          throw new Error("Failed to generate CSS.");
-        }
-
-        const resultCss = await responseCss.json();
+      const setCodeState = (html, css, js) => {
         setCode((prevCode) => ({
-          html: prevCode.html,
-          css: resultCss.css || "",
-          javascript: prevCode.javascript,
+          html: html || prevCode.html,
+          css: css || prevCode.css,
+          javascript: js || prevCode.javascript,
         }));
+      };
 
-        setOverlayText("Generating JS...");
+      const resultHtml = await generateCode("html", { prompt, type: "html" });
+      setCodeState(resultHtml.html, "", "");
+      setOverlayText("Generating CSS...");
 
-        const responseJs = await fetch(
-          `${GENAI_API_URL}/htmlcssjsgenerate-code`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              prompt,
-              htmlContent: resultHtml.html,
-              cssContent: resultCss.css,
-              type: "js",
-            }),
-          }
-        );
+      const resultCss = await generateCode("css", {
+        prompt,
+        htmlContent: resultHtml.html,
+        type: "css",
+      });
+      setCodeState(resultHtml.html, resultCss.css, "");
+      setOverlayText("Generating JS...");
 
-        if (!responseJs.ok) {
-          throw new Error("Failed to generate JS.");
-        }
+      const resultJs = await generateCode("js", {
+        prompt,
+        htmlContent: resultHtml.html,
+        cssContent: resultCss.css,
+        type: "js",
+      });
+      setCodeState(resultHtml.html, resultCss.css, resultJs.js);
 
-        const resultJs = await responseJs.json();
-        setCode((prevCode) => ({
-          html: prevCode.html,
-          css: prevCode.css,
-          javascript: resultJs.js || "",
-        }));
-
-        await getGenerateCodeCount();
-      } catch (error) {
-        Swal.fire(
-          "Error",
-          error.message || "Failed to generate code.",
-          "error"
-        );
-      } finally {
-        generatesetBtnTxt("Generate");
-        setisGenerateBtnPressed(false);
-        setIsEditorReadOnly(false);
-        setLoadingAction(null);
-        setIsOverlayVisible(false);
-        setOverlayText(null);
-      }
+      await getGenerateCodeCount();
+    } catch (error) {
+      Swal.fire("Error", error.message || "Failed to generate code.", "error");
+    } finally {
+      generatesetBtnTxt("Generate");
+      setisGenerateBtnPressed(false);
+      setIsEditorReadOnly(false);
+      setLoadingAction(null);
+      setIsOverlayVisible(false);
+      setOverlayText(null);
     }
   };
 
@@ -519,113 +477,122 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       return;
     }
 
+    const { value: formValues, isConfirmed } = await Swal.fire({
+      title: "Refactor Code",
+      html: `
+        <div id="custom-html-wrapper">
+          <div class="swal2-radio-group gap-x-[10px] flex text-left my-4 justify-center">
+            <label><input type="radio" name="codeType" value="all" checked> All</label><br>
+            <label><input type="radio" name="codeType" value="html"> HTML</label><br>
+            <label><input type="radio" name="codeType" value="css"> CSS</label><br>
+            <label><input type="radio" name="codeType" value="js"> JavaScript</label>
+          </div>
+          <textarea id="swal-input-textarea" class="swal2-textarea" placeholder="e.g., remove comments, optimize loop, etc."></textarea>
+        </div>
+      `,
+      didOpen: () => {
+        const container = document.getElementById("swal2-html-container");
+        const customWrapper = document.getElementById("custom-html-wrapper");
+        const inputTextarea = document.getElementById("swal-input-textarea");
+
+        if (
+          customWrapper &&
+          container &&
+          container.parentElement &&
+          inputTextarea
+        ) {
+          container.parentElement.insertBefore(customWrapper, container);
+          inputTextarea.focus();
+
+          container.style.display = "none";
+          inputTextarea.style.width = "-webkit-fill-available";
+          inputTextarea.style.width = "-moz-available";
+        }
+      },
+      focusConfirm: false,
+      preConfirm: () => {
+        const selectedType = document.querySelector(
+          'input[name="codeType"]:checked'
+        ).value;
+        const suggestion = document.getElementById("swal-input-textarea").value;
+        return { selectedType, suggestion };
+      },
+      confirmButtonText: "Refactor",
+      showCancelButton: true,
+      allowOutsideClick: false,
+      footer:
+        '<p class="text-center text-sm text-red-500 dark:text-red-300">Suggestions help improve results, <span class="font-bold">but are optional</span>.</p>',
+    });
+
+    if (!isConfirmed) return;
+
+    const selectedType = formValues.selectedType;
+    const prompt = formValues.suggestion;
+
     setLoadingAction("refactor");
     setIsOverlayVisible(true);
-    try {
-      refactorsetBtnTxt("Refactoring...");
-      setOverlayText("Refactoring HTML...");
-      setisRefactorBtnPressed(true);
-      setIsEditorReadOnly(true);
+    refactorsetBtnTxt("Refactoring...");
+    setisRefactorBtnPressed(true);
+    setIsEditorReadOnly(true);
 
-      const updateCodeState = (html, css, js) => {
-        setCode((prevCode) => ({
-          html: html || prevCode.html,
-          css: css || prevCode.css,
-          javascript: js || prevCode.javascript,
-        }));
-      };
+    try {
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      if (!token) return;
 
       let editorCode = JSON.parse(sessionStorage.getItem(storageKey));
       let { html, css, javascript } = editorCode;
 
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      const refactor = async (type, code) => {
+        const response = await fetch(
+          `${GENAI_API_URL}/htmlcssjsrefactor-code`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              html: code.html || html,
+              css: code.css || css,
+              javascript: code.javascript || javascript,
+              type,
+              problem_description: prompt.trim() || null,
+            }),
+          }
+        );
 
-      const responseHtml = await fetch(
-        `${GENAI_API_URL}/htmlcssjsrefactor-code`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            html: html,
-            css: css,
-            javascript: javascript,
-            type: "html",
-          }),
-        }
-      );
+        if (!response.ok)
+          throw new Error(`Failed to refactor ${type.toUpperCase()}.`);
+        return await response.json();
+      };
 
-      if (!responseHtml.ok) {
-        throw new Error("Failed to refactor HTML.");
+      const updateCodeState = (newHtml, newCss, newJs) => {
+        setCode((prevCode) => ({
+          html: newHtml || prevCode.html,
+          css: newCss || prevCode.css,
+          javascript: newJs || prevCode.javascript,
+        }));
+      };
+
+      if (selectedType === "all" || selectedType === "html") {
+        setOverlayText("Refactoring HTML...");
+        const resultHtml = await refactor("html", { html, css, javascript });
+        updateCodeState(resultHtml.html, null, null);
+        html = resultHtml.html;
       }
-      const resultHtml = await responseHtml.json();
-      updateCodeState(resultHtml.html, null, null);
 
-      setOverlayText("Refactoring CSS...");
-
-      editorCode = JSON.parse(sessionStorage.getItem(storageKey));
-      const {
-        html: updatedHtml,
-        css: currentCss,
-        javascript: currentJs,
-      } = editorCode;
-
-      const responseCss = await fetch(
-        `${GENAI_API_URL}/htmlcssjsrefactor-code`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            html: updatedHtml || html,
-            css: currentCss,
-            javascript: currentJs,
-            type: "css",
-          }),
-        }
-      );
-
-      if (!responseCss.ok) {
-        throw new Error("Failed to refactor CSS.");
+      if (selectedType === "all" || selectedType === "css") {
+        setOverlayText("Refactoring CSS...");
+        const resultCss = await refactor("css", { html, css, javascript });
+        updateCodeState(null, resultCss.css, null);
+        css = resultCss.css;
       }
-      const resultCss = await responseCss.json();
-      updateCodeState(null, resultCss.css, null);
 
-      editorCode = JSON.parse(sessionStorage.getItem(storageKey));
-      const {
-        html: finalHtml,
-        css: finalCss,
-        javascript: currentJs2,
-      } = editorCode;
-
-      setOverlayText("Refactoring JS...");
-
-      const responseJs = await fetch(
-        `${GENAI_API_URL}/htmlcssjsrefactor-code`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            html: finalHtml || html,
-            css: finalCss || css,
-            javascript: currentJs2,
-            type: "js",
-          }),
-        }
-      );
-
-      if (!responseJs.ok) {
-        throw new Error("Failed to refactor JS.");
+      if (selectedType === "all" || selectedType === "js") {
+        setOverlayText("Refactoring JS...");
+        const resultJs = await refactor("js", { html, css, javascript });
+        updateCodeState(null, null, resultJs.js);
       }
-      const resultJs = await responseJs.json();
-      updateCodeState(null, null, resultJs.js);
 
       if (isLoggedIn) {
         await getRefactorCodeCount();
@@ -665,9 +632,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
     const { isDismissed } = await Swal.fire({
       title: "Create Share link",
-      html: ShareLinkModal(
-        defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1)
-      ),
+      html: ShareLinkModal(capFirst(defaultTitle)),
       showCancelButton: true,
       allowOutsideClick: false,
       footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
@@ -703,6 +668,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       });
 
       const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
+      if (!token) {
+        return;
+      }
 
       const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
         method: "POST",
@@ -752,7 +721,12 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           }).then(async (result) => {
             if (result.isConfirmed) {
               await navigator.clipboard.writeText(shareableLink);
-              Swal.fire("URL Copied!", "", "success");
+              Swal.fire({
+                title: "URL Copied!",
+                text: "",
+                icon: "success",
+                timer: 2000,
+              });
             }
           });
         }
@@ -765,6 +739,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
   const getGenerateCodeCount = async () => {
     const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+
+    if (!username) {
+      return;
+    }
 
     const response = await fetch(`${BACKEND_API_URL}/api/generateCode/count`, {
       method: "POST",
@@ -784,6 +762,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
   const getRefactorCodeCount = async () => {
     const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+
+    if (!username) {
+      return;
+    }
 
     const response = await fetch(`${BACKEND_API_URL}/api/refactorCode/count`, {
       method: "POST",
@@ -806,7 +788,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
       if (!username) {
-        throw new Error("Username not found.");
+        return;
       }
 
       const countResponse = await fetch(
@@ -826,12 +808,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       );
 
       if (!countResponse.ok) {
-        const errorResponse = await countResponse.json();
-        throw new Error(
-          `Failed to save shared link count: ${
-            errorResponse.msg || countResponse.statusText
-          }`
-        );
+        throw new Error("Failed to send request");
       }
     } catch (err) {
       throw err;

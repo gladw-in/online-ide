@@ -43,16 +43,17 @@ const OtpInputForm = ({ onOtpChange }) => {
   };
 
   const handlePaste = (e) => {
-    const pasteData = e.clipboardData.getData("text");
-    const pasteArray = pasteData.split("");
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("text").trim();
+    const pasteArray = pasteData.split("").slice(0, 6);
 
-    otpInputs.current.forEach((input, i) => {
-      if (pasteArray[i]) {
-        input.value = pasteArray[i];
+    pasteArray.forEach((char, i) => {
+      if (otpInputs.current[i]) {
+        otpInputs.current[i].value = char;
       }
     });
 
-    let nextIndex =
+    const nextIndex =
       pasteArray.length < otpInputs.current.length
         ? pasteArray.length
         : otpInputs.current.length - 1;
@@ -60,8 +61,6 @@ const OtpInputForm = ({ onOtpChange }) => {
 
     const otpValue = otpInputs.current.map((input) => input.value).join("");
     onOtpChange(otpValue);
-
-    e.preventDefault();
   };
 
   const handleBlur = () => {

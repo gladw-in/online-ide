@@ -60,6 +60,7 @@ const Register = () => {
     }
 
     if (otpResendError) {
+      setOtpResent(false);
       setOtpResendError("");
     }
   };
@@ -182,6 +183,7 @@ const Register = () => {
 
   const handleResendOtp = async () => {
     setResendOtpLoading(true);
+    setOtpResent(false);
     setOtpResendError("");
 
     try {
@@ -204,6 +206,7 @@ const Register = () => {
       setCanResendOtp(false);
       setCountdown(30);
     } catch (err) {
+      setOtpResent(false);
       setOtpResendError(err.message || "Server error while resending OTP.");
     } finally {
       handleClearOTPEror();
@@ -227,7 +230,7 @@ const Register = () => {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok || data.msg =="User not found") {
         setTimeout(() => {
           navigate("/register");
           location.reload();

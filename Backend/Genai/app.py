@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from functools import wraps
-import absl.logging
+from datetime import datetime, timezone
 from prompts import *
 
 valid_languages = {
@@ -34,10 +34,6 @@ valid_languages = {
 app = Flask(__name__)
 
 CORS(app)
-
-os.environ["GRPC_VERBOSITY"] = "NONE"
-
-absl.logging.set_verbosity(absl.logging.ERROR)
 
 try:
     load_dotenv()
@@ -96,7 +92,9 @@ def get_generated_code(problem_description, language):
 def get_output(code, language):
     try:
         if language in languages_prompts:
-            prompt = languages_prompts[language].format(code=code)
+            prompt = languages_prompts[language].format(
+                code=code, time=utc_time_reference()
+            )
         else:
             return "Error: Language not supported."
 
@@ -112,27 +110,46 @@ def get_output(code, language):
         return f"Error: Unable to process the code. {str(e)}"
 
 
-def refactor_code(code, language):
+def refactor_code(code, language, problem_description=None):
     try:
         if language not in valid_languages:
             return "Error: Unsupported language."
 
         client = genai.Client(api_key=api_key)
 
+        if problem_description:
+            refactor_contnet = refactor_code_prompt_user.format(
+                code=code,
+                language=language,
+                problem_description=problem_description or "",
+            )
+        else:
+            refactor_contnet = refactor_code_prompt.format(code=code, language=language)
+
         response = client.models.generate_content(
             model=gemini_model,
-            contents=refactor_code_prompt.format(code=code, language=language),
+            contents=refactor_contnet,
         )
 
-        return response.text.strip()
+        return (
+            response.text.strip()
+            if hasattr(response, "text")
+            else "Error: Invalid response format."
+        )
     except Exception as e:
         print(f"Error analyzing code: {e}")
         return ""
 
 
-def generate_code_html_css_js(prompt, params):
+def refactor_code_html_css_js(prompt, params, problem_description=None):
     try:
-        formatted_prompt = prompt.format(**params)
+
+        if problem_description:
+            formatted_prompt = prompt.format(
+                **params, problem_description=problem_description
+            )
+        else:
+            formatted_prompt = prompt.format(**params)
 
         client = genai.Client(api_key=api_key)
 
@@ -148,7 +165,7 @@ def generate_code_html_css_js(prompt, params):
 
 
 def generate_html(prompt):
-    formatted_prompt = html_prompt.format(prompt=prompt)
+    formatted_prompt = html_prompt.format(prompt=prompt, time=utc_time_reference())
 
     client = genai.Client(api_key=api_key)
 
@@ -161,7 +178,9 @@ def generate_html(prompt):
 
 def generate_css(html_content, project_description):
     formatted_prompt = css_prompt.format(
-        html_content=html_content, project_description=project_description
+        html_content=html_content,
+        project_description=project_description,
+        time=utc_time_reference(),
     )
 
     client = genai.Client(api_key=api_key)
@@ -179,6 +198,7 @@ def generate_js(html_content, css_content, project_description):
         html_content=html_content,
         css_content=css_content,
         project_description=project_description,
+        time=utc_time_reference(),
     )
 
     client = genai.Client(api_key=api_key)
@@ -189,6 +209,10 @@ def generate_js(html_content, css_content, project_description):
     )
 
     return extract_code(response.text)
+
+
+def utc_time_reference():
+    return f"**Refer to this exact time: {datetime.now(timezone.utc).strftime('%I:%M %p on %B %d, %Y')} UTC**"
 
 
 def extract_code(output):
@@ -219,6 +243,10 @@ def get_output_api():
     try:
         code = request.json["code"]
         language = request.json["language"]
+
+        if not code or not language:
+            return jsonify({"error": "Missing code or language"}), 400
+
         output = get_output(code, language)
         return jsonify({"output": output})
     except Exception as e:
@@ -231,7 +259,16 @@ def refactor_code_api():
     try:
         code = request.json["code"]
         language = request.json["language"]
-        refactored_code = refactor_code(code, language)
+        problem_description = request.json["problem_description"]
+
+        if not code or not language:
+            return jsonify({"error": "Missing code or language"}), 400
+
+        if problem_description:
+            refactored_code = refactor_code(code, language, problem_description)
+        else:
+            refactored_code = refactor_code(code, language)
+
         return jsonify({"code": extract_code(refactored_code)})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -252,6 +289,7 @@ def htmlcssjs_generate():
 
     if not project_description:
         return jsonify({"error": "Project description is required"}), 400
+        
     if not code_type or code_type not in ["html", "css", "js"]:
         return jsonify({"error": "Invalid or missing 'type' parameter"}), 400
 
@@ -294,15 +332,81 @@ def htmlcssjs_refactor():
         css_content = data.get("css") if len(data.get("css", "")) > 0 else ""
         js_content = data.get("js") if len(data.get("js", "")) > 0 else ""
         code_type = data.get("type")
+        problem_description_raw = data.get("problem_description")
+        problem_description = (
+            problem_description_raw.strip().lower() if problem_description_raw else None
+        )
 
         if not code_type:
             return jsonify({"error": "Type is required."}), 400
 
-        def refactor_content(prompt, content):
-            return generate_code_html_css_js(prompt, content)
+        if code_type == "html" and html_content and problem_description:
+            html_content_refactored = refactor_code_html_css_js(
+                refactor_html_prompt_user,
+                {"html_content": html_content},
+                problem_description,
+            )
+            html_content_refactored = re.search(
+                CODE_REGEX, html_content_refactored, re.DOTALL
+            )
+            html_content_refactored = (
+                html_content_refactored.group(1)
+                if html_content_refactored
+                else html_content
+            )
+            return jsonify({"html": html_content_refactored})
 
-        if code_type == "html" and html_content:
-            html_content_refactored = refactor_content(
+        elif code_type == "css" and html_content and problem_description:
+            if not html_content:
+                return (
+                    jsonify({"error": "HTML content is required for CSS refactoring."}),
+                    400,
+                )
+            css_content_refactored = refactor_code_html_css_js(
+                refactor_css_prompt_user,
+                {"html_content": html_content, "css_content": css_content},
+                problem_description,
+            )
+            css_content_refactored = re.search(
+                CODE_REGEX, css_content_refactored, re.DOTALL
+            )
+            css_content_refactored = (
+                css_content_refactored.group(1)
+                if css_content_refactored
+                else css_content
+            )
+            return jsonify({"css": css_content_refactored})
+
+        elif code_type == "js" and html_content and css_content and problem_description:
+            if not html_content or not css_content:
+                return (
+                    jsonify(
+                        {
+                            "error": "Both HTML and CSS content are required for JS refactoring."
+                        }
+                    ),
+                    400,
+                )
+            js_content_refactored = refactor_code_html_css_js(
+                refactor_js_prompt_user,
+                {
+                    "html_content": html_content,
+                    "css_content": css_content,
+                    "js_content": js_content,
+                },
+                problem_description,
+            )
+            js_content_refactored = re.search(
+                CODE_REGEX, js_content_refactored, re.DOTALL
+            )
+            js_content_refactored = (
+                js_content_refactored.group(1) if js_content_refactored else js_content
+            )
+
+            return jsonify({"js": js_content_refactored})
+
+        elif code_type == "html" and html_content:
+            html_content_refactored = refactor_code_html_css_js(
                 refactor_html_prompt, {"html_content": html_content}
             )
             html_content_refactored = re.search(
@@ -321,7 +425,7 @@ def htmlcssjs_refactor():
                     jsonify({"error": "HTML content is required for CSS refactoring."}),
                     400,
                 )
-            css_content_refactored = refactor_content(
+            css_content_refactored = refactor_code_html_css_js(
                 refactor_css_prompt,
                 {"html_content": html_content, "css_content": css_content},
             )
@@ -345,7 +449,7 @@ def htmlcssjs_refactor():
                     ),
                     400,
                 )
-            js_content_refactored = refactor_content(
+            js_content_refactored = refactor_code_html_css_js(
                 refactor_js_prompt,
                 {
                     "html_content": html_content,

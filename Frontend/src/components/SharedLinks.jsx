@@ -139,7 +139,12 @@ const SharedLinks = () => {
 
         if (fileResponse.ok || linkResponse.ok) {
           Swal.close();
-          Swal.fire("Deleted!", "The link has been deleted.", "success");
+          Swal.fire({
+            title: "Deleted!",
+            text: "The link has been deleted.",
+            icon: "success",
+            timer: 3000,
+          });
 
           sessionStorage.removeItem(shareId);
           sessionStorage.removeItem(`__${shareId}Code__`);
@@ -315,6 +320,7 @@ const SharedLinks = () => {
                             }`
                           : "Untitled"}
                       </Link>
+
                       <div className="flex flex-col items-center ml-2 w-10 space-y-0.5">
                         <button
                           onClick={() => handleCopy(shareId)}
@@ -327,6 +333,7 @@ const SharedLinks = () => {
                             <FiClipboard className="mx-auto" />
                           )}
                         </button>
+
                         <button
                           onClick={() => handleDelete(shareId)}
                           title="Delete"

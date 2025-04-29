@@ -65,7 +65,6 @@ JWT_SECRET= #same from Login
 ## Python Libraries:
 - **[google-generativeai](https://ai.google.dev/gemini-api/docs/quickstart?lang=python)**: A collection of Google APIs and tools for integrating generative AI models into applications.
 - **[python-dotenv](https://pypi.org/project/python-dotenv/)**: A Python library for loading environment variables from a `.env` file into the environment.
-- **[absl-py](https://github.com/abseil/abseil-py)**: A Python library developed by Google, providing utilities for building scalable and efficient applications.
 - **[flask_cors](https://flask-cors.readthedocs.io/en/latest/)**: A Flask extension to handle Cross-Origin Resource Sharing (CORS) and allow requests from different origins.
 - **[flask](https://flask.palletsprojects.com/)**: A lightweight Python web framework used for building web applications.
 - **[os](https://docs.python.org/3/library/os.html)**: A module in Python providing a way of using operating system-dependent functionality, such as reading or writing to the file system.
@@ -85,7 +84,7 @@ To set up and run:
 - [Node.js](https://nodejs.org/) (latest version)
 - npm (usually comes with Node.js)
 - [Git](https://git-scm.com/) (version control system)
-- [Python](https://www.python.org/) (version 3.11 or newer)
+- [Python](https://www.python.org/) (latest version)
 - [Pip](https://pip.pypa.io/en/stable/) Python package installer
 
 ## Clone the repository:

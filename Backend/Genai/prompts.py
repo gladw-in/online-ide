@@ -2,6 +2,8 @@ languages_prompts = {
     "python": """
     Analyze the following Python code:
 
+    {time}
+
     ```
     {code}
     ```
@@ -27,6 +29,8 @@ languages_prompts = {
     "javascript": """
     Analyze the following JavaScript code:
     
+    {time}
+
     ```
     {code}
     ```
@@ -53,6 +57,8 @@ languages_prompts = {
     "c": """
     Analyze the following C code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -78,6 +84,8 @@ languages_prompts = {
     """,
     "cpp": """
     Analyze the following C++ code:
+
+    {time}
 
     ```
     {code}
@@ -105,6 +113,8 @@ languages_prompts = {
     "java": """
     Analyze the following Java code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -131,6 +141,8 @@ languages_prompts = {
     "csharp": """
     Analyze the following C# code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -157,6 +169,8 @@ languages_prompts = {
     "rust": """
     Analyze the following Rust code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -183,6 +197,8 @@ languages_prompts = {
     "go": """
     Analyze the following Go code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -209,6 +225,8 @@ languages_prompts = {
     "verilog": """
     Analyze the following verilog code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -235,6 +253,8 @@ languages_prompts = {
     "sql": """
     Analyze the following SQL query:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -262,6 +282,8 @@ languages_prompts = {
     "mongodb": """
     Analyze the following MongoDB query:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -287,6 +309,8 @@ languages_prompts = {
     "swift": """
     Analyze the following Swift code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -313,6 +337,8 @@ languages_prompts = {
     "ruby": """
     Analyze the following Ruby code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -339,6 +365,8 @@ languages_prompts = {
     "typescript": """
     Analyze the following TypeScript code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -365,6 +393,8 @@ languages_prompts = {
     "dart": """
     Analyze the following Dart code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -391,6 +421,8 @@ languages_prompts = {
     "kotlin": """
     Analyze the following Kotlin code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -417,6 +449,8 @@ languages_prompts = {
     "perl": """
     Analyze the following Perl code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -443,6 +477,8 @@ languages_prompts = {
     "scala": """
     Analyze the following Scala code:
 
+    {time}
+    
     ```
     {code}
     ```
@@ -468,6 +504,8 @@ languages_prompts = {
     """,
     "julia": """
     Analyze the following Julia code:
+
+    {time}
 
     ```
     {code}
@@ -497,12 +535,22 @@ languages_prompts = {
 html_prompt = """
 Generate HTML code for the following project, suitable for placement directly within the `<body>` tag.
 
+    {time}
+
 *   Exclude all `<html>`, `<head>`, and `<body>` tags.
 *   **Absolutely do not include any inline JavaScript** (e.g., `<script>...</script>` within HTML tags, event handlers like `onclick="..."`, or any other form of inline scripting). The HTML should be purely structural.
 *   Do not include any inline styles (e.g., `style="..."`), or links to external CSS/JS files *except for essential CDNs as specified below*.
 *   Don’t give JavaScript in this HTML code; I will ask for that later.
 *   Add the IDs and class names only; no other attributes should be used that are required by JavaScript code.
 *   Make it responsive for all the devices.
+*   Use proper heading levels in a logical order (e.g., `<h1>` followed by `<h2>`, not jumping to `<h4>`).
+*   Use `<button>` for actions and `<a>` for navigation — do not misuse elements.
+*   Add `alt` attributes for all `<img>` tags to support accessibility and screen readers.
+*   Use form elements semantically (e.g., `<label>` for `<input>`) when applicable.
+*   Ensure elements are keyboard-accessible — avoid using non-interactive tags (like `<div>`) for clickable elements.
+*   Avoid redundant wrappers or excessive nesting — keep the markup clean and purposeful.
+*   Use placeholder text or descriptive content where necessary to make the structure understandable during development.
+*   All class and id names should follow a consistent naming convention (e.g., kebab-case or BEM).
 
 **VERY IMPORTANT**: Regarding external libraries/CDNs:
 
@@ -521,12 +569,24 @@ css_prompt = """
 Generate CSS to style the following HTML.
 **If a CSS `CDN version` or styling framework (like Tailwind, etc) is used, simply reference the specific library in the CSS comments without including any HTML code or extra details.**
 
+    {time}
+
 *   The CSS should be valid and well-formatted.
+*   Do not use `@apply` for utility classes or styles.
+*   If a styling framework (e.g., Tailwind, Bootstrap) is being used, avoid writing custom CSS unless absolutely necessary. Use the framework’s utility classes and conventions wherever possible.
 *   Make the design responsive for various screen sizes using media queries.
 *   Use the provided `id` and `class` attributes from the HTML for styling. Do not introduce new selectors based on element types unless absolutely necessary (e.g., styling all `<a>` tags for basic link styles).
 *   Prioritize using class names for styling, and use id names only when styling a specific element that is unique on the page.
 *   Use modern CSS techniques (flexbox, grid) for layout where appropriate.
 *   Make it responsive for all the devices.
+*   Avoid inline styles unless absolutely necessary — keep styles in the CSS file for maintainability.
+*   Keep specificity low to avoid issues with overriding styles later.
+*   Minimize the use of `!important` — rely on proper CSS structure instead.
+*   Use CSS custom properties (variables) for colors, spacing, etc., to ensure consistency and easier updates.
+*   Stick to a consistent naming convention (e.g., BEM or project-specific pattern).
+*   Avoid unnecessary nesting if using a preprocessor like SCSS — keep the CSS flat and readable.
+*   Use `rem` or `em` units for font sizes and spacing instead of `px` to improve scalability and accessibility.
+*   Ensure accessibility (a11y) in your styles — e.g., sufficient color contrast, focus states, readable font sizes, etc.
 
 {project_description}
 
@@ -540,12 +600,22 @@ js_prompt = """
 Generate JavaScript to add interactivity to the following HTML.
 **Return only the JavaScript code, without including HTML or CSS.**
 
+    {time}
+
 *   The JavaScript should be valid and well-formatted.
 *   Use the provided id and class attributes from the HTML to select elements.
 *   Do not use inline event handlers (e.g., onclick). Use event listeners attached with addEventListener.
 *   If the project requires complex logic or data manipulation, consider using appropriate JavaScript methods and data structures.
 *   If the project requires fetching data from an API, use the fetch API.
 *   Ensure the JavaScript is unobtrusive and degrades gracefully if JavaScript is disabled.
+*   Keep your code modular — use functions to break tasks into logical chunks.
+*   Use const and let instead of var for block scoping and cleaner code.
+*   Handle errors gracefully — use try/catch where appropriate, especially with async/await and fetch.
+*   Use meaningful variable and function names for better readability and maintainability.
+*   Avoid deeply nested callbacks — consider using promises or async/await for cleaner asynchronous code.
+*   Clean up event listeners when elements are removed from the DOM to prevent memory leaks.
+*   Comment complex logic where needed, but avoid redundant or obvious comments.
+*   Avoid hardcoding values — use configuration objects or constants where appropriate.
 
 {project_description}
 
@@ -566,10 +636,19 @@ Refactor HTML code for the following project, suitable for placement directly wi
 
 *   Exclude all `<html>`, `<head>`, and `<body>` tags.
 *   **Absolutely do not include any inline JavaScript** (e.g., `<script>...</script>` within HTML tags, event handlers like `onclick="..."`, or any other form of inline scripting). The HTML should be purely structural.
+*   **Absolutely do not include any inline CSS** (e.g., `<style>...</style>` within HTML tags. The HTML should be purely structural.
 *   Do not include any inline styles (e.g., `style="..."`), or links to external CSS/JS files *except for essential CDNs as specified below*.
 *   Don’t give JavaScript in this HTML code; I will ask for that later.
 *   Add the IDs and class names only; no other attributes should be used that are required by JavaScript code.
 *   Make it responsive for all the devices.
+*   Use proper heading levels in a logical order (e.g., `<h1>` followed by `<h2>`, not jumping to `<h4>`).
+*   Use `<button>` for actions and `<a>` for navigation — do not misuse elements.
+*   Add `alt` attributes for all `<img>` tags to support accessibility and screen readers.
+*   Use form elements semantically (e.g., `<label>` for `<input>`) when applicable.
+*   Ensure elements are keyboard-accessible — avoid using non-interactive tags (like `<div>`) for clickable elements.
+*   Avoid redundant wrappers or excessive nesting — keep the markup clean and purposeful.
+*   Use placeholder text or descriptive content where necessary to make the structure understandable during development.
+*   All class and id names should follow a consistent naming convention (e.g., kebab-case or BEM).
 
 **VERY IMPORTANT**: Regarding external libraries/CDNs:
 
@@ -592,11 +671,21 @@ Refactor CSS to style the following HTML.
 **If a CSS `CDN version` or styling framework (like Tailwind, etc) is used, simply reference the specific library in the CSS comments without including any HTML code or extra details.**
 
 *   The CSS should be valid and well-formatted.
+*   Do not use `@apply` for utility classes or styles. If it's present, please remove it.
+*   If a styling framework (e.g., Tailwind, Bootstrap) is being used, avoid writing custom CSS unless absolutely necessary. Use the framework’s utility classes and conventions wherever possible.
 *   Make the design responsive for various screen sizes using media queries.
 *   Use the provided `id` and `class` attributes from the HTML for styling. Do not introduce new selectors based on element types unless absolutely necessary (e.g., styling all `<a>` tags for basic link styles).
 *   Prioritize using class names for styling, and use id names only when styling a specific element that is unique on the page.
 *   Use modern CSS techniques (flexbox, grid) for layout where appropriate.
 *   Make it responsive for all the devices.
+*   Avoid inline styles unless absolutely necessary — keep styles in the CSS file for maintainability.
+*   Keep specificity low to avoid issues with overriding styles later.
+*   Minimize the use of `!important` — rely on proper CSS structure instead.
+*   Use CSS custom properties (variables) for colors, spacing, etc., to ensure consistency and easier updates.
+*   Stick to a consistent naming convention (e.g., BEM or project-specific pattern).
+*   Avoid unnecessary nesting if using a preprocessor like SCSS — keep the CSS flat and readable.
+*   Use `rem` or `em` units for font sizes and spacing instead of `px` to improve scalability and accessibility.
+*   Ensure accessibility (a11y) in your styles — e.g., sufficient color contrast, focus states, readable font sizes, etc.
 
 HTML:
 ```html
@@ -619,6 +708,90 @@ Refactor JavaScript to add interactivity to the following HTML.
 *   If the project requires complex logic or data manipulation, consider using appropriate JavaScript methods and data structures.
 *   If the project requires fetching data from an API, use the fetch API.
 *   Ensure the JavaScript is unobtrusive and degrades gracefully if JavaScript is disabled.
+*   Keep your code modular — use functions to break tasks into logical chunks.
+*   Use const and let instead of var for block scoping and cleaner code.
+*   Handle errors gracefully — use try/catch where appropriate, especially with async/await and fetch.
+*   Use meaningful variable and function names for better readability and maintainability.
+*   Avoid deeply nested callbacks — consider using promises or async/await for cleaner asynchronous code.
+*   Clean up event listeners when elements are removed from the DOM to prevent memory leaks.
+*   Comment complex logic where needed, but avoid redundant or obvious comments.
+*   Test across browsers to ensure compatibility, especially for features like fetch and newer APIs.
+*   Avoid hardcoding values — use configuration objects or constants where appropriate.
+
+HTML:
+```html
+{html_content}
+```
+
+CSS:
+```css
+{css_content}
+```
+
+JAVASCRIPT:
+```js
+{js_content}
+```
+"""
+
+refactor_html_prompt_user = """
+Refactor HTML code for the following project, suitable for placement directly within the `<body>` tag.
+**If styling frameworks like Tailwind or Bootstrap, don't remove them—just improve them.**
+
+*   Exclude all `<html>`, `<head>`, and `<body>` tags.
+*   **Absolutely do not include any inline JavaScript** (e.g., `<script>...</script>` within HTML tags, event handlers like `onclick="..."`, or any other form of inline scripting). The HTML should be purely structural.
+*   **Absolutely do not include any inline CSS** (e.g., `<style>...</style>` within HTML tags. The HTML should be purely structural.
+*   **Do not include any inline styles (e.g., `style="..."`), or links to external CSS/JS files except for essential CDNs as specified below.**
+
+**VERY IMPORTANT**: Regarding external libraries/CDNs:
+
+*   **Do not use external libraries/CDNs if they are not required by the project.**
+*   If the project description *explicitly mentions* a specific library (e.g., "use Bootstrap"), **include it using the appropriate `<link>` or `<script>` tag within the `<body>`**.
+*   If the project requires functionality that is *commonly provided by a well-known library* (e.g., date/time picking, charting, complex UI components) and the project description does *not explicitly forbid* their use, **you *may* include the appropriate CDN link within the `<body>`**.
+*   **If including a CDN, use the most common and reputable CDN provider** (e.g., cdnjs, unpkg).
+*   **Include only those CDNs that are *directly relevant* to the functionality of the page as described in the project description**.
+*   The CDN links should be placed **at the very bottom of the body section** (just before the closing `</body>` tag).
+*   **Do not use jQuery unless specifically asked for in the project description**.
+
+Problem statement:
+
+{problem_description}
+
+HTML:
+```html
+{html_content}
+```
+"""
+
+refactor_css_prompt_user = """
+Refactor CSS to style the following HTML.
+**If a CSS `CDN version` or styling framework (like Tailwind, etc) is used, simply reference the specific library in the CSS comments without including any HTML code or extra details.**
+
+*   The CSS should be valid and well-formatted.
+*   Do not use `@apply` for utility classes or styles. If it's present, please remove it.
+
+Problem statement:
+
+{problem_description}
+
+HTML:
+```html
+{html_content}
+```
+
+CSS:
+```css
+{css_content}
+```
+"""
+
+refactor_js_prompt_user = """
+Refactor JavaScript to add interactivity to the following HTML.
+**Return only the JavaScript code, without including HTML or CSS.**
+
+Problem statement:
+
+{problem_description}
 
 HTML:
 ```html
@@ -655,7 +828,27 @@ Refactor the following code written in {language}. Focus on fixing errors, impro
 
 Output:
 
-Provide *only* the corrected and refactored code. Do *not* include any explanations, markdown formatting, headers, or any other extraneous text. If there are errors in the original code, indicate them with inline comments in the corrected code, following this format: `// Error: [Specific error message]`.
+Provide *only* the corrected and refactored code. Do *not* include any explanations, markdown formatting, headers, or any other extraneous text.
+If there are errors in the original code, indicate them with inline comments in the corrected code, following this format: `comment: [Specific error message]`.
+
+If the code is already correct and well-formatted, simply return the original code. If the code cannot be parsed as valid {language}, return "Language not supported."
+"""
+
+refactor_code_prompt_user = """
+Refactor the following code written in {language}.
+
+Problem statement:
+
+{problem_description}
+
+```
+{code}
+```
+
+Output:
+
+Provide *only* the corrected and refactored code. Do *not* include any explanations, markdown formatting, headers, or any other extraneous text.
+If there are errors in the original code, indicate them with inline comments in the corrected code, following this format: `comment: [Specific error message]`.
 
 If the code is already correct and well-formatted, simply return the original code. If the code cannot be parsed as valid {language}, return "Language not supported."
 """

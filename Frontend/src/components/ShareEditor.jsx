@@ -127,7 +127,13 @@ const ShareEditor = ({ isDarkMode }) => {
 
     try {
       setState((prev) => ({ ...prev, loading: true }));
-      const response = await fetch(`${TEMP_SHARE_API_URL}/file/${shareId}`);
+      const response = await fetch(`${TEMP_SHARE_API_URL}/file/${shareId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-File-ID": `${shareId}`,
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -236,19 +242,16 @@ const ShareEditor = ({ isDarkMode }) => {
       return;
     }
 
-    if (isUUIDMatch(shareId) && shareIdNotFound) {
-      deleteSharedLink(shareId);
-    }
+    const cachedData = sessionStorage.getItem(shareId);
 
-    const data = sessionStorage.getItem(shareId);
-
-    if (data) {
-      const { expiry_time } = JSON.parse(data);
-
+    if (cachedData) {
+      const { expiry_time } = JSON.parse(cachedData);
       const expiryDate = new Date(expiry_time);
       const currentDate = new Date();
 
       if (expiryDate < currentDate) {
+        sessionStorage.removeItem(shareId);
+        sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
         setState({
           code: "",
           language: "",
@@ -257,20 +260,23 @@ const ShareEditor = ({ isDarkMode }) => {
           shareIdNotFound: true,
           loading: false,
         });
-
-        sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
-
-        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-        sessionStorage.removeItem(shareId);
-        sessionStorage.removeItem(`__${shareId}Code__`);
-        sessionStorage.removeItem(`__${shareId}Output__`);
-
         return;
       }
+
+      const { code, language, title } = JSON.parse(cachedData);
+      setState({
+        code,
+        language,
+        expiryTime: expiry_time,
+        title,
+        shareIdNotFound: false,
+        loading: false,
+      });
+      return;
     }
 
     fetchCode();
-  }, [shareId, fetchCode, shareIdNotFound]);
+  }, [shareId, fetchCode]);
 
   const handleCopyLink = async () => {
     const shareLink = new URL(`${window.location.origin}/${shareId}`);

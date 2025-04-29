@@ -63,19 +63,19 @@ const CodeEditor = ({
     mobile: 12,
   };
 
-  useEffect(() => {
-    const capitalizeFirstLetter = (str) => {
-      if (!str) return "";
-      return str.charAt(0).toUpperCase() + str.slice(1);
-    };
+  const capFirst = (str) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
 
+  useEffect(() => {
     const formattedTitle = title
       ? title.length > 30
-        ? `${capitalizeFirstLetter(title.slice(0, 30))}...${title.slice(-3)}`
-        : capitalizeFirstLetter(title)
+        ? `${capFirst(title.slice(0, 30))}...${title.slice(-3)}`
+        : capFirst(title)
       : "";
 
-    const formattedLanguage = capitalizeFirstLetter(language);
+    const formattedLanguage = capFirst(language);
 
     const pageTitle = formattedTitle
       ? `${formattedTitle} - ${formattedLanguage}`
@@ -188,6 +188,7 @@ const CodeEditor = ({
         behavior: "smooth",
         block: "start",
       });
+
       setLoadingActionRun(null);
       setisDownloadBtnPressed(false);
     }
@@ -240,6 +241,7 @@ const CodeEditor = ({
       input: "textarea",
       inputLabel: "What code do you want?",
       inputPlaceholder: "e.g., simple calculator",
+      confirmButtonText: "Generate",
       showCancelButton: true,
       allowOutsideClick: false,
       footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">Refactor the code if the <span class="font-bold">generated code</span> is not functioning properly.</p>`,
@@ -257,6 +259,10 @@ const CodeEditor = ({
         setisGenerateBtnPressed(true);
 
         const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
+        if (!token) {
+          return;
+        }
 
         const response = await fetch(`${GENAI_API_URL}/generate_code`, {
           method: "POST",
@@ -298,12 +304,33 @@ const CodeEditor = ({
 
     if (code.trim().length === 0 || !language) return;
 
+    const { value: prompt, isConfirmed } = await Swal.fire({
+      title: "Refactor Code",
+      input: "textarea",
+      inputLabel: "Suggestions to improve the code (optional)",
+      inputPlaceholder: "e.g., remove comments, optimize loop, etc.",
+      confirmButtonText: "Refactor",
+      showCancelButton: true,
+      allowOutsideClick: false,
+      footer:
+        '<p class="text-center text-sm text-red-500 dark:text-red-300">Suggestions help improve results, <span class="font-bold">but are optional</span>.</p>',
+    });
+
+    if (!isConfirmed) {
+      return;
+    }
+
     setLoadingActionRefactor("refactor");
+
     try {
       setIsEditorReadOnly(true);
       setisRefactorBtnPressed(true);
 
       const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
+      if (!token) {
+        return;
+      }
 
       const response = await fetch(`${GENAI_API_URL}/refactor_code`, {
         method: "POST",
@@ -312,6 +339,7 @@ const CodeEditor = ({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          problem_description: prompt.trim() || null,
           language,
           code,
         }),
@@ -396,6 +424,10 @@ const CodeEditor = ({
 
       const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
+      if (!token) {
+        return;
+      }
+
       const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
         method: "POST",
         headers: {
@@ -445,7 +477,12 @@ const CodeEditor = ({
           }).then(async (result) => {
             if (result.isConfirmed) {
               await navigator.clipboard.writeText(shareableLink);
-              Swal.fire("URL Copied!", "", "success");
+              Swal.fire({
+                title: "URL Copied!",
+                text: "",
+                icon: "success",
+                timer: 2000,
+              });
             }
           });
         }
@@ -458,6 +495,10 @@ const CodeEditor = ({
 
   const getRunCodeCount = async (language) => {
     const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+
+    if (!username) {
+      return;
+    }
 
     const response = await fetch(`${BACKEND_API_URL}/api/runCode/count`, {
       method: "POST",
@@ -474,6 +515,10 @@ const CodeEditor = ({
 
   const getGenerateCodeCount = async () => {
     const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+
+    if (!username) {
+      return;
+    }
 
     const response = await fetch(`${BACKEND_API_URL}/api/generateCode/count`, {
       method: "POST",
@@ -493,6 +538,10 @@ const CodeEditor = ({
 
   const getRefactorCodeCount = async () => {
     const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+
+    if (!username) {
+      return;
+    }
 
     const response = await fetch(`${BACKEND_API_URL}/api/refactorCode/count`, {
       method: "POST",
@@ -515,9 +564,7 @@ const CodeEditor = ({
       const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
       if (!username) {
-        throw new Error(
-          "Username not found in localStorage. User might not be logged in."
-        );
+        return;
       }
 
       const countResponse = await fetch(
@@ -755,7 +802,7 @@ const CodeEditor = ({
           </div>
         </div>
 
-        <pre className="select-text font-mono text-xs font-semibold lg:text-sm  min-h-20 max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]">
+        <pre className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-20 max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]">
           {output}
         </pre>
       </div>
@@ -781,6 +828,7 @@ const CodeEditor = ({
           onChange={(newValue) => setCode(newValue)}
           editorDidMount={(editor) => editor.focus()}
           onMount={handleEditorDidMount}
+          loading={`Loading ${capFirst(language)} Editor...`}
           height="350px"
           theme={isDarkMode ? "vs-dark" : "vs-light"}
           options={{

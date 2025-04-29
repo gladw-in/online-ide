@@ -120,6 +120,7 @@ const NavigationLinks = () => {
             <Link
               key={to}
               to={`${baseUrl}${to}`}
+              aria-label={`Navigate to ${text} Editor`}
               title={text}
               className={`w-full px-8 py-4 text-xl font-semibold motion-preset-rebound-down ${classes} text-white text-center rounded-lg shadow-lg whitespace-nowrap overflow-hidden text-ellipsis hover:scale-105 transform transition-all duration-300 sm:px-6 sm:py-3 sm:text-lg md:px-8 md:py-4 lg:px-8 lg:py-4`}
             >

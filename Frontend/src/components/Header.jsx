@@ -6,6 +6,7 @@ import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
+  SESSION_STORAGE_FETCH_STATUS_KEY,
   LOCAL_STORAGE_TOKEN_KEY,
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
@@ -26,6 +27,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
     localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
     sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+    sessionStorage.removeItem(SESSION_STORAGE_FETCH_STATUS_KEY);
   };
 
   useEffect(() => {
@@ -149,6 +151,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <Link
             to={`${baseUrl}`}
+            aria-label="Go to Online IDE homepage"
             className="text-2xl ml-2.5 font-bold tracking-wide hover:text-gray-300 transition-colors duration-200 focus:outline-none"
           >
             Online IDE
@@ -161,6 +164,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                   to={`${baseUrl}/account/${username}`}
                   className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
                   title={username.trim()}
+                  aria-label={`Go to ${formatUsername(username)}'s account`}
                 >
                   {formatUsername(username)}'s Account
                 </Link>
@@ -176,12 +180,14 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 <Link
                   to={`${baseUrl}/login`}
                   className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                  aria-label="Go to Login page"
                 >
                   Login
                 </Link>
                 <Link
                   to={`${baseUrl}/register`}
                   className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                  aria-label="Go to Register page"
                 >
                   Register
                 </Link>
@@ -219,10 +225,14 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                     to={`${baseUrl}/account/${username}`}
                     className="block text-lg text-center focus:outline-none hover:text-gray-300"
                     title={username.trim()}
+                    aria-label={`Go to ${formatUsername(
+                      username
+                    )}'s account page`}
                     onClick={() => setIsDropdownOpen(false)}
                   >
                     {formatUsername(username)}'s Account
                   </Link>
+
                   <button
                     onClick={() => {
                       handleLogout();
@@ -238,6 +248,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                   <Link
                     to="/login"
                     className="block text-lg text-center focus:outline-none hover:text-gray-300"
+                    aria-label="Go to Login page"
                     onClick={() => setIsDropdownOpen(false)}
                   >
                     Login
@@ -245,6 +256,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                   <Link
                     to="/register"
                     className="block text-lg text-center focus:outline-none hover:text-gray-300"
+                    aria-label="Go to Register page"
                     onClick={() => setIsDropdownOpen(false)}
                   >
                     Register
