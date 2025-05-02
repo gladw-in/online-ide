@@ -32,7 +32,9 @@ const Accounts = () => {
   useEffect(() => {
     const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
 
-    document.title = `Account - ${username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()}`;
+    document.title = `Account - ${
+      username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()
+    }`;
     fetchUserData();
   }, []);
 
@@ -161,8 +163,9 @@ const Accounts = () => {
               title: "Updated!",
               text: "Your username has been updated successfully.",
               icon: "success",
+              timer: 1500,
             }).then(() => {
-              navigate("/accounts");
+              navigate(`/account/${username}`);
               location.reload();
             });
             fetchUserData();
@@ -171,64 +174,6 @@ const Accounts = () => {
           }
         } catch (error) {
           setErrorMessage("Error updating username");
-        }
-      }
-    });
-  };
-
-  const handleUpdateEmail = async (e) => {
-    e.preventDefault();
-
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (!token) {
-      navigate("/login");
-      location.reload();
-      return;
-    }
-
-    if (!isPasswordVerified) {
-      setErrorMessage("Please verify your password first.");
-      return;
-    }
-
-    const { email } = formData;
-
-    Swal.fire({
-      title: "Are you sure?",
-      text: "Do you want to update your email?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Yes, update it!",
-      cancelButtonText: "No, keep it",
-      allowOutsideClick: false,
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const response = await fetch(`${BACKEND_API_URL}/api/change-email`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ newEmail: email }),
-          });
-
-          const data = await response.json();
-          if (response.ok) {
-            Swal.fire({
-              title: "Updated!",
-              text: "Your email has been updated successfully.",
-              icon: "success",
-            }).then(() => {
-              navigate("/accounts");
-              location.reload();
-            });
-            fetchUserData();
-          } else {
-            setErrorMessage(data.msg || "Failed to update email");
-          }
-        } catch (error) {
-          setErrorMessage("Error updating email");
         }
       }
     });
@@ -296,8 +241,9 @@ const Accounts = () => {
               title: "Updated!",
               text: "Your password has been updated successfully.",
               icon: "success",
+              timer: 1500,
             }).then(() => {
-              navigate("/accounts");
+              navigate(`/account/${username}`);
               location.reload();
             });
 
@@ -441,6 +387,20 @@ const Accounts = () => {
       )}
 
       {isPasswordVerified && (
+        <p className="mt-4 overflow-auto">
+          <span className="text-gray-600 dark:text-gray-300 font-medium mb-1">
+            Email:
+          </span>
+          <span
+            className="pl-2 text-base font-semibold select-text"
+            title={formData.email}
+          >
+            {formData.email}
+          </span>
+        </p>
+      )}
+
+      {isPasswordVerified && (
         <div>
           <form onSubmit={handleUpdateUsername}>
             <InputField
@@ -456,23 +416,6 @@ const Accounts = () => {
               className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
             >
               Update Username
-            </button>
-          </form>
-
-          <form onSubmit={handleUpdateEmail}>
-            <InputField
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-              name="email"
-            />
-            <button
-              type="submit"
-              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
-            >
-              Update Email
             </button>
           </form>
 

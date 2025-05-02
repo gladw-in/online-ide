@@ -63,7 +63,7 @@ JWT_SECRET= #same from Login
 - **[path](https://nodejs.org/api/path.html)**: A Node.js core module for working with file and directory paths.
 
 ## Python Libraries:
-- **[google-generativeai](https://ai.google.dev/gemini-api/docs/quickstart?lang=python)**: A collection of Google APIs and tools for integrating generative AI models into applications.
+- **[google-genai](https://ai.google.dev/gemini-api/docs/quickstart?lang=python)**: A collection of Google APIs and tools for integrating generative AI models into applications.
 - **[python-dotenv](https://pypi.org/project/python-dotenv/)**: A Python library for loading environment variables from a `.env` file into the environment.
 - **[flask_cors](https://flask-cors.readthedocs.io/en/latest/)**: A Flask extension to handle Cross-Origin Resource Sharing (CORS) and allow requests from different origins.
 - **[flask](https://flask.palletsprojects.com/)**: A lightweight Python web framework used for building web applications.

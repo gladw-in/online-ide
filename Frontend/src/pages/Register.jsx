@@ -230,7 +230,7 @@ const Register = () => {
 
       const data = await response.json();
 
-      if (response.ok || data.msg =="User not found") {
+      if (response.ok || data.msg == "User not found") {
         setTimeout(() => {
           navigate("/register");
           location.reload();

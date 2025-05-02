@@ -209,7 +209,7 @@ const EditorRoutes = ({ isDarkMode }) => (
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route
-        path={`/account/${GetUsername()?.trim()}`}
+        path={`/account/${GetUsername()?.trim() || "*"}`}
         element={<ProtectedRoute element={<Accounts />} />}
       />
 

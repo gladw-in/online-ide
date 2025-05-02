@@ -1071,66 +1071,6 @@ app.put('/api/change-username', async (req, res) => {
 	}
 });
 
-app.put('/api/change-email', async (req, res) => {
-	const {
-		newEmail
-	} = req.body;
-	const token = req.headers['authorization']?.split(' ')[1];
-
-	if (!token) {
-		return res.status(403).json({
-			msg: 'No token provided',
-		});
-	}
-
-	if (!newEmail) {
-		return res.status(400).json({
-			msg: 'New email is required',
-		});
-	}
-
-	if (!emailRegex.test(newEmail)) {
-		return res.status(400).json({
-			msg: 'Invalid email format',
-		});
-	}
-
-	try {
-		await checkAndConnectDB();
-
-		const decoded = jwt.verify(token, process.env.JWT_SECRET);
-		const user = await User.findById(decoded.userId);
-
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
-			});
-		}
-
-		const existingUser = await User.findOne({
-			email: newEmail,
-		});
-
-		if (existingUser) {
-			return res.status(400).json({
-				msg: 'Email is already taken',
-			});
-		}
-
-		user.email = newEmail;
-		await user.save();
-
-		res.json({
-			msg: 'Email updated successfully',
-		});
-	} catch (err) {
-		console.error('Error updating email:', err);
-		res.status(401).json({
-			msg: 'Invalid or expired token',
-		});
-	}
-});
-
 app.put('/api/change-password', async (req, res) => {
 	const {
 		newPassword,
