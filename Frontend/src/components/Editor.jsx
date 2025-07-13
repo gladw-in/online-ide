@@ -10,6 +10,7 @@ import {
   TEMP_SHARE_API_URL,
   BACKEND_API_URL,
 } from "../utils/constants";
+import blocker from "../utils/blocker.js";
 import { useNavigate } from "react-router-dom";
 import { PiFileHtmlFill, PiFileCssFill, PiFileJsFill } from "react-icons/pi";
 import { MdPreview } from "react-icons/md";
@@ -26,6 +27,7 @@ const EditorSection = ({
   theme,
   fontSize,
   readOnly,
+  editorDidMount,
 }) => {
   const getLanguageIcon = () => {
     switch (language) {
@@ -54,6 +56,7 @@ const EditorSection = ({
       <MonacoEditor
         language={language}
         value={value}
+        onMount={editorDidMount(language)}
         onChange={(newValue) => onChange(language, newValue)}
         editorDidMount={(editor) => editor.focus()}
         loading={`Loading ${capFirst(language)} Editor...`}
@@ -108,6 +111,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   const [OverlayText, setOverlayText] = useState(false);
 
   const iframeRef = useRef(null);
+  const editorRefs = useRef({});
 
   const fontSizeMap = {
     pc: 16,
@@ -180,59 +184,68 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     }
   }, []);
 
+  const editorDidMount = (id) => (editor, monaco) => {
+    editorRefs.current[id] = editor;
+  };
+
   const updatePreview = useCallback(
     debounce(() => {
-      const { html, css, javascript } = code;
+      try {
+        const { html, css, javascript } = code;
 
-      if (iframeRef.current) {
-        const iframeDocument =
-          iframeRef.current.contentDocument ||
-          iframeRef.current.contentWindow.document;
+        if (iframeRef.current) {
+          const iframeDocument =
+            iframeRef.current.contentDocument ||
+            iframeRef.current.contentWindow.document;
 
-        iframeDocument.open();
-        iframeDocument.write(`
-          <!DOCTYPE html>
-          <html style="scrollbar-width: thin;">
-            <head>
-              <style>${css}</style>
-            </head>
-            <body>
-              ${html}
-              <script>
-                (function() {
-                  try {
-                    ${javascript}
-                  } catch (error) {
-                    console.error("Error executing JS:", error);
-                  }
-                })();
-              </script>
-            </body>
-          </html>
-        `);
-        iframeDocument.close();
-      }
+          iframeDocument.open();
+          iframeDocument.write(`
+        <!DOCTYPE html>
+        <html style="scrollbar-width: thin;">
+          <head>
+            <style>${css.trim() || ""}</style>
+            <script>${blocker || ""}</script>
+          </head>
+          <body>
+            ${html.trim() || ""}
+            <script>
+              (function() {
+                try {
+                  ${javascript.trim() || ""}
+                } catch (error) {
+                  console.error("Error executing JS:", error);
+                }
+              })();
+            </script>
+          </body>
+        </html>
+      `);
+          iframeDocument.close();
+        }
+      } catch {}
     }, 500),
     [code]
   );
 
   const openPreviewFullScreen = () => {
-    const { html, css, javascript } = code;
-    const newWindow = window.open("", "_blank");
-    newWindow.document.write(`
+    try {
+      const { html, css, javascript } = code;
+      const newWindow = window.open("", "_blank");
+      newWindow.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Preview</title>
-        <style>${css}</style>
+        <style>${css.trim() || ""}</style>
+        <script>${blocker || ""}</script>
       </head>
       <body>
-        ${html}
+        ${html.trim() || ""}
         <script>
           (function() {
             try {
-              ${javascript}
+              ${javascript.trim() || ""}
             } catch (error) {
               console.error("Error executing JS:", error);
             }
@@ -241,7 +254,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       </body>
       </html>
     `);
-    newWindow.document.close();
+      newWindow.document.close();
+    } catch {}
   };
 
   const handleRefresh = () => {
@@ -283,14 +297,14 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         <!DOCTYPE html>
         <html>
           <head>
-            <style>${css}</style>
+            <style>${css || ""}</style>
           </head>
           <body>
-            ${html}
+            ${html || ""}
             <script>
               (function() {
                 try {
-                  ${javascript}
+                  ${javascript || ""}
                 } catch (error) {
                   console.error("Error executing JS:", error);
                 }
@@ -329,11 +343,11 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       <html>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <style>${css}</style>
+          <style>${css || ""}</style>
         </head>
         <body>
-          ${cleanedHtml}
-          <script>${javascript}</script>
+          ${cleanedHtml || ""}
+          <script>${javascript || ""}</script>
         </body>
       </html>
     `;
@@ -347,6 +361,17 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const scrollToLastLine = (editorId) => {
+    const editor = editorRefs.current[editorId];
+    if (editor) {
+      const model = editor.getModel();
+      if (model) {
+        const lastLine = model.getLineCount();
+        editor.revealLineInCenter(lastLine);
+      }
+    }
   };
 
   const handleCtrlS = (event) => {
@@ -379,7 +404,46 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     };
   }, []);
 
-  const generateCodeFromPrompt = async () => {
+  const generateCodeStream = async (type, data, onChunk) => {
+    let result = "";
+
+    try {
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      if (!token) throw new Error("Token not found");
+
+      const response = await fetch(`${GENAI_API_URL}/htmlcssjsgenerate-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error("Failed to generate code.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        result += chunk;
+        if (typeof onChunk === "function") {
+          onChunk(chunk);
+        }
+      }
+    } catch (error) {
+      Swal.fire("Error", "Failed to generate code.", "error");
+    }
+
+    return result;
+  };
+
+  const generateCodeMain = async () => {
     if (!isLoggedIn) {
       navigate("/login");
       return;
@@ -397,6 +461,15 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       inputValidator: (value) => {
         if (!value) return "This field is mandatory! Please enter a prompt.";
       },
+      didOpen: () => {
+        const modal = Swal.getPopup();
+        modal.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault();
+            Swal.clickConfirm();
+          }
+        });
+      },
     });
 
     if (!prompt) return;
@@ -409,58 +482,71 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     setIsEditorReadOnly(true);
 
     try {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-      if (!token) return;
+      let htmlCode = "",
+        cssCode = "",
+        jsCode = "";
 
-      const generateCode = async (type, data) => {
-        const response = await fetch(
-          `${GENAI_API_URL}/htmlcssjsgenerate-code`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(data),
+      let isFirstChunk = true;
+
+      htmlCode = await generateCodeStream(
+        "html",
+        { prompt, type: "html" },
+        (chunk) => {
+          if (isFirstChunk) {
+            setCode((prev) => ({ ...prev, html: "" }));
+            isFirstChunk = false;
           }
-        );
 
-        if (!response.ok)
-          throw new Error(`Failed to generate ${type.toUpperCase()}.`);
-        return await response.json();
-      };
+          setCode((prev) => ({ ...prev, html: (prev.html || "") + chunk }));
+          scrollToLastLine(languages[0]);
+        }
+      );
 
-      const setCodeState = (html, css, js) => {
-        setCode((prevCode) => ({
-          html: html || prevCode.html,
-          css: css || prevCode.css,
-          javascript: js || prevCode.javascript,
-        }));
-      };
+      isFirstChunk = true;
 
-      const resultHtml = await generateCode("html", { prompt, type: "html" });
-      setCodeState(resultHtml.html, "", "");
       setOverlayText("Generating CSS...");
 
-      const resultCss = await generateCode("css", {
-        prompt,
-        htmlContent: resultHtml.html,
-        type: "css",
-      });
-      setCodeState(resultHtml.html, resultCss.css, "");
+      cssCode = await generateCodeStream(
+        "css",
+        { prompt, htmlContent: htmlCode, type: "css" },
+        (chunk) => {
+          if (isFirstChunk) {
+            setCode((prev) => ({ ...prev, css: "" }));
+            isFirstChunk = false;
+          }
+          setCode((prev) => ({ ...prev, css: (prev.css || "") + chunk }));
+          scrollToLastLine(languages[1]);
+        }
+      );
+
+      isFirstChunk = true;
+
       setOverlayText("Generating JS...");
 
-      const resultJs = await generateCode("js", {
-        prompt,
-        htmlContent: resultHtml.html,
-        cssContent: resultCss.css,
-        type: "js",
-      });
-      setCodeState(resultHtml.html, resultCss.css, resultJs.js);
+      jsCode = await generateCodeStream(
+        "js",
+        {
+          prompt,
+          htmlContent: htmlCode,
+          cssContent: cssCode,
+          type: "js",
+        },
+        (chunk) => {
+          if (isFirstChunk) {
+            setCode((prev) => ({ ...prev, javascript: "" }));
+            isFirstChunk = false;
+          }
+          setCode((prev) => ({
+            ...prev,
+            javascript: (prev.javascript || "") + chunk,
+          }));
+          scrollToLastLine(languages[2]);
+        }
+      );
 
       await getGenerateCodeCount();
     } catch (error) {
-      Swal.fire("Error", error.message || "Failed to generate code.", "error");
+      Swal.fire("Error", "Failed to generate code.", "error");
     } finally {
       generatesetBtnTxt("Generate");
       setisGenerateBtnPressed(false);
@@ -508,6 +594,14 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           inputTextarea.style.width = "-webkit-fill-available";
           inputTextarea.style.width = "-moz-available";
         }
+
+        const modal = Swal.getPopup();
+        modal.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault();
+            Swal.clickConfirm();
+          }
+        });
       },
       focusConfirm: false,
       preConfirm: () => {
@@ -579,6 +673,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         const resultHtml = await refactor("html", { html, css, javascript });
         updateCodeState(resultHtml.html, null, null);
         html = resultHtml.html;
+        scrollToLastLine(languages[0]);
       }
 
       if (selectedType === "all" || selectedType === "css") {
@@ -586,12 +681,14 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         const resultCss = await refactor("css", { html, css, javascript });
         updateCodeState(null, resultCss.css, null);
         css = resultCss.css;
+        scrollToLastLine(languages[1]);
       }
 
       if (selectedType === "all" || selectedType === "js") {
         setOverlayText("Refactoring JS...");
         const resultJs = await refactor("js", { html, css, javascript });
         updateCodeState(null, null, resultJs.js);
+        scrollToLastLine(languages[2]);
       }
 
       if (isLoggedIn) {
@@ -636,6 +733,15 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       showCancelButton: true,
       allowOutsideClick: false,
       footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
+      didOpen: () => {
+        const modal = Swal.getPopup();
+        modal.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            Swal.clickConfirm();
+          }
+        });
+      },
     });
 
     if (isDismissed) {
@@ -733,7 +839,15 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       }
     } catch (error) {
       Swal.close();
-      console.error(err);
+
+      Swal.fire({
+        icon: "error",
+        title: "Failed!!",
+        text: "Please try again.",
+        timer: 5000,
+      });
+
+      console.error(error);
     }
   };
 
@@ -852,7 +966,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         ),
       onClick: () => {
         if (!isRefactorBtnPressed) {
-          generateCodeFromPrompt();
+          generateCodeMain();
         }
       },
       disabled: loadingAction === "generate" || loadingAction === "refactor",
@@ -905,6 +1019,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
             key={language}
             language={language}
             value={code[language]}
+            editorDidMount={editorDidMount}
             onChange={handleEditorChange}
             theme={isDarkMode ? "vs-dark" : "vs-light"}
             fontSize={fontSizeMap[deviceType]}
@@ -917,7 +1032,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           <button
             key={index}
             onClick={onClick}
-            className={`px-6 py-2 ${color} text-white inline-flex place-content-center rounded-md w-full cursor-pointer transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none`}
+            className={`px-6 py-2 ${color} text-white inline-flex place-content-center rounded-md w-full cursor-pointer transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed`}
             disabled={disabled}
           >
             {icon}
@@ -943,6 +1058,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         </div>
         <button
           onClick={openPreviewFullScreen}
+          disabled={isOverlayVisible}
           className="absolute top-16 right-2 w-10 h-10 bg-transparent border-2 border-gray-500 text-gray-500 rounded-md cursor-pointer transition-all duration-300 hover:bg-gray-700/30 hover:text-white hover:border-gray-700"
           title="Fullscreen Preview"
         >
@@ -951,7 +1067,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
         <button
           onClick={handleRefresh}
-          disabled={isRefreshing}
+          disabled={isRefreshing || isOverlayVisible}
           className={`absolute top-2 right-2 w-10 h-10 bg-transparent rounded-md cursor-pointer transition-all duration-300 hover:text-gray-500 ${
             isRefreshing ? "animate-spin" : ""
           }`}
@@ -963,7 +1079,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         <iframe
           ref={iframeRef}
           title="Preview"
-          className="w-full mt-4 h-96 bg-white text-black border border-gray-300"
+          className="w-full mt-4 h-96 bg-white text-black border border-gray-300 dark:border-gray-800"
+          referrerPolicy="no-referrer"
         />
       </div>
     </div>

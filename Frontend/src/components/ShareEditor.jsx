@@ -193,6 +193,7 @@ const ShareEditor = ({ isDarkMode }) => {
           loading: false,
         });
 
+        deleteSharedLink(shareId);
         sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
       }
     } catch (error) {
@@ -205,6 +206,7 @@ const ShareEditor = ({ isDarkMode }) => {
         loading: false,
       });
 
+      deleteSharedLink(shareId);
       sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
     }
   }, [shareId]);

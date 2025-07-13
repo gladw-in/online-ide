@@ -2,8 +2,16 @@ import os
 import re
 import jwt
 from google import genai
+from google.genai import types
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    render_template,
+    request,
+    stream_with_context,
+)
 from flask_cors import CORS
 from functools import wraps
 from datetime import datetime, timezone
@@ -35,14 +43,10 @@ app = Flask(__name__)
 
 CORS(app)
 
-try:
-    load_dotenv()
-except Exception as e:
-    print(f"Error loading environment variables: {e}")
+load_dotenv()
 
 CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
 
-api_key = os.getenv("GEMINI_API_KEY")
 gemini_model = os.getenv("GEMINI_MODEL")
 gemini_model_1 = os.getenv("GEMINI_MODEL_1")
 SECRET_KEY = os.getenv("JWT_SECRET")
@@ -61,7 +65,7 @@ def token_required(f):
             return jsonify({"message": "Token is missing!"}), 403
 
         try:
-            decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS512"])
             request.user_data = decoded
         except jwt.InvalidTokenError as e:
             return jsonify({"message": "Invalid token!"}), 401
@@ -76,15 +80,25 @@ def get_generated_code(problem_description, language):
         if language not in valid_languages:
             return "Error: Unsupported language."
 
-        client = genai.Client(api_key=api_key)
+        def stream():
+            client = genai.Client()
 
-        response = client.models.generate_content(
-            model=gemini_model,
-            contents=generate_code_prompt.format(
-                problem_description=problem_description, language=language
-            ),
-        )
-        return response.text.strip()
+            response = client.models.generate_content_stream(
+                model=gemini_model,
+                contents=generate_code_prompt.format(
+                    problem_description=problem_description, language=language
+                ),
+                config=types.GenerateContentConfig(
+                    system_instruction=generate_instruction.format(language=language),
+                ),
+            )
+
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+
+        return Response(stream_with_context(stream()), mimetype="text/plain")
+
     except Exception as e:
         return ""
 
@@ -98,50 +112,66 @@ def get_output(code, language):
         else:
             return "Error: Language not supported."
 
-        client = genai.Client(api_key=api_key)
+        def stream():
+            client = genai.Client()
 
-        response = client.models.generate_content(
-            model=gemini_model,
-            contents=prompt,
-        )
+            response = client.models.generate_content_stream(
+                model=gemini_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=compiler_instruction.format(language=language),
+                ),
+            )
 
-        return response.text
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+
+        return Response(stream_with_context(stream()), mimetype="text/plain")
     except Exception as e:
         return f"Error: Unable to process the code. {str(e)}"
 
 
-def refactor_code(code, language, problem_description=None):
+def refactor_code(code, language, output, problem_description=None):
     try:
         if language not in valid_languages:
             return "Error: Unsupported language."
-
-        client = genai.Client(api_key=api_key)
 
         if problem_description:
             refactor_contnet = refactor_code_prompt_user.format(
                 code=code,
                 language=language,
                 problem_description=problem_description or "",
+                output=output,
             )
         else:
-            refactor_contnet = refactor_code_prompt.format(code=code, language=language)
+            refactor_contnet = refactor_code_prompt.format(
+                code=code, language=language, output=output
+            )
 
-        response = client.models.generate_content(
-            model=gemini_model,
-            contents=refactor_contnet,
-        )
+        def stream():
+            client = genai.Client()
 
-        return (
-            response.text.strip()
-            if hasattr(response, "text")
-            else "Error: Invalid response format."
-        )
+            response = client.models.generate_content_stream(
+                model=gemini_model,
+                contents=refactor_contnet,
+                config=types.GenerateContentConfig(
+                    system_instruction=refactor_instruction.format(language=language),
+                ),
+            )
+
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+
+        return Response(stream_with_context(stream()), mimetype="text/plain")
+
     except Exception as e:
         print(f"Error analyzing code: {e}")
         return ""
 
 
-def refactor_code_html_css_js(prompt, params, problem_description=None):
+def refactor_code_html_css_js(language, prompt, params, problem_description=None):
     try:
 
         if problem_description:
@@ -151,11 +181,14 @@ def refactor_code_html_css_js(prompt, params, problem_description=None):
         else:
             formatted_prompt = prompt.format(**params)
 
-        client = genai.Client(api_key=api_key)
+        client = genai.Client()
 
         response = client.models.generate_content(
             model=gemini_model_1,
             contents=formatted_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=refactor_instruction.format(language=language),
+            ),
         )
 
         result = response.text.strip()
@@ -167,13 +200,21 @@ def refactor_code_html_css_js(prompt, params, problem_description=None):
 def generate_html(prompt):
     formatted_prompt = html_prompt.format(prompt=prompt, time=utc_time_reference())
 
-    client = genai.Client(api_key=api_key)
+    def stream():
+        client = genai.Client()
 
-    response = client.models.generate_content(
-        model=gemini_model_1,
-        contents=formatted_prompt,
-    )
-    return extract_code(response.text)
+        response = client.models.generate_content_stream(
+            model=gemini_model_1,
+            contents=formatted_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=html_generate_instruction,
+            ),
+        )
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
+
+    return Response(stream_with_context(stream()), mimetype="text/plain")
 
 
 def generate_css(html_content, project_description):
@@ -183,14 +224,21 @@ def generate_css(html_content, project_description):
         time=utc_time_reference(),
     )
 
-    client = genai.Client(api_key=api_key)
+    def stream():
+        client = genai.Client()
 
-    response = client.models.generate_content(
-        model=gemini_model_1,
-        contents=formatted_prompt,
-    )
+        response = client.models.generate_content_stream(
+            model=gemini_model_1,
+            contents=formatted_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=css_generate_instruction,
+            ),
+        )
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
 
-    return extract_code(response.text)
+    return Response(stream_with_context(stream()), mimetype="text/plain")
 
 
 def generate_js(html_content, css_content, project_description):
@@ -201,24 +249,27 @@ def generate_js(html_content, css_content, project_description):
         time=utc_time_reference(),
     )
 
-    client = genai.Client(api_key=api_key)
+    def stream():
+        client = genai.Client()
 
-    response = client.models.generate_content(
-        model=gemini_model_1,
-        contents=formatted_prompt,
-    )
+        response = client.models.generate_content_stream(
+            model=gemini_model_1,
+            contents=formatted_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=js_generate_instruction,
+            ),
+        )
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
 
-    return extract_code(response.text)
+    return Response(stream_with_context(stream()), mimetype="text/plain")
 
 
 def utc_time_reference():
-    return f"**Refer to this exact time: {datetime.now(timezone.utc).strftime('%I:%M %p on %B %d, %Y')} UTC**"
-
-
-def extract_code(output):
-    match = re.search(CODE_REGEX, output, re.DOTALL)
-    if match:
-        return match.group(1)
+    utc_now = datetime.now(timezone.utc)
+    formatted_time = utc_now.strftime("%I:%M:%S %p on %B %d, %Y")
+    return f"{formatted_time}"
 
 
 @app.route("/")
@@ -232,8 +283,9 @@ def generate_code():
     try:
         problem_description = request.json["problem_description"]
         language = request.json["language"]
-        generated_code = get_generated_code(problem_description, language)
-        return jsonify({"code": extract_code(generated_code)})
+
+        return get_generated_code(problem_description, language)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -247,8 +299,8 @@ def get_output_api():
         if not code or not language:
             return jsonify({"error": "Missing code or language"}), 400
 
-        output = get_output(code, language)
-        return jsonify({"output": output})
+        return get_output(code, language)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -260,62 +312,44 @@ def refactor_code_api():
         code = request.json["code"]
         language = request.json["language"]
         problem_description = request.json["problem_description"]
+        output = request.json["output"]
 
         if not code or not language:
             return jsonify({"error": "Missing code or language"}), 400
 
         if problem_description:
-            refactored_code = refactor_code(code, language, problem_description)
+            return refactor_code(code, language, output, problem_description)
         else:
-            refactored_code = refactor_code(code, language)
+            return refactor_code(code, language, output)
 
-        return jsonify({"code": extract_code(refactored_code)})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
 @app.route("/htmlcssjsgenerate-code", methods=["POST"])
 @token_required
-def htmlcssjs_generate():
+def htmlcssjs_generate_stream():
     data = request.get_json()
     project_description = data.get("prompt")
     code_type = data.get("type")
-    html_content = (
-        data.get("htmlContent", "") if len(data.get("htmlContent", "")) > 0 else ""
-    )
-    css_content = (
-        data.get("cssContent", "") if len(data.get("cssContent", "")) > 0 else ""
-    )
+    html_content = data.get("htmlContent", "")
+    css_content = data.get("cssContent", "")
 
     if not project_description:
         return jsonify({"error": "Project description is required"}), 400
-        
-    if not code_type or code_type not in ["html", "css", "js"]:
+
+    if code_type not in ["html", "css", "js"]:
         return jsonify({"error": "Invalid or missing 'type' parameter"}), 400
 
     try:
-        html_code = (
-            generate_html(project_description) if code_type == "html" else html_content
-        )
-        css_code = (
-            generate_css(html_code, project_description)
-            if code_type == "css"
-            else css_content
-        )
-        js_code = (
-            generate_js(html_code, css_code, project_description)
-            if code_type == "js"
-            else ""
-        )
-
         if code_type == "html":
-            return jsonify({"html": html_code})
+            return generate_html(project_description)
         elif code_type == "css":
-            return jsonify({"css": css_code})
+            return generate_css(html_content, project_description)
         elif code_type == "js":
-            return jsonify({"js": js_code})
+            return generate_js(html_content, css_content, project_description)
         else:
-            return jsonify({"error": "Invalid code type requested."}), 400
+            return jsonify({"error": "Unsupported code type."}), 400
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -342,6 +376,7 @@ def htmlcssjs_refactor():
 
         if code_type == "html" and html_content and problem_description:
             html_content_refactored = refactor_code_html_css_js(
+                "html",
                 refactor_html_prompt_user,
                 {"html_content": html_content},
                 problem_description,
@@ -363,6 +398,7 @@ def htmlcssjs_refactor():
                     400,
                 )
             css_content_refactored = refactor_code_html_css_js(
+                "css",
                 refactor_css_prompt_user,
                 {"html_content": html_content, "css_content": css_content},
                 problem_description,
@@ -388,6 +424,7 @@ def htmlcssjs_refactor():
                     400,
                 )
             js_content_refactored = refactor_code_html_css_js(
+                "js",
                 refactor_js_prompt_user,
                 {
                     "html_content": html_content,
@@ -407,7 +444,7 @@ def htmlcssjs_refactor():
 
         elif code_type == "html" and html_content:
             html_content_refactored = refactor_code_html_css_js(
-                refactor_html_prompt, {"html_content": html_content}
+                "html", refactor_html_prompt, {"html_content": html_content}
             )
             html_content_refactored = re.search(
                 CODE_REGEX, html_content_refactored, re.DOTALL
@@ -426,6 +463,7 @@ def htmlcssjs_refactor():
                     400,
                 )
             css_content_refactored = refactor_code_html_css_js(
+                "css",
                 refactor_css_prompt,
                 {"html_content": html_content, "css_content": css_content},
             )
@@ -450,6 +488,7 @@ def htmlcssjs_refactor():
                     400,
                 )
             js_content_refactored = refactor_code_html_css_js(
+                "js",
                 refactor_js_prompt,
                 {
                     "html_content": html_content,

@@ -89,7 +89,7 @@ To set up and run:
 
 ## Clone the repository:
 ```
-git clone https://github.com/gladw-in/online-ide.git
+git clone --depth 1 https://github.com/gladw-in/online-ide.git
 ```
 
 ## Backend Login

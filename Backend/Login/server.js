@@ -1,421 +1,46 @@
 const express = require('express');
 const path = require('node:path');
-const mongoose = require('mongoose');
-const crypto = require('node:crypto');
-const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
+
+const corsOptions = require('./config/corsOptions');
+const User = require('./models/User');
+const {
+  usernameRegex,
+  emailRegex,
+  pwdRegex,
+  reservedUsernames,
+} = require("./utils/validation");
+
+const { checkAndConnectDB } = require('./config/db');
+const { generateOtp } = require('./utils/otpGenerator');
+const { logUserAction } = require('./utils/useLogger')
+const { cleanExpired } = require('./middlewares/cleanExpired');
+const { updateLanguageCount } = require('./utils/updateLanguageCount');
+const { sendOtpEmail } = require('./smtp/sendMail')
+const { sendDelEmail } = require('./smtp/delEmail')
 
 const app = express();
 
 app.set('trust proxy', 1);
 
-const corsOptions = {
-	origin: '*',
-	methods: ['GET', 'POST', 'PUT', 'DELETE'],
-	allowedHeaders: ['Content-Type', 'Authorization'],
-	credentials: true,
-};
-
-const transporter = nodemailer.createTransport({
-	service: process.env.OTP_EMAIL_SERVICE,
-	auth: {
-		user: process.env.OTP_EMAIL_USER,
-		pass: process.env.OTP_EMAIL_PASS,
-	},
-});
-
-const usernameRegex = /^[a-zA-Z0-9_.-]{5,30}$/;
-
-const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
-
-const updateLanguageCount = (user, countType, language) => {
-	switch (language) {
-		case 'python':
-			user[countType].set('py', (user[countType].get('py') || 0) + 1);
-			break;
-		case 'javascript':
-			user[countType].set('js', (user[countType].get('js') || 0) + 1);
-			break;
-		case 'HtmlJsCss':
-			user[countType].set(
-				'HtmlJsCss',
-				(user[countType].get('HtmlJsCss') || 0) + 1
-			);
-			break;
-		case 'c':
-			user[countType].set('c', (user[countType].get('c') || 0) + 1);
-			break;
-		case 'cpp':
-			user[countType].set('cpp', (user[countType].get('cpp') || 0) + 1);
-			break;
-		case 'java':
-			user[countType].set('java', (user[countType].get('java') || 0) + 1);
-			break;
-		case 'csharp':
-			user[countType].set('cs', (user[countType].get('cs') || 0) + 1);
-			break;
-		case 'rust':
-			user[countType].set('rust', (user[countType].get('rust') || 0) + 1);
-			break;
-		case 'go':
-			user[countType].set('go', (user[countType].get('go') || 0) + 1);
-			break;
-		case 'verilog':
-			user[countType].set('verilog', (user[countType].get('verilog') || 0) + 1);
-			break;
-		case 'sql':
-			user[countType].set('sql', (user[countType].get('sql') || 0) + 1);
-			break;
-		case 'mongodb':
-			user[countType].set('mongodb', (user[countType].get('mongodb') || 0) + 1);
-			break;
-		case 'swift':
-			user[countType].set('swift', (user[countType].get('swift') || 0) + 1);
-			break;
-		case 'ruby':
-			user[countType].set('ruby', (user[countType].get('ruby') || 0) + 1);
-			break;
-		case 'typescript':
-			user[countType].set('ts', (user[countType].get('ts') || 0) + 1);
-			break;
-		case 'dart':
-			user[countType].set('dart', (user[countType].get('dart') || 0) + 1);
-			break;
-		case 'kotlin':
-			user[countType].set('kt', (user[countType].get('kt') || 0) + 1);
-			break;
-		case 'perl':
-			user[countType].set('perl', (user[countType].get('perl') || 0) + 1);
-			break;
-		case 'scala':
-			user[countType].set('scala', (user[countType].get('scala') || 0) + 1);
-			break;
-		case 'julia':
-			user[countType].set('julia', (user[countType].get('julia') || 0) + 1);
-			break;
-		default:
-			return false;
-	}
-	return true;
-};
-
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(bodyParser.json({limit:'200kb'}));
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
-
-const userSchema = new mongoose.Schema({
-	username: {
-		type: String,
-		required: true,
-		unique: true,
-		trim: true,
-		minlength: 5,
-		maxlength: 30,
-	},
-	email: {
-		type: String,
-		required: true,
-		unique: true,
-		lowercase: true,
-		match: [/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/, 'Please provide a valid email address'],
-	},
-	password: {
-		type: String,
-		required: true,
-	},
-	lastLogin: {
-		type: Date,
-		default: null,
-	},
-	createdDate: {
-		type: Date,
-		default: Date.now,
-	},
-	isEmailVerified: {
-		type: Boolean,
-		default: false,
-	},
-	otp: {
-		type: String,
-		default: null,
-	},
-	otpExpires: {
-		type: Date,
-		default: null,
-	},
-	generateCodeCount: {
-		type: Map,
-		of: Number,
-		default: () => ({
-			py: 0,
-			js: 0,
-			HtmlJsCss: 0,
-			c: 0,
-			cpp: 0,
-			java: 0,
-			cs: 0,
-			rust: 0,
-			go: 0,
-			sql: 0,
-			mongodb: 0,
-			swift: 0,
-			ruby: 0,
-			ts: 0,
-			dart: 0,
-			kt: 0,
-			perl: 0,
-			scala: 0,
-			julia: 0,
-			verilog: 0,
-		}),
-	},
-	refactorCodeCount: {
-		type: Map,
-		of: Number,
-		default: () => ({
-			py: 0,
-			js: 0,
-			HtmlJsCss: 0,
-			c: 0,
-			cpp: 0,
-			java: 0,
-			cs: 0,
-			rust: 0,
-			go: 0,
-			sql: 0,
-			mongodb: 0,
-			swift: 0,
-			ruby: 0,
-			ts: 0,
-			dart: 0,
-			kt: 0,
-			perl: 0,
-			scala: 0,
-			julia: 0,
-			verilog: 0,
-		}),
-	},
-	runCodeCount: {
-		type: Map,
-		of: Number,
-		default: () => ({
-			py: 0,
-			js: 0,
-			c: 0,
-			cpp: 0,
-			java: 0,
-			cs: 0,
-			rust: 0,
-			go: 0,
-			sql: 0,
-			mongodb: 0,
-			swift: 0,
-			ruby: 0,
-			ts: 0,
-			dart: 0,
-			kt: 0,
-			perl: 0,
-			scala: 0,
-			julia: 0,
-			verilog: 0,
-		}),
-	},
-	sharedLinks: {
-		type: [{
-			shareId: {
-				type: String,
-				required: true,
-				unique: true,
-			},
-			title: {
-				type: String,
-				required: true,
-			},
-			expiryTime: {
-				type: Date,
-				required: true,
-			},
-		}, ],
-		default: [],
-	},
-});
-
-const logsSchema = new mongoose.Schema({
-	username: {
-		type: String,
-		required: true,
-	},
-	email: {
-		type: String,
-		required: true,
-	},
-	lastLogin: {
-		type: Date,
-		default: null,
-	},
-	createdDate: {
-		type: Date,
-		default: Date.now,
-	},
-	generateCodeCount: {
-		type: Map,
-		of: Number,
-		default: {},
-	},
-	refactorCodeCount: {
-		type: Map,
-		of: Number,
-		default: {},
-	},
-	runCodeCount: {
-		type: Map,
-		of: Number,
-		default: {},
-	},
-	sharedLinks: {
-		type: Object,
-		default: {},
-	},
-	actionType: {
-		type: String,
-		required: true,
-	},
-	timestamp: {
-		type: Date,
-		default: Date.now,
-	},
-});
-
-const User = mongoose.model('user', userSchema);
-
-const Log = mongoose.model('log', logsSchema);
-
-async function checkAndConnectDB() {
-	if (mongoose.connection.readyState === 0) {
-		try {
-			await mongoose
-				.connect(MONGO_URI)
-				.then(() => console.log('MongoDB connected'))
-				.catch((err) => console.log('Error connecting to MongoDB:', err));
-			console.log('MongoDB connected');
-		} catch (err) {
-			console.error('Error connecting to MongoDB:', err);
-			throw new Error('Database connection failed');
-		}
-	}
-}
-
-async function logUserAction(user, actionType) {
-	try {
-		let log = await Log.findOne({
-			username: user.username,
-			email: user.email,
-		});
-
-		if (log) {
-			log.lastLogin = user.lastLogin;
-			log.createdDate = user.createdDate;
-			log.generateCodeCount = user.generateCodeCount;
-			log.refactorCodeCount = user.refactorCodeCount;
-			log.runCodeCount = user.runCodeCount;
-			log.sharedLinks = user.sharedLinks;
-			log.actionType = actionType;
-		} else {
-			log = new Log({
-				username: user.username,
-				email: user.email,
-				lastLogin: user.lastLogin,
-				createdDate: user.createdDate,
-				generateCodeCount: user.generateCodeCount,
-				refactorCodeCount: user.refactorCodeCount,
-				runCodeCount: user.runCodeCount,
-				sharedLinks: user.sharedLinks,
-				actionType: actionType,
-			});
-		}
-
-		await log.save();
-	} catch (err) {
-		console.error('Error logging user action:', err);
-	}
-}
-
-function generateOtp() {
-	return crypto.randomBytes(3).toString('hex');
-}
-
-async function sendOtpEmail(email, otp) {
-	const mailOptions = {
-		from: process.env.OTP_EMAIL_USER,
-		to: email,
-		subject: 'Online IDE - Your OTP for Email Verification',
-		html: `
-            <html>
-                <body>
-                    <h2>Welcome to Our Online IDE!</h2>
-                    <p>We received a request to verify your email address.</p>
-                    <p>To complete your email verification, please use the OTP below:</p>
-                    <h3 style="color: #4CAF50;">Your OTP: <strong>${otp}</strong></h3>
-                    <p><i>This OTP will expire in 10 minutes. If you did not request this, please ignore this email.</i></p>
-                    <p><a href="https://online-ide-cyan.vercel.app/" target="_blank" style="color: #007BFF;">Online IDE</a></p>
-                    <p>Thank you for choosing our service!</p>
-                </body>
-            </html>
-        `,
-	};
-
-	try {
-		await transporter.sendMail(mailOptions);
-	} catch (error) {
-		throw new Error('Failed to send OTP email');
-	}
-}
-
-async function cleanExpired(req, res, next) {
-	try {
-		await checkAndConnectDB();
-
-		await User.deleteMany({
-			isEmailVerified: false,
-			otpExpires: {
-				$lte: new Date()
-			}
-		});
-		next();
-	} catch (err) {
-		console.error('Error cleaning up expired users:', err);
-		next();
-	}
-}
-
-userSchema.pre('save', function(next) {
-	const user = this;
-	const actionType = user.isNew ? 'create' : 'update';
-	logUserAction(user, actionType);
-	next();
-});
-
-userSchema.pre('remove', function(next) {
-	const user = this;
-	logUserAction(user, 'delete');
-	next();
-});
 
 app.get('/', (req, res) => {
-	res.sendFile(path.join(__dirname, 'index.html'));
+	res.sendFile(path.join(__dirname, 'templates/index.html'));
 });
 
 app.post('/api/register', cleanExpired, async (req, res) => {
-	const {
-		username,
-		email,
-		password
-	} = req.body;
+	const username = req.body.username?.trim();
+	const email = req.body.email?.trim();
+	const password = req.body.password?.trim();
 
 	try {
 		await checkAndConnectDB();
@@ -451,6 +76,12 @@ app.post('/api/register', cleanExpired, async (req, res) => {
 			username,
 		});
 
+		if (reservedUsernames.includes(username.toLowerCase())) {
+			return res.status(400).json({
+				msg: 'This username is reserved and cannot be used',
+			});
+		}
+
 		if (existingUsername) {
 			return res.status(400).json({
 				msg: 'Username already taken',
@@ -478,6 +109,12 @@ app.post('/api/register', cleanExpired, async (req, res) => {
 		if (password.length < 8) {
 			return res.status(400).json({
 				msg: 'Password must be at least 8 characters long',
+			});
+		}
+
+		if (!pwdRegex.test(password)) {
+			return res.status(400).json({
+				msg: "Password must be at least 8 characters and contain only ASCII characters."
 			});
 		}
 
@@ -514,10 +151,8 @@ app.post('/api/register', cleanExpired, async (req, res) => {
 });
 
 app.post('/api/login', cleanExpired, async (req, res) => {
-	const {
-		email,
-		password
-	} = req.body;
+	const email = req.body.email?.trim();
+	const password = req.body.password?.trim();
 
 	if (!emailRegex.test(email)) {
 		return res.status(400).json({
@@ -528,6 +163,12 @@ app.post('/api/login', cleanExpired, async (req, res) => {
 	if (password.length < 8) {
 		return res.status(400).json({
 			msg: 'Password must be at least 8 characters long',
+		});
+	}
+
+	if (!pwdRegex.test(password)) {
+		return res.status(400).json({
+			msg: "Password must be at least 8 characters and contain only ASCII characters."
 		});
 	}
 
@@ -568,7 +209,7 @@ app.post('/api/login', cleanExpired, async (req, res) => {
 				userId: user._id,
 			},
 			process.env.JWT_SECRET, {
-				algorithm: 'HS256',
+				algorithm: 'HS512',
 			}
 		);
 
@@ -600,6 +241,12 @@ app.post('/api/verify-otp', async (req, res) => {
 	if (password.length < 8) {
 		return res.status(400).json({
 			msg: 'Password must be at least 8 characters long',
+		});
+	}
+
+	if (!pwdRegex.test(password)) {
+		return res.status(400).json({
+			msg: "Password must be at least 8 characters and contain only ASCII characters."
 		});
 	}
 
@@ -653,7 +300,7 @@ app.post('/api/verify-otp', async (req, res) => {
 		const token = jwt.sign({
 			userId: user._id
 		}, process.env.JWT_SECRET, {
-			algorithm: 'HS256'
+			algorithm: 'HS512'
 		});
 
 		res.status(200).json({
@@ -912,6 +559,12 @@ app.post('/api/update-password', async (req, res) => {
 		});
 	}
 
+	if (!pwdRegex.test(password)) {
+		return res.status(400).json({
+			msg: "Password must be at least 8 characters and contain only ASCII characters."
+		});
+	}
+
 	try {
 		await checkAndConnectDB();
 
@@ -1022,6 +675,12 @@ app.put('/api/change-username', async (req, res) => {
 		});
 	}
 
+	if (reservedUsernames.includes(newUsername.toLowerCase())) {
+		return res.status(400).json({
+			msg: 'This username is reserved and cannot be used',
+		});
+	}
+
 	if (!usernameRegex.test(newUsername)) {
 		return res.status(400).json({
 			msg: 'Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters).',
@@ -1097,9 +756,16 @@ app.put('/api/change-password', async (req, res) => {
 		});
 	}
 
-	if (newPassword.length < 8) {
+
+	if (newPassword.length < 8 || confirmPassword.length < 8) {
 		return res.status(400).json({
 			msg: 'Password must be at least 8 characters long',
+		});
+	}
+
+	if (!pwdRegex.test(newPassword) || !pwdRegex.test(confirmPassword)) {
+		return res.status(400).json({
+			msg: "Password must be at least 8 characters and contain only ASCII characters."
 		});
 	}
 
@@ -1124,7 +790,7 @@ app.put('/api/change-password', async (req, res) => {
 				userId: user._id,
 			},
 			process.env.JWT_SECRET, {
-				algorithm: 'HS256',
+				algorithm: 'HS512',
 			}
 		);
 
@@ -1166,6 +832,8 @@ app.delete('/api/account', async (req, res) => {
 
 		await User.findByIdAndDelete(decoded.userId);
 
+		await sendDelEmail(user.email);
+
 		res.json({
 			msg: 'Account deleted successfully',
 		});
@@ -1192,6 +860,12 @@ app.post('/api/verify-password', async (req, res) => {
 	if (password.length < 8) {
 		return res.status(400).json({
 			msg: 'Password must be at least 8 characters long',
+		});
+	}
+
+	if (!pwdRegex.test(password)) {
+		return res.status(400).json({
+			msg: "Password must be at least 8 characters and contain only ASCII characters."
 		});
 	}
 
@@ -1438,7 +1112,6 @@ app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
 		});
 	}
 });
-
 
 app.delete('/api/sharedLink', async (req, res) => {
 	const {

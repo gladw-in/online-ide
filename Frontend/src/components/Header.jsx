@@ -171,6 +171,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 <button
                   onClick={handleLogout}
                   className="text-lg hover:text-gray-300 transition-colors duration-200 cursor-pointer focus:outline-none"
+                  disabled={isLoading}
                 >
                   Logout
                 </button>
@@ -239,6 +240,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                       setIsDropdownOpen(false);
                     }}
                     className="block text-lg text-center focus:outline-none hover:text-gray-300 w-full"
+                    disabled={isLoading}
                   >
                     Logout
                   </button>

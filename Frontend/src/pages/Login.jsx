@@ -8,6 +8,8 @@ import {
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
   BACKEND_API_URL,
+  EMAIL_REGEX,
+  PASSWORD_REGEX,
 } from "../utils/constants";
 
 const Login = () => {
@@ -20,8 +22,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
-
-  const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
   useEffect(() => {
     document.title = "Login";
@@ -40,13 +40,18 @@ const Login = () => {
   };
 
   const validateForm = () => {
-    if (!emailRegex.test(formData.email)) {
+    if (!EMAIL_REGEX.test(formData.email.trim())) {
       setError("Invalid email format");
       return false;
     }
 
-    if (formData.password.length < 8) {
+    if (formData.password.trim().length < 8) {
       setError("Password must be at least 8 characters long");
+      return false;
+    }
+
+    if (!PASSWORD_REGEX.test(formData.password.trim())) {
+      setError("Invalid password format");
       return false;
     }
 
@@ -69,8 +74,8 @@ const Login = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          password,
+          email: email.trim(),
+          password: password.trim(),
         }),
       });
 
