@@ -19,7 +19,9 @@ import {
 } from "react-icons/fa6";
 import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
 import { BiTerminal } from "react-icons/bi";
+import { GiBrain } from "react-icons/gi";
 import Swal from "sweetalert2/dist/sweetalert2.js";
+import { isNil } from "lodash";
 
 const CodeEditor = ({
   title,
@@ -97,7 +99,10 @@ const CodeEditor = ({
     if (
       savedOutput &&
       savedOutput
-        .replace(/^```(text|javascript|json)[\r\n]*/m, "")
+        .replace(
+          /^```(text|json|c|cpp|csharp|dart|go|java|javascript|julia|kotlin|mongodb|perl|python|ruby|rust|scala|sql|swift|typescript|verilog)[\r\n]*/m,
+          ""
+        )
         .replace(/^```[\r\n]*/m, "")
         .replace(/[\r\n]*```$/m, "")
         .trim().length !== 0
@@ -146,10 +151,11 @@ const CodeEditor = ({
   const runCode = async () => {
     if (code.trim().length === 0) return;
 
+    setIsEditorReadOnly(true);
     setLoadingActionRun("run");
-    try {
-      setisDownloadBtnPressed(true);
+    setisDownloadBtnPressed(true);
 
+    try {
       const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: {
@@ -161,34 +167,87 @@ const CodeEditor = ({
         }),
       });
 
-      const result = await response.json();
+      if (!response.ok || !response.body) {
+        throw new Error("Failed to run code.");
+      }
 
-      if (response.ok) {
-        if (result.output === "") {
-          setOutput("No output returned.");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      let isFirstChunk = true;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+
+        if (isFirstChunk) {
+          setOutput("");
+
+          if (terminalRef.current) {
+            terminalRef.current.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }
+
+          isFirstChunk = false;
         }
 
-        setOutput(
-          result.output
-            .replace(/^```(text|javascript|json)[\r\n]*/m, "")
-            .replace(/^```[\r\n]*/m, "")
-            .replace(/[\r\n]*```$/m, "") || "No output returned."
-        );
+        setOutput((prev) => {
+          const updatedOutput = prev + chunk;
 
-        if (isLoggedIn) {
-          await getRunCodeCount(language);
-        }
-      } else {
-        setOutput(`Error: ${result.error}`);
+          setTimeout(() => {
+            requestAnimationFrame(() => {
+              if (terminalRef.current) {
+                terminalRef.current.scrollTop =
+                  terminalRef.current.scrollHeight;
+              }
+            });
+          }, 0);
+
+          return updatedOutput;
+        });
+      }
+
+      if (output.length !== 0) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
+
+        const dateString = now.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "long",
+          day: "2-digit",
+        });
+
+        const completedMsg = `\n\n--- Completed @ ${timeString} on ${dateString} ---`;
+
+        setOutput((prev) => prev + completedMsg);
+      }
+
+      if (isLoggedIn) {
+        await getRunCodeCount(language);
       }
     } catch (error) {
-      setOutput("Failed!! try again.");
+      setOutput("Failed!! Try again.");
     } finally {
-      terminalRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      if (terminalRef.current) {
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            if (terminalRef.current) {
+              terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+            }
+          });
+        }, 0);
+      }
 
+      setIsEditorReadOnly(false);
       setLoadingActionRun(null);
       setisDownloadBtnPressed(false);
     }
@@ -228,7 +287,7 @@ const CodeEditor = ({
     setTimeoutId(newTimeoutId);
   };
 
-  const generateCodeFromPrompt = async () => {
+  const generateCodeMain = async () => {
     if (!isLoggedIn) {
       navigate("/login");
       return;
@@ -250,49 +309,92 @@ const CodeEditor = ({
           return "This field is mandatory! Please enter a prompt.";
         }
       },
+      didOpen: () => {
+        const modal = Swal.getPopup();
+        modal.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault();
+            Swal.clickConfirm();
+          }
+        });
+      },
     });
 
-    if (prompt) {
-      setLoadingActionGen("generate");
-      try {
-        setIsEditorReadOnly(true);
-        setisGenerateBtnPressed(true);
+    if (!prompt) return;
 
-        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+    setLoadingActionGen("thinking");
+    setIsEditorReadOnly(true);
+    setisGenerateBtnPressed(true);
 
-        if (!token) {
-          return;
-        }
+    try {
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      if (!token) throw new Error("Authentication token missing.");
 
-        const response = await fetch(`${GENAI_API_URL}/generate_code`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            problem_description: prompt,
-            language: language,
-          }),
-        });
+      const response = await fetch(`${GENAI_API_URL}/generate_code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          problem_description: prompt,
+          language: language,
+        }),
+      });
 
-        if (!response.ok) {
-          throw new Error("Failed to generate code.");
-        }
-
-        const result = await response.json();
-        setCode(result.code || "No code generated.");
-
-        await getGenerateCodeCount();
-      } catch (error) {
-        Swal.fire("Error", "Failed to generate code.", "error");
-      } finally {
-        editorRef.current.revealLine(1);
-
-        setLoadingActionGen(null);
-        setIsEditorReadOnly(false);
-        setisGenerateBtnPressed(false);
+      if (!response.ok || !response.body) {
+        throw new Error("Failed to generate code.");
       }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let generatedCode = "";
+      let isPrevCode = false;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        if (!isPrevCode) {
+          setLoadingActionGen("generate");
+          setCode("");
+          isPrevCode = true;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        generatedCode += chunk;
+        setCode((prev) => {
+          const updatedCode = prev + chunk;
+
+          setTimeout(() => {
+            const editor = editorRef.current;
+            const model = editor?.getModel();
+            const lineCount = model?.getLineCount?.();
+
+            if (lineCount) {
+              editor.revealLineInCenter(lineCount);
+            }
+          }, 0);
+
+          return updatedCode;
+        });
+      }
+
+      if (!generatedCode.trim()) {
+        Swal.fire({
+          icon: "warning",
+          text: "No code was generated. Please try again.",
+          timer: 5000,
+        });
+      }
+
+      await getGenerateCodeCount();
+    } catch (error) {
+      Swal.fire("Error", "Failed to generate code.", "error");
+    } finally {
+      setLoadingActionGen(null);
+      setIsEditorReadOnly(false);
+      setisGenerateBtnPressed(false);
     }
   };
 
@@ -314,13 +416,22 @@ const CodeEditor = ({
       allowOutsideClick: false,
       footer:
         '<p class="text-center text-sm text-red-500 dark:text-red-300">Suggestions help improve results, <span class="font-bold">but are optional</span>.</p>',
+      didOpen: () => {
+        const modal = Swal.getPopup();
+        modal.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault();
+            Swal.clickConfirm();
+          }
+        });
+      },
     });
 
     if (!isConfirmed) {
       return;
     }
 
-    setLoadingActionRefactor("refactor");
+    setLoadingActionRefactor("thinking");
 
     try {
       setIsEditorReadOnly(true);
@@ -342,15 +453,56 @@ const CodeEditor = ({
           problem_description: prompt.trim() || null,
           language,
           code,
+          output,
         }),
       });
 
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
         throw new Error("Failed to refactor code.");
       }
 
-      const result = await response.json();
-      setCode(result.code || "No refactored code returned.");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let refactorCode = "";
+      let isPrevCode = false;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        if (!isPrevCode) {
+          setCode("");
+          setLoadingActionRefactor("refactor");
+          isPrevCode = true;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        refactorCode += chunk;
+
+        setCode((prev) => {
+          const updatedCode = prev + chunk;
+
+          setTimeout(() => {
+            const editor = editorRef.current;
+            const model = editor?.getModel();
+            const lineCount = model?.getLineCount?.();
+
+            if (lineCount) {
+              editor.revealLineInCenter(lineCount);
+            }
+          }, 0);
+
+          return updatedCode;
+        });
+      }
+
+      if (!refactorCode.trim()) {
+        Swal.fire({
+          icon: "warning",
+          text: "No code was refactored. Please try again.",
+          timer: 5000,
+        });
+      }
 
       await getRefactorCodeCount();
     } catch (error) {
@@ -389,6 +541,15 @@ const CodeEditor = ({
       showCancelButton: true,
       allowOutsideClick: false,
       footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
+      didOpen: () => {
+        const modal = Swal.getPopup();
+        modal.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            Swal.clickConfirm();
+          }
+        });
+      },
     });
 
     if (isDismissed) {
@@ -489,6 +650,14 @@ const CodeEditor = ({
       }
     } catch (err) {
       Swal.close();
+
+      Swal.fire({
+        icon: "error",
+        title: "Failed!!",
+        text: "Please try again.",
+        timer: 5000,
+      });
+
       console.error(err);
     }
   };
@@ -597,7 +766,7 @@ const CodeEditor = ({
   };
 
   const downloadFile = (content, filename, language) => {
-    if (code.trim().length === 0) {
+    if (!content || content.trim().length === 0) {
       return;
     }
 
@@ -734,7 +903,11 @@ const CodeEditor = ({
       bgColor: "bg-red-500",
       icon: <FaTrashAlt className="mr-2 mt-1" />,
       text: "Clear All",
-      disabled: code.trim().length === 0,
+      disabled:
+        code.trim().length === 0 ||
+        isGenerateBtnPressed ||
+        isRefactorBtnPressed ||
+        loadingActionRun === "run",
     },
     {
       action: handleCopy,
@@ -751,15 +924,22 @@ const CodeEditor = ({
       disabled: code.trim().length === 0,
     },
     {
-      action: generateCodeFromPrompt,
+      action: generateCodeMain,
       bgColor: "bg-green-500",
       icon:
-        loadingActionGen === "generate" ? (
+        loadingActionGen === "thinking" ? (
+          <GiBrain className="mr-2 mt-1 animate-bounce" />
+        ) : loadingActionGen === "generate" ? (
           <FaSpinner className="mr-2 mt-1 animate-spin" />
         ) : (
           <FaMagic className="mr-2 mt-1" />
         ),
-      text: loadingActionGen === "generate" ? "Generating..." : "Generate",
+      text:
+        loadingActionGen === "thinking"
+          ? "Thinking..."
+          : loadingActionGen === "generate"
+          ? "Generating..."
+          : "Generate",
       disabled:
         isDownloadBtnPressed || isRefactorBtnPressed || isGenerateBtnPressed,
     },
@@ -767,13 +947,19 @@ const CodeEditor = ({
       action: refactorCode,
       bgColor: "bg-yellow-500",
       icon:
-        loadingActionRefactor === "refactor" ? (
+        loadingActionRefactor === "thinking" ? (
+          <GiBrain className="mr-2 mt-1 animate-bounce" />
+        ) : loadingActionRefactor === "refactor" ? (
           <FaSpinner className="mr-2 mt-1 animate-spin" />
         ) : (
           <FaWrench className="mr-2 mt-1" />
         ),
       text:
-        loadingActionRefactor === "refactor" ? "Refactoring..." : "Refactor",
+        loadingActionRefactor === "thinking"
+          ? "Thinking..."
+          : loadingActionRefactor === "refactor"
+          ? "Refactoring..."
+          : "Refactor",
       disabled:
         code.trim().length === 0 ||
         isDownloadBtnPressed ||
@@ -787,6 +973,7 @@ const CodeEditor = ({
       text: "Share",
       disabled:
         code.trim().length === 0 ||
+        loadingActionRun === "run" ||
         isRefactorBtnPressed ||
         isGenerateBtnPressed,
     },
@@ -794,7 +981,7 @@ const CodeEditor = ({
 
   const RenderOutput = () => (
     <>
-      <div className="mt-4" ref={terminalRef}>
+      <div className="mt-4">
         <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2">
           <div className="flex items-center space-x-2">
             <BiTerminal className="ml-2 text-2xl" />
@@ -802,7 +989,10 @@ const CodeEditor = ({
           </div>
         </div>
 
-        <pre className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-20 max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]">
+        <pre
+          ref={terminalRef}
+          className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-20 max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]"
+        >
           {output}
         </pre>
       </div>
@@ -856,7 +1046,7 @@ const CodeEditor = ({
             <button
               key={index}
               onClick={action}
-              className={`px-6 py-2 ${bgColor} text-white inline-flex place-content-center rounded-md w-full cursor-pointer transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none`}
+              className={`px-6 py-2 ${bgColor} text-white inline-flex place-content-center rounded-md w-full cursor-pointer transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed`}
               disabled={disabled}
             >
               {icon}

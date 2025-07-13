@@ -11,6 +11,8 @@ import {
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
   BACKEND_API_URL,
+  EMAIL_REGEX,
+  PASSWORD_REGEX,
 } from "../utils/constants";
 
 const ForgotPassword = () => {
@@ -82,6 +84,11 @@ const ForgotPassword = () => {
       return;
     }
 
+    if (!EMAIL_REGEX.test(email)) {
+      setError("Invalid email format");
+      return false;
+    }
+
     setLoading(true);
 
     try {
@@ -92,7 +99,7 @@ const ForgotPassword = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email: email.trim() }),
         }
       );
 
@@ -107,7 +114,7 @@ const ForgotPassword = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim() }),
       });
 
       if (!response.ok) {
@@ -140,7 +147,7 @@ const ForgotPassword = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: email,
+            email: email.trim(),
           }),
         }
       );
@@ -193,7 +200,10 @@ const ForgotPassword = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({
+          email: email.trim(),
+          otp: otp.trim?.() ?? otp,
+        }),
       });
 
       if (!response.ok) {
@@ -219,9 +229,17 @@ const ForgotPassword = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
+    if (newPassword.length < 8 || confirmPassword.length < 8) {
       setError("Password must be at least 8 characters long.");
       return;
+    }
+
+    if (
+      !PASSWORD_REGEX.test(newPassword) ||
+      !PASSWORD_REGEX.test(confirmPassword)
+    ) {
+      setError("Invalid password format");
+      return false;
     }
 
     setLoading(true);
@@ -232,7 +250,11 @@ const ForgotPassword = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, otp, password: newPassword }),
+        body: JSON.stringify({
+          email: email.trim(),
+          otp: otp.trim?.() ?? otp,
+          password: newPassword.trim(),
+        }),
       });
 
       if (!response.ok) {

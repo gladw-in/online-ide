@@ -9,3 +9,7 @@ export const LOCAL_STORAGE_THEME_KEY = '__theme__';
 
 export const SESSION_STORAGE_SHARELINKS_KEY = '__sharelinks__';
 export const SESSION_STORAGE_FETCH_STATUS_KEY = '__fetchstatus__';
+
+export const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{5,30}$/;
+export const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+export const PASSWORD_REGEX = /^.{8,}$/;

@@ -10,6 +10,9 @@ import {
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
   BACKEND_API_URL,
+  USERNAME_REGEX,
+  EMAIL_REGEX,
+  PASSWORD_REGEX,
 } from "../utils/constants";
 
 const Register = () => {
@@ -32,9 +35,6 @@ const Register = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendOtpLoading, setResendOtpLoading] = useState(false);
   const [wrongEmailLoading, setWrongEmailLoading] = useState(false);
-
-  const usernameRegex = /^[a-zA-Z0-9_.-]{5,30}$/;
-  const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
   const navigate = useNavigate();
 
@@ -66,25 +66,34 @@ const Register = () => {
   };
 
   const validateForm = () => {
-    if (!emailRegex.test(formData.email)) {
+    const email = formData.email.trim();
+    const username = formData.username.trim();
+    const newPassword = formData.newPassword.trim();
+
+    if (!EMAIL_REGEX.test(email)) {
       setError("Invalid email format");
       return false;
     }
 
-    if (!usernameRegex.test(formData.username)) {
+    if (!USERNAME_REGEX.test(username)) {
       setError(
         "Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters)."
       );
       return false;
     }
 
-    if (formData.username.length < 5 || formData.username.length > 30) {
+    if (username.length < 5 || username.length > 30) {
       setError("Username should be between 5 and 30 characters");
       return false;
     }
 
-    if (formData.newPassword.length < 8) {
+    if (newPassword.length < 8) {
       setError("Password must be at least 8 characters long");
+      return false;
+    }
+
+    if (!PASSWORD_REGEX.test(newPassword)) {
+      setError("Invalid password format");
       return false;
     }
 
@@ -114,9 +123,9 @@ const Register = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username,
-          email,
-          password: newPassword,
+          username: username.trim(),
+          email: email.trim(),
+          password: newPassword.trim(),
         }),
       });
 
@@ -154,9 +163,9 @@ const Register = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: formData.email,
-          otp,
-          password: formData.newPassword,
+          email: formData.email.trim(),
+          otp: otp.trim?.() ?? otp,
+          password: formData.newPassword.trim(),
         }),
       });
 
@@ -193,7 +202,7 @@ const Register = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: formData.email,
+          email: formData.email.trim(),
         }),
       });
 
@@ -224,7 +233,7 @@ const Register = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: formData.email,
+          email: formData.email.trim(),
         }),
       });
 

@@ -6,6 +6,8 @@ import {
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
   BACKEND_API_URL,
+  USERNAME_REGEX,
+  PASSWORD_REGEX,
 } from "../utils/constants";
 import { useNavigate } from "react-router-dom";
 import { TbLoader } from "react-icons/tb";
@@ -25,6 +27,7 @@ const Accounts = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [delBtnText, setDelBtnText] = useState("Delete Account");
   const [btnState, setBtnState] = useState(false);
 
   const navigate = useNavigate();
@@ -63,12 +66,13 @@ const Accounts = () => {
           },
         }
       );
+
       const data = await response.json();
       if (response.ok) {
         setFormData((prevData) => ({
           ...prevData,
-          username: data.username,
-          email: data.email,
+          username: data.username.trim(),
+          email: data.email.trim(),
         }));
       } else {
         setErrorMessage(data.msg || "Failed to fetch user data");
@@ -88,7 +92,17 @@ const Accounts = () => {
       return;
     }
 
-    const { currentPassword } = formData;
+    const currentPassword = formData.currentPassword.trim();
+
+    if (currentPassword.length < 8) {
+      setErrorMessage("Password must be at least 8 characters long");
+      return false;
+    }
+
+    if (!PASSWORD_REGEX.test(currentPassword)) {
+      setErrorMessage("Invalid password format");
+      return false;
+    }
 
     try {
       setBtnState(true);
@@ -99,7 +113,7 @@ const Accounts = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ password: currentPassword }),
+        body: JSON.stringify({ password: currentPassword.trim() }),
       });
 
       const data = await response.json();
@@ -131,7 +145,17 @@ const Accounts = () => {
       return;
     }
 
-    const { username } = formData;
+    const username = formData.username.trim();
+
+    if (!USERNAME_REGEX.test(username)) {
+      setErrorMessage("Invalid username format");
+      return false;
+    }
+
+    if (username.length < 5 || username.length > 30) {
+      setErrorMessage("Username should be between 5 and 30 characters");
+      return false;
+    }
 
     Swal.fire({
       title: "Are you sure?",
@@ -152,7 +176,7 @@ const Accounts = () => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ newUsername: username }),
+              body: JSON.stringify({ newUsername: username.trim() }),
             }
           );
 
@@ -187,7 +211,8 @@ const Accounts = () => {
       return;
     }
 
-    const { newPassword, confirmPassword } = formData;
+    const newPassword = formData.newPassword.trim();
+    const confirmPassword = formData.confirmPassword.trim();
 
     if (!newPassword || !confirmPassword) {
       setErrorMessage("New password and confirm password are required.");
@@ -197,6 +222,14 @@ const Accounts = () => {
     if (newPassword.length < 8 || confirmPassword.length < 8) {
       setErrorMessage("Password must be at least 8 characters long.");
       return;
+    }
+
+    if (
+      !PASSWORD_REGEX.test(newPassword) ||
+      !PASSWORD_REGEX.test(confirmPassword)
+    ) {
+      setErrorMessage("Invalid password format");
+      return false;
     }
 
     if (newPassword !== confirmPassword) {
@@ -230,7 +263,10 @@ const Accounts = () => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ newPassword, confirmPassword }),
+              body: JSON.stringify({
+                newPassword: newPassword,
+                confirmPassword: confirmPassword,
+              }),
             }
           );
 
@@ -241,25 +277,25 @@ const Accounts = () => {
               title: "Updated!",
               text: "Your password has been updated successfully.",
               icon: "success",
-              timer: 1500,
+              timer: 2000,
             }).then(() => {
               navigate(`/account/${username}`);
               location.reload();
+
+              setFormData({
+                username: "",
+                email: "",
+                password: "",
+                newPassword: "",
+                confirmPassword: "",
+                currentPassword: "",
+              });
+
+              clearSession();
+
+              navigate("/login");
+              location.reload();
             });
-
-            setFormData({
-              username: "",
-              email: "",
-              password: "",
-              newPassword: "",
-              confirmPassword: "",
-              currentPassword: "",
-            });
-
-            clearSession();
-
-            navigate("/login");
-            location.reload();
           } else {
             setErrorMessage(data.msg || "Failed to update password");
           }
@@ -295,6 +331,8 @@ const Accounts = () => {
         }
 
         try {
+          setDelBtnText("Deleting...");
+
           const response = await fetch(`${BACKEND_API_URL}/api/account`, {
             method: "DELETE",
             headers: {
@@ -305,6 +343,7 @@ const Accounts = () => {
           const data = await response.json();
           if (response.ok) {
             clearSession();
+            setDelBtnText("Delete Account");
 
             Swal.fire({
               title: "Deleted!",
@@ -461,7 +500,7 @@ const Accounts = () => {
             onClick={handleDeleteAccount}
             className="w-full p-2 text-sm bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600 focus:outline-none transition duration-300 dark:bg-red-600 dark:hover:bg-red-500 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
           >
-            Delete Account
+            {delBtnText}
           </button>
         </div>
       )}
