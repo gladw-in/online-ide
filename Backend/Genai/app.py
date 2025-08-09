@@ -269,7 +269,7 @@ def generate_js(html_content, css_content, project_description):
 def utc_time_reference():
     utc_now = datetime.now(timezone.utc)
     formatted_time = utc_now.strftime("%I:%M:%S %p on %B %d, %Y")
-    return f"{formatted_time}"
+    return f"{formatted_time} UTC time zone"
 
 
 @app.route("/")

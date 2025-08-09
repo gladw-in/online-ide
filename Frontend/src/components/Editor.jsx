@@ -104,6 +104,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   const [refactorBtnTxt, refactorsetBtnTxt] = useState("Refactor");
   const [isGenerateBtnPressed, setisGenerateBtnPressed] = useState(false);
   const [isRefactorBtnPressed, setisRefactorBtnPressed] = useState(false);
+  const [isPreviewEnabled, setIsPreviewEnabled] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -190,6 +191,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
   const updatePreview = useCallback(
     debounce(() => {
+      if (!isPreviewEnabled) return;
+
       try {
         const { html, css, javascript } = code;
 
@@ -224,7 +227,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         }
       } catch {}
     }, 500),
-    [code]
+    [code, isPreviewEnabled]
   );
 
   const openPreviewFullScreen = () => {
@@ -493,6 +496,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         { prompt, type: "html" },
         (chunk) => {
           if (isFirstChunk) {
+            setIsPreviewEnabled(false);
             setCode((prev) => ({ ...prev, html: "" }));
             isFirstChunk = false;
           }
@@ -501,6 +505,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           scrollToLastLine(languages[0]);
         }
       );
+
+      setIsPreviewEnabled(true);
 
       isFirstChunk = true;
 
@@ -511,6 +517,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         { prompt, htmlContent: htmlCode, type: "css" },
         (chunk) => {
           if (isFirstChunk) {
+            setIsPreviewEnabled(false);
             setCode((prev) => ({ ...prev, css: "" }));
             isFirstChunk = false;
           }
@@ -518,6 +525,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           scrollToLastLine(languages[1]);
         }
       );
+
+      setIsPreviewEnabled(true);
 
       isFirstChunk = true;
 
@@ -533,6 +542,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         },
         (chunk) => {
           if (isFirstChunk) {
+            setIsPreviewEnabled(false);
             setCode((prev) => ({ ...prev, javascript: "" }));
             isFirstChunk = false;
           }
@@ -544,7 +554,11 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         }
       );
 
-      await getGenerateCodeCount();
+      setIsPreviewEnabled(true);
+
+      if (isLoggedIn) {
+        await getGenerateCodeCount();
+      }
     } catch (error) {
       Swal.fire("Error", "Failed to generate code.", "error");
     } finally {
@@ -826,13 +840,22 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
             footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
           }).then(async (result) => {
             if (result.isConfirmed) {
-              await navigator.clipboard.writeText(shareableLink);
-              Swal.fire({
-                title: "URL Copied!",
-                text: "",
-                icon: "success",
-                timer: 2000,
-              });
+              try {
+                await navigator.clipboard.writeText(shareableLink.toString());
+
+                Swal.fire({
+                  title: "URL Copied!",
+                  text: "",
+                  icon: "success",
+                  timer: 2000,
+                });
+              } catch (err) {
+                Swal.fire({
+                  title: "Failed to copy",
+                  text: "Could not copy the URL to clipboard.",
+                  icon: "error",
+                });
+              }
             }
           });
         }

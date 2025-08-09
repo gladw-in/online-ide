@@ -281,10 +281,17 @@ const ShareEditor = ({ isDarkMode }) => {
   }, [shareId, fetchCode]);
 
   const handleCopyLink = async () => {
-    const shareLink = new URL(`${window.location.origin}/${shareId}`);
-
     if (!loading) {
-      await navigator.clipboard.writeText(shareLink.toString());
+      try {
+        const shareLink = new URL(`${window.location.origin}/${shareId}`);
+        await navigator.clipboard.writeText(shareLink.toString());
+      } catch (err) {
+        Swal.fire({
+          title: "Failed to copy",
+          text: "Could not copy the URL to clipboard.",
+          icon: "error",
+        });
+      }
     }
 
     if (copyBtnTimeout.current) {

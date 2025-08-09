@@ -53,6 +53,7 @@ JWT_SECRET= #same from Login
 
 ## Backend Dependencies:
 - **[bcryptjs](https://github.com/dcodeIO/bcrypt.js)**: A JavaScript library for securely hashing passwords using the bcrypt algorithm.
+- **[body-parser](https://github.com/expressjs/body-parser)**: Middleware to parse incoming request bodies in JSON or URL-encoded format.  
 - **[cors](https://expressjs.com/en/resources/middleware/cors.html)**: A Node.js package that enables Cross-Origin Resource Sharing (CORS) for handling requests from different origins.
 - **[dotenv](https://dotenvx.com/)**: A module that loads environment variables from a `.env` file into `process.env`.
 - **[express](https://expressjs.com/)**: A minimal and flexible Node.js web framework for building web and mobile applications.

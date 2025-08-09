@@ -620,6 +620,7 @@ Generate HTML code for the following project, suitable for placement directly wi
 *   Don’t give JavaScript in this HTML code; I will ask for that later.
 *   Add the IDs and class names only; no other attributes should be used that are required by JavaScript code.
 *   Make it responsive for all the devices.
+*   **If the project includes a header or navigation bar, make it mobile-friendly with a hamburger menu for smaller screens.** Structure the HTML to support a toggleable menu.
 *   Use proper heading levels in a logical order (e.g., `<h1>` followed by `<h2>`, not jumping to `<h4>`).
 *   Use `<button>` for actions and `<a>` for navigation — do not misuse elements.
 *   Add `alt` attributes for all `<img>` tags to support accessibility and screen readers.
@@ -668,6 +669,7 @@ Generate CSS to style the following HTML.
 *   Prioritize using class names for styling, and use id names only when styling a specific element that is unique on the page.
 *   Use modern CSS techniques (flexbox, grid) for layout where appropriate.
 *   Make it responsive for all the devices.
+*   **If the project includes a header or navigation bar, make it mobile-friendly with a hamburger menu for smaller screens.** Structure the HTML to support a toggleable menu.
 *   Add Font Awesome icons for visual enhancement and improved UI clarity where appropriate.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
 *   Avoid inline styles unless absolutely necessary — keep styles in the CSS file for maintainability.
@@ -706,6 +708,7 @@ Generate JavaScript to add interactivity to the following HTML.
 *   Add Font Awesome icons for visual enhancement and improved UI clarity where appropriate.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
 *   Ensure the JavaScript is unobtrusive and degrades gracefully if JavaScript is disabled.
+*   **If the project includes a header or navigation bar, make it mobile-friendly with a hamburger menu for smaller screens.** Structure the HTML to support a toggleable menu.
 *   Keep your code modular — use functions to break tasks into logical chunks.
 *   Use const and let instead of var for block scoping and cleaner code.
 *   Handle errors gracefully — use try/catch where appropriate, especially with async/await and fetch.
@@ -742,6 +745,7 @@ Refactor HTML code for the following project, suitable for placement directly wi
 *   Don’t give JavaScript in this HTML code; I will ask for that later.
 *   Add the IDs and class names only; no other attributes should be used that are required by JavaScript code.
 *   Make it responsive for all the devices.
+*   **If the project includes a header or navigation bar, make it mobile-friendly with a hamburger menu for smaller screens.** Structure the HTML to support a toggleable menu.
 *   Use proper heading levels in a logical order (e.g., `<h1>` followed by `<h2>`, not jumping to `<h4>`).
 *   Use `<button>` for actions and `<a>` for navigation — do not misuse elements.
 *   Add `alt` attributes for all `<img>` tags to support accessibility and screen readers.
@@ -788,6 +792,7 @@ Refactor CSS to style the following HTML.
 *   Prioritize using class names for styling, and use id names only when styling a specific element that is unique on the page.
 *   Use modern CSS techniques (flexbox, grid) for layout where appropriate.
 *   Make it responsive for all the devices.
+*   **If the project includes a header or navigation bar, make it mobile-friendly with a hamburger menu for smaller screens.** Structure the HTML to support a toggleable menu.
 *   Avoid inline styles unless absolutely necessary — keep styles in the CSS file for maintainability.
 *   Keep specificity low to avoid issues with overriding styles later.
 *   Minimize the use of `!important` — rely on proper CSS structure instead.
@@ -821,6 +826,7 @@ Refactor JavaScript to add interactivity to the following HTML.
 *   If the project requires complex logic or data manipulation, consider using appropriate JavaScript methods and data structures.
 *   If the project requires fetching data from an API, use the fetch API.
 *   Ensure the JavaScript is unobtrusive and degrades gracefully if JavaScript is disabled.
+*   **If the project includes a header or navigation bar, make it mobile-friendly with a hamburger menu for smaller screens.** Structure the HTML to support a toggleable menu.
 *   Keep your code modular — use functions to break tasks into logical chunks.
 *   Use const and let instead of var for block scoping and cleaner code.
 *   Handle errors gracefully — use try/catch where appropriate, especially with async/await and fetch.

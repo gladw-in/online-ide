@@ -21,7 +21,6 @@ import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
 import { BiTerminal } from "react-icons/bi";
 import { GiBrain } from "react-icons/gi";
 import Swal from "sweetalert2/dist/sweetalert2.js";
-import { isNil } from "lodash";
 
 const CodeEditor = ({
   title,
@@ -263,18 +262,28 @@ const CodeEditor = ({
 
     if (content.length === 0) return;
 
-    await navigator.clipboard.writeText(content);
+    try {
+      await navigator.clipboard.writeText(content);
 
-    const lastLineNumber = editorRef.current.getModel().getLineCount();
-    editorRef.current.revealLine(lastLineNumber);
-    editorRef.current.setSelection({
-      startLineNumber: 1,
-      startColumn: 1,
-      endLineNumber: lastLineNumber,
-      endColumn: editorRef.current.getModel().getLineMaxColumn(lastLineNumber),
-    });
+      const lastLineNumber = editorRef.current.getModel().getLineCount();
+      editorRef.current.revealLine(lastLineNumber);
+      editorRef.current.setSelection({
+        startLineNumber: 1,
+        startColumn: 1,
+        endLineNumber: lastLineNumber,
+        endColumn: editorRef.current
+          .getModel()
+          .getLineMaxColumn(lastLineNumber),
+      });
 
-    setCpyBtnState("Copied!");
+      setCpyBtnState("Copied!");
+    } catch (err) {
+      Swal.fire({
+        title: "Failed to copy",
+        text: `Could not copy the ${language} code to clipboard.`,
+        icon: "error",
+      });
+    }
 
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -388,7 +397,9 @@ const CodeEditor = ({
         });
       }
 
-      await getGenerateCodeCount();
+      if (isLoggedIn) {
+        await getGenerateCodeCount();
+      }
     } catch (error) {
       Swal.fire("Error", "Failed to generate code.", "error");
     } finally {
@@ -503,8 +514,9 @@ const CodeEditor = ({
           timer: 5000,
         });
       }
-
-      await getRefactorCodeCount();
+      if (isLoggedIn) {
+        await getRefactorCodeCount();
+      }
     } catch (error) {
       Swal.fire("Error", "Failed to refactor code.", "error");
     } finally {
@@ -637,13 +649,22 @@ const CodeEditor = ({
             footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
           }).then(async (result) => {
             if (result.isConfirmed) {
-              await navigator.clipboard.writeText(shareableLink);
-              Swal.fire({
-                title: "URL Copied!",
-                text: "",
-                icon: "success",
-                timer: 2000,
-              });
+              try {
+                await navigator.clipboard.writeText(shareableLink.toString());
+
+                Swal.fire({
+                  title: "URL Copied!",
+                  text: "",
+                  icon: "success",
+                  timer: 2000,
+                });
+              } catch (err) {
+                Swal.fire({
+                  title: "Failed to copy",
+                  text: "Could not copy the URL to clipboard.",
+                  icon: "error",
+                });
+              }
             }
           });
         }
@@ -896,7 +917,12 @@ const CodeEditor = ({
           <FaPlay className="mr-2 mt-1" />
         ),
       text: loadingActionRun === "run" ? "Running..." : "Run",
-      disabled: loadingActionRun === "run" || code.trim().length === 0,
+      disabled:
+        loadingActionRun === "run" ||
+        code.trim().length === 0 ||
+        isGenerateBtnPressed ||
+        isRefactorBtnPressed ||
+        code.trim().length === 0,
     },
     {
       action: clearAll,

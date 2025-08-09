@@ -183,8 +183,16 @@ const SharedLinks = () => {
   };
 
   const handleCopy = async (shareId) => {
-    const url = `${baseUrl}/${shareId}`;
-    await navigator.clipboard.writeText(url);
+    try {
+      const url = `${baseUrl}/${shareId}`;
+      await navigator.clipboard.writeText(url.toString());
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Failed to copy",
+        text: "Could not copy the URL to clipboard.",
+      });
+    }
 
     if (buttonStates[shareId]?.timeout) {
       clearTimeout(buttonStates[shareId].timeout);
