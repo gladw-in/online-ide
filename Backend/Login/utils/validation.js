@@ -1,3 +1,5 @@
+const crypto = require('node:crypto');
+
 const usernameRegex = /^[a-zA-Z0-9_.-]{5,30}$/;
 
 const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
@@ -49,9 +51,42 @@ const reservedUsernames = [
 	'swift', 'ruby', 'typescript', 'dart', 'kotlin', 'perl', 'scala'
 ];
 
+function getRandomSuffix(length = 4) {
+	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.';
+	let result = '';
+	const bytes = crypto.randomBytes(length);
+
+	for (let i = 0; i < length; i++) {
+		result += chars[bytes[i] % chars.length];
+	}
+
+	return result;
+}
+
+function sanitizeUsername(name) {
+	let username = name.trim();
+	username = username.replace(/[\s-]+/g, "_");
+	username = username.replace(/[^a-zA-Z0-9._]/g, "");
+
+	if (!/^[a-zA-Z]/.test(username)) {
+		username = "user_" + username;
+	}
+
+	username = username.replace(/^[._]+|[._]+$/g, "");
+	username = username.slice(0, 12);
+
+	if (!usernameRegex.test(username) || reservedUsernames.includes(username)) {
+		const randomSuffix = getRandomSuffix();
+		username = `user_${randomSuffix}`;
+	}
+
+	return username;
+}
+
 module.exports = {
 	usernameRegex,
 	emailRegex,
-    pwdRegex,
-	reservedUsernames
+	pwdRegex,
+	reservedUsernames,
+	sanitizeUsername
 };

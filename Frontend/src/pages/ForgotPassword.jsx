@@ -4,12 +4,14 @@ import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
 import InputField from "../utils/InputField";
 import OtpInputForm from "../utils/OtpInputForm";
+import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
   SESSION_STORAGE_FETCH_STATUS_KEY,
   LOCAL_STORAGE_TOKEN_KEY,
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
+  LOCAL_STORAGE_GOOGLE_USER,
   BACKEND_API_URL,
   EMAIL_REGEX,
   PASSWORD_REGEX,
@@ -60,31 +62,40 @@ const ForgotPassword = () => {
       setConfirmPassword(value);
     }
     if (error) {
-      setError("");
+      setError("Try Again!");
     }
   };
 
   const handleClearOTPEror = () => {
     if (otpResendError) {
-      setOtpResendError("");
+      setOtpResendError("Try Again!");
     }
   };
 
   const handleOtpChange = (newOtp) => {
     setOtp(newOtp);
     if (error) {
-      setError("");
+      setError("Try Again!");
     }
+  };
+
+  const maskEmail = (email) => {
+    const [username, domain] = email.trim().split("@");
+    const visiblePart =
+      username.length <= 5 ? username[0] : username.slice(0, 5);
+    return `${visiblePart}..@${domain}`;
   };
 
   const handleSubmitEmail = async (e) => {
     e.preventDefault();
     if (!email) {
+      setSuccess("");
       setError("Please enter your email.");
       return;
     }
 
     if (!EMAIL_REGEX.test(email)) {
+      setSuccess("");
       setError("Invalid email format");
       return false;
     }
@@ -92,7 +103,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const emailCheckResponse = await fetch(
+      const emailCheckResponse = await apiFetch(
         `${BACKEND_API_URL}/api/check-email-exists`,
         {
           method: "POST",
@@ -105,29 +116,36 @@ const ForgotPassword = () => {
 
       if (!emailCheckResponse.ok) {
         const data = await emailCheckResponse.json();
+        setSuccess("");
         setError(data.msg || "Email not found.");
         return;
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: email.trim() }),
-      });
+      const response = await apiFetch(
+        `${BACKEND_API_URL}/api/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: email.trim() }),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
+        setSuccess("");
         setError(data.msg || "Server error, please try again.");
         return;
       }
 
       const data = await response.json();
+      setError("");
       setSuccess("OTP Sent Successfully");
       setEmailVerified(true);
       setOtpResent(true);
     } catch (err) {
+      setSuccess("");
       setError("Server error, please try again.");
     } finally {
       setLoading(false);
@@ -139,7 +157,7 @@ const ForgotPassword = () => {
     setOtpResendError("");
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${BACKEND_API_URL}/api/resend-otp?forgot-password=true`,
         {
           method: "POST",
@@ -160,9 +178,11 @@ const ForgotPassword = () => {
       setOtpResent(true);
       setCanResendOtp(false);
       setCountdown(30);
+      setError("");
       setSuccess("OTP resent successfully! Check your email.");
     } catch (err) {
-      setOtpResendError(err.message || "Server error while resending OTP.");
+      setSuccess("");
+      setOtpResendError("Server error while resending OTP.");
     } finally {
       handleClearOTPEror();
       setResendOtpLoading(false);
@@ -188,6 +208,7 @@ const ForgotPassword = () => {
   const handleSubmitOtp = async (e) => {
     e.preventDefault();
     if (!otp) {
+      setSuccess("");
       setError("Please enter the OTP.");
       return;
     }
@@ -195,7 +216,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/reset-password`, {
+      const response = await apiFetch(`${BACKEND_API_URL}/api/reset-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -208,14 +229,17 @@ const ForgotPassword = () => {
 
       if (!response.ok) {
         const data = await response.json();
+        setSuccess("");
         setError(data.msg || "Invalid OTP or OTP expired.");
         return;
       }
 
       const data = await response.json();
+      setError("");
       setSuccess("OTP Verified Successfully");
       setOtpVerified(true);
     } catch (err) {
+      setSuccess("");
       setError("Server error, please try again.");
     } finally {
       setLoading(false);
@@ -225,11 +249,13 @@ const ForgotPassword = () => {
   const handleSubmitNewPassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
+      setSuccess("");
       setError("Passwords do not match.");
       return;
     }
 
     if (newPassword.length < 8 || confirmPassword.length < 8) {
+      setSuccess("");
       setError("Password must be at least 8 characters long.");
       return;
     }
@@ -238,6 +264,7 @@ const ForgotPassword = () => {
       !PASSWORD_REGEX.test(newPassword) ||
       !PASSWORD_REGEX.test(confirmPassword)
     ) {
+      setSuccess("");
       setError("Invalid password format");
       return false;
     }
@@ -245,25 +272,30 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/update-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          otp: otp.trim?.() ?? otp,
-          password: newPassword.trim(),
-        }),
-      });
+      const response = await apiFetch(
+        `${BACKEND_API_URL}/api/update-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            otp: otp.trim?.() ?? otp,
+            password: newPassword.trim(),
+          }),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
+        setSuccess("");
         setError(data.msg || "Error updating password.");
         return;
       }
 
       const data = await response.json();
+      setError("");
       setSuccess("Password reset successfully");
 
       setTimeout(() => {
@@ -271,12 +303,14 @@ const ForgotPassword = () => {
         localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
         localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
         localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
+        localStorage.removeItem(LOCAL_STORAGE_GOOGLE_USER);
         sessionStorage.removeItem(SESSION_STORAGE_FETCH_STATUS_KEY);
         sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
 
         location.reload();
       }, 500);
     } catch (err) {
+      setSuccess("");
       setError("Server error, please try again.");
     } finally {
       setLoading(false);
@@ -313,7 +347,7 @@ const ForgotPassword = () => {
 
             {otpResent && !error && (
               <p className="text-green-600 dark:text-green-400 text-center my-4">
-                OTP resent successfully! Check your email.
+                OTP sent successfully! Check your email.
               </p>
             )}
 
@@ -346,8 +380,14 @@ const ForgotPassword = () => {
               <div className="flex items-center">
                 <AiOutlineExclamationCircle className="mr-2 text-xl" />
                 <p className="text-sm text-justify flex-1">
-                  Please check your email for the OTP. If you don't see it, be
-                  sure to check your{" "}
+                  Please check your email{" "}
+                  <span
+                    title={email}
+                    className="font-medium underline underline-offset-2"
+                  >
+                    {maskEmail(email)}
+                  </span>{" "}
+                  for the OTP. If you don't see it, be sure to check your{" "}
                   <span className="font-bold">spam folder</span>.{" "}
                   <span className="italic">
                     If the OTP doesn't appear in your inbox, try using a

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import ShareLinkModal from "../utils/ShareLinkModal.js";
+import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
   LOCAL_STORAGE_TOKEN_KEY,
@@ -155,7 +156,7 @@ const CodeEditor = ({
     setisDownloadBtnPressed(true);
 
     try {
-      const response = await fetch(apiEndpoint, {
+      const response = await apiFetch(apiEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -339,7 +340,7 @@ const CodeEditor = ({
       const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
       if (!token) throw new Error("Authentication token missing.");
 
-      const response = await fetch(`${GENAI_API_URL}/generate_code`, {
+      const response = await apiFetch(`${GENAI_API_URL}/generate_code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -454,7 +455,7 @@ const CodeEditor = ({
         return;
       }
 
-      const response = await fetch(`${GENAI_API_URL}/refactor_code`, {
+      const response = await apiFetch(`${GENAI_API_URL}/refactor_code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -601,14 +602,17 @@ const CodeEditor = ({
         return;
       }
 
-      const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: load,
-      });
+      const response = await apiFetch(
+        `${TEMP_SHARE_API_URL}/temp-file-upload`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: load,
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to upload the code");
@@ -690,7 +694,7 @@ const CodeEditor = ({
       return;
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/runCode/count`, {
+    const response = await apiFetch(`${BACKEND_API_URL}/api/runCode/count`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -710,16 +714,19 @@ const CodeEditor = ({
       return;
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/generateCode/count`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: username,
-        language: language,
-      }),
-    });
+    const response = await apiFetch(
+      `${BACKEND_API_URL}/api/generateCode/count`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+          language: language,
+        }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to send request");
@@ -733,16 +740,19 @@ const CodeEditor = ({
       return;
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/refactorCode/count`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: username,
-        language: language,
-      }),
-    });
+    const response = await apiFetch(
+      `${BACKEND_API_URL}/api/refactorCode/count`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+          language: language,
+        }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to send request");
@@ -757,7 +767,7 @@ const CodeEditor = ({
         return;
       }
 
-      const countResponse = await fetch(
+      const countResponse = await apiFetch(
         `${BACKEND_API_URL}/api/sharedLink/count`,
         {
           method: "POST",

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
   LOCAL_STORAGE_TOKEN_KEY,
@@ -111,7 +112,7 @@ const SharedLinks = () => {
           },
         });
 
-        const linkResponse = await fetch(
+        const linkResponse = await apiFetch(
           `${BACKEND_API_URL}/api/user/sharedLink/${shareId}`,
           {
             method: "DELETE",
@@ -120,7 +121,7 @@ const SharedLinks = () => {
 
         const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
-        const fileResponse = await fetch(
+        const fileResponse = await apiFetch(
           `${TEMP_SHARE_API_URL}/file/${shareId}/delete`,
           {
             method: "DELETE",

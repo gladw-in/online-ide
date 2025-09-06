@@ -613,7 +613,6 @@ Generate HTML code for the following project, suitable for placement directly wi
 
 *INSTRUCTIONS*
 
-*   Generate the code within 60 seconds.
 *   Exclude all `<html>`, `<head>`, and `<body>` tags.
 *   **Absolutely do not include any inline JavaScript** (e.g., `<script>...</script>` within HTML tags, event handlers like `onclick="..."`, or any other form of inline scripting). The HTML should be purely structural.
 *   Do not include any inline styles (e.g., `style="..."`), or links to external CSS/JS files *except for essential CDNs as specified below*.
@@ -660,7 +659,6 @@ Generate CSS to style the following HTML.
 
 *INSTRUCTIONS*
 
-*   Generate the code within 60 seconds.
 *   The CSS should be valid and well-formatted.
 *   Do not use `@apply` for utility classes or styles.
 *   If a styling framework (e.g., Tailwind, Bootstrap) is being used, avoid writing custom CSS unless absolutely necessary. Use the framework’s utility classes and conventions wherever possible.
@@ -699,7 +697,6 @@ Generate JavaScript to add interactivity to the following HTML.
 
 *INSTRUCTIONS*
 
-*   Generate the code within 60 seconds.
 *   The JavaScript should be valid and well-formatted.
 *   Use the provided id and class attributes from the HTML to select elements.
 *   Do not use inline event handlers (e.g., onclick). Use event listeners attached with addEventListener.

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FaSpinner, FaBarsStaggered } from "react-icons/fa6";
+import { SiIfixit } from "react-icons/si";
 import { RxMoon, RxSun } from "react-icons/rx";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
@@ -11,6 +12,7 @@ import {
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
   LOCAL_STORAGE_THEME_KEY,
+  LOCAL_STORAGE_GOOGLE_USER,
   BACKEND_API_URL,
 } from "../utils/constants";
 
@@ -26,6 +28,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
     localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
     localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_GOOGLE_USER);
     sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
     sessionStorage.removeItem(SESSION_STORAGE_FETCH_STATUS_KEY);
   };
@@ -43,6 +46,28 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === LOCAL_STORAGE_GOOGLE_USER) {
+        clearAuthState();
+        setIsLoggedIn(false);
+        setUsername("");
+        location.reload();
+      }
+    };
+
+    const timerId = setTimeout(() => {
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      if (!token && !isLoggedIn) return;
+      window.addEventListener("storage", handleStorageChange);
+    }, 2000);
+
+    return () => {
+      clearTimeout(timerId);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [isLoggedIn]);
 
   useEffect(() => {
     (() => {
@@ -212,7 +237,11 @@ const Header = ({ isDarkMode, toggleTheme }) => {
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="text-xl focus:outline-none p-2 rounded-full hover:bg-gray-700 transition-colors duration-200 md:hidden"
             >
-              <FaBarsStaggered className="text-white" />
+              {!isDropdownOpen ? (
+                <FaBarsStaggered className="text-white" />
+              ) : (
+                <SiIfixit className="text-white" />
+              )}
             </button>
           </div>
         </div>

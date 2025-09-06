@@ -10,6 +10,7 @@ import {
   TEMP_SHARE_API_URL,
   BACKEND_API_URL,
 } from "../utils/constants";
+import { apiFetch } from "../utils/apifetch";
 import blocker from "../utils/blocker.js";
 import { useNavigate } from "react-router-dom";
 import { PiFileHtmlFill, PiFileCssFill, PiFileJsFill } from "react-icons/pi";
@@ -109,7 +110,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOverlayVisible, setIsOverlayVisible] = useState(false);
-  const [OverlayText, setOverlayText] = useState(false);
+  const [overlayText, setOverlayText] = useState(false);
 
   const iframeRef = useRef(null);
   const editorRefs = useRef({});
@@ -414,14 +415,17 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
       if (!token) throw new Error("Token not found");
 
-      const response = await fetch(`${GENAI_API_URL}/htmlcssjsgenerate-code`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiFetch(
+        `${GENAI_API_URL}/htmlcssjsgenerate-code`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        }
+      );
 
       if (!response.ok || !response.body) {
         throw new Error("Failed to generate code.");
@@ -651,7 +655,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       let { html, css, javascript } = editorCode;
 
       const refactor = async (type, code) => {
-        const response = await fetch(
+        const response = await apiFetch(
           `${GENAI_API_URL}/htmlcssjsrefactor-code`,
           {
             method: "POST",
@@ -793,14 +797,17 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         return;
       }
 
-      const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: load,
-      });
+      const response = await apiFetch(
+        `${TEMP_SHARE_API_URL}/temp-file-upload`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: load,
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to upload the code");
@@ -881,16 +888,19 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       return;
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/generateCode/count`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: username,
-        language: "HtmlJsCss",
-      }),
-    });
+    const response = await apiFetch(
+      `${BACKEND_API_URL}/api/generateCode/count`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+          language: "HtmlJsCss",
+        }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to send request");
@@ -904,16 +914,19 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       return;
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/refactorCode/count`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: username,
-        language: "HtmlJsCss",
-      }),
-    });
+    const response = await apiFetch(
+      `${BACKEND_API_URL}/api/refactorCode/count`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+          language: "HtmlJsCss",
+        }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to send request");
@@ -928,7 +941,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         return;
       }
 
-      const countResponse = await fetch(
+      const countResponse = await apiFetch(
         `${BACKEND_API_URL}/api/sharedLink/count`,
         {
           method: "POST",
@@ -1064,12 +1077,12 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         ))}
       </div>
       <div className="mt-4 relative flex flex-col items-start dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg">
-        {isOverlayVisible && OverlayText && (
+        {isOverlayVisible && overlayText && (
           <div className="absolute inset-0 bg-transparent flex justify-center items-center z-[2] rounded-lg backdrop-blur-[2px]">
             <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg flex items-center space-x-2 sm:w-auto dark:bg-gray-800 dark:text-white">
               <FaSpinner className="text-2xl animate-spin" />
               <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                {OverlayText}
+                {overlayText}
               </span>
             </div>
           </div>

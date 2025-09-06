@@ -2,13 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
+import { GoogleLogin } from "@react-oauth/google";
 import InputField from "../utils/InputField";
 import OtpInputForm from "../utils/OtpInputForm";
+import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
   LOCAL_STORAGE_TOKEN_KEY,
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
+  LOCAL_STORAGE_GOOGLE_USER,
   BACKEND_API_URL,
   USERNAME_REGEX,
   EMAIL_REGEX,
@@ -22,6 +25,7 @@ const Register = () => {
     newPassword: "",
   });
   const [error, setError] = useState("");
+  const [googleLoginError, setGoogleLoginError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
@@ -42,6 +46,16 @@ const Register = () => {
     document.title = "Register";
   }, []);
 
+  const handleAuthSuccess = (data) => {
+    localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, data.token);
+    localStorage.setItem(LOCAL_STORAGE_USERNAME_KEY, data.username);
+    localStorage.setItem(LOCAL_STORAGE_LOGIN_KEY, "true");
+    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+    localStorage.setItem(LOCAL_STORAGE_GOOGLE_USER, data.isgoogleuser);
+    navigate(window.history.length > 2 ? -1 : "/");
+    location.reload();
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -49,18 +63,21 @@ const Register = () => {
       [name]: value,
     }));
 
-    if (error) {
+    if (error || googleLoginError) {
       setError("");
+      setGoogleLoginError("");
     }
   };
 
   const handleClearOTPEror = () => {
     if (otpError) {
+      setGoogleLoginError("");
       setOtpError("");
     }
 
     if (otpResendError) {
       setOtpResent(false);
+      setGoogleLoginError("");
       setOtpResendError("");
     }
   };
@@ -102,9 +119,18 @@ const Register = () => {
 
   const handleOtpChange = (newOtp) => {
     setOtp(newOtp);
-    if (error) {
+
+    if (error || googleLoginError) {
       setError("");
+      setGoogleLoginError("");
     }
+  };
+
+  const maskEmail = (email) => {
+    const [username, domain] = email.trim().split("@");
+    const visiblePart =
+      username.length <= 5 ? username[0] : username.slice(0, 5);
+    return `${visiblePart}..@${domain}`;
   };
 
   const handleSubmit = async (e) => {
@@ -117,7 +143,7 @@ const Register = () => {
     const { username, email, newPassword } = formData;
 
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/register`, {
+      const response = await apiFetch(`${BACKEND_API_URL}/api/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -152,12 +178,45 @@ const Register = () => {
     }
   };
 
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    setLoading(true);
+
+    if (error || googleLoginError) {
+      setError("");
+      setGoogleLoginError("");
+    }
+
+    try {
+      const idToken = credentialResponse.credential;
+      const response = await apiFetch(`${BACKEND_API_URL}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: idToken }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error("Google authentication failed.");
+      }
+
+      handleAuthSuccess(data);
+    } catch (err) {
+      setGoogleLoginError("Google login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    setGoogleLoginError("Google login failed. Please try again.");
+  };
+
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
     setOtpLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/verify-otp`, {
+      const response = await apiFetch(`${BACKEND_API_URL}/api/verify-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -192,11 +251,9 @@ const Register = () => {
 
   const handleResendOtp = async () => {
     setResendOtpLoading(true);
-    setOtpResent(false);
-    setOtpResendError("");
 
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/resend-otp`, {
+      const response = await apiFetch(`${BACKEND_API_URL}/api/resend-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -211,6 +268,8 @@ const Register = () => {
         throw new Error(errorData.msg || "Error resending OTP.");
       }
 
+      setOtpResent(false);
+      setOtpResendError("");
       setOtpResent(true);
       setCanResendOtp(false);
       setCountdown(30);
@@ -227,7 +286,7 @@ const Register = () => {
     try {
       setWrongEmailLoading(true);
 
-      const response = await fetch(`${BACKEND_API_URL}/api/wrong-email`, {
+      const response = await apiFetch(`${BACKEND_API_URL}/api/wrong-email`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -271,7 +330,7 @@ const Register = () => {
   }, [canResendOtp]);
 
   return (
-    <div className="flex justify-center items-center min-h-[80vh] bg-gray-100 dark:bg-gray-900">
+    <div className="flex justify-center items-center min-h-[80dvh] bg-gray-100 dark:bg-gray-900 md:min-h-[90dvh]">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-3xl font-semibold text-center text-gray-700 dark:text-gray-200 mb-6">
           {isRegistered ? "Email Verification" : "Register"}
@@ -282,8 +341,14 @@ const Register = () => {
             <div className="flex items-center">
               <AiOutlineExclamationCircle className="mr-2 text-xl" />
               <p className="text-sm text-justify flex-1">
-                Please check your email for the OTP. If you don't see it, be
-                sure to check your{" "}
+                Please check your email{" "}
+                <span
+                  title={formData.email}
+                  className="font-medium underline underline-offset-2"
+                >
+                  {maskEmail(formData.email)}
+                </span>{" "}
+                for the OTP. If you don't see it, be sure to check your{" "}
                 <span className="font-bold">spam folder</span>.{" "}
                 <span className="italic">
                   If the OTP doesn't appear in your inbox, try using a different
@@ -295,59 +360,87 @@ const Register = () => {
         )}
 
         {!otpSent ? (
-          <form onSubmit={handleSubmit}>
-            <InputField
-              label="Username"
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              required
-            />
-
-            <div className="relative mb-4">
+          <>
+            <form onSubmit={handleSubmit}>
               <InputField
-                label="Email"
-                type="email"
-                name="email"
-                value={formData.email}
+                label="Username"
+                type="text"
+                name="username"
+                value={formData.username}
                 onChange={handleInputChange}
                 required
               />
+
+              <div className="relative mb-4">
+                <InputField
+                  label="Email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <InputField
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={handleInputChange}
+                required
+                showPassword={showPassword}
+                onTogglePassword={() => setShowPassword((prev) => !prev)}
+              />
+
+              {error && (
+                <p className="text-red-600 dark:text-red-400 text-center my-4">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-3 cursor-pointer text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <TbLoader className="animate-spin text-xl inline-block mr-1" />{" "}
+                    Registering...
+                  </>
+                ) : (
+                  "Register"
+                )}
+              </button>
+            </form>
+
+            <div className="my-6 flex items-center">
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+              <span className="flex-shrink mx-4 text-gray-500 dark:text-gray-400">
+                OR
+              </span>
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
             </div>
 
-            <InputField
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              name="newPassword"
-              value={formData.newPassword}
-              onChange={handleInputChange}
-              required
-              showPassword={showPassword}
-              onTogglePassword={() => setShowPassword((prev) => !prev)}
-            />
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleLoginSuccess}
+                onError={handleGoogleLoginError}
+                theme="outline"
+                shape="square"
+                scope="profile email"
+                text="continue_with"
+                useOneTap
+              />
+            </div>
 
-            {error && (
+            {googleLoginError && (
               <p className="text-red-600 dark:text-red-400 text-center my-4">
-                {error}
+                {googleLoginError}
               </p>
             )}
-
-            <button
-              type="submit"
-              className="w-full py-3 cursor-pointer text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <TbLoader className="animate-spin text-xl inline-block mr-1" />{" "}
-                  Registering...
-                </>
-              ) : (
-                "Register"
-              )}
-            </button>
-          </form>
+          </>
         ) : (
           <OtpInputForm onOtpChange={handleOtpChange} />
         )}
@@ -360,7 +453,7 @@ const Register = () => {
 
         {otpResent && !otpError && (
           <p className="text-green-600 dark:text-green-400 text-center my-4">
-            OTP resent successfully! Check your email.
+            OTP sent successfully! Check your email.
           </p>
         )}
 
@@ -426,7 +519,7 @@ const Register = () => {
         )}
 
         {!isRegistered && !otpSent && (
-          <div className="mt-4 text-center">
+          <div className="mt-5 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-300">
               Already have an account?{" "}
               <button

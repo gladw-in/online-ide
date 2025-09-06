@@ -3,3 +3,4 @@ python-dotenv
 flask-cors
 flask
 pyjwt
+requests

@@ -11,3 +11,7 @@
   background: #8b8b8b47;
   color: #d3d3d3;
 }
+
+.grecaptcha-badge {
+  display: none !important;
+}

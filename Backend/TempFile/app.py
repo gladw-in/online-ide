@@ -1,13 +1,23 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import (
+    Flask,
+    abort,
+    request,
+    jsonify,
+    render_template,
+    redirect,
+    url_for
+)
 from flask_cors import CORS
-import redis
 import os
 import uuid
 import json
 import jwt
+import redis
+import requests
 from functools import wraps
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -16,6 +26,7 @@ CORS(app)
 
 TEMP_FILE_URL = os.getenv("TEMP_FILE_URL")
 SECRET_KEY = os.getenv("JWT_SECRET")
+RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 
 
 def get_redis_connection():
@@ -31,6 +42,28 @@ def get_redis_connection():
     except redis.ConnectionError as e:
         app.logger.error(f"Redis connection error: {e}")
         return None
+
+
+def is_human(recaptcha_token):
+    if not recaptcha_token or not RECAPTCHA_SECRET_KEY:
+        return False
+
+    payload = {"secret": RECAPTCHA_SECRET_KEY, "response": recaptcha_token}
+
+    try:
+        response = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify", data=payload, timeout=50
+        )
+        response.raise_for_status()
+        result = response.json()
+
+        if result.get("success") and result.get("score", 0) > 0.5:
+            return True
+        else:
+            return False
+
+    except requests.exceptions.RequestException:
+        return False
 
 
 def token_required(f):
@@ -64,6 +97,11 @@ def index():
 @app.route("/temp-file-upload", methods=["POST"])
 @token_required
 def upload_file():
+    token = request.headers.get("X-Recaptcha-Token")
+
+    if not is_human(token):
+        abort(403, description="reCAPTCHA verification failed.")
+
     redis_client = get_redis_connection()
     if not redis_client:
         return jsonify({"error": "Failed to connect to Redis"}), 503
@@ -186,6 +224,11 @@ def get_file(shareId):
 @app.route("/file/<file_id>/delete", methods=["DELETE"])
 @token_required
 def delete_file(file_id):
+    token = request.headers.get("X-Recaptcha-Token")
+
+    if not is_human(token):
+        abort(403, description="reCAPTCHA verification failed.")
+
     redis_client = get_redis_connection()
     if not redis_client:
         return jsonify({"error": "Failed to connect to Redis"}), 503

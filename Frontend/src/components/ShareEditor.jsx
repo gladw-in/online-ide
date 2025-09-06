@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import CodeEditor from "./CodeEditor";
 import Editor from "./Editor";
+import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_FETCH_STATUS_KEY,
   SESSION_STORAGE_SHARELINKS_KEY,
@@ -212,7 +213,7 @@ const ShareEditor = ({ isDarkMode }) => {
   }, [shareId]);
 
   const deleteSharedLink = async (shareId) => {
-    const linkResponse = await fetch(`${BACKEND_API_URL}/api/sharedLink`, {
+    const linkResponse = await apiFetch(`${BACKEND_API_URL}/api/sharedLink`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

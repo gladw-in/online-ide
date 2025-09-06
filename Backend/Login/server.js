@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
@@ -13,31 +14,39 @@ const {
   emailRegex,
   pwdRegex,
   reservedUsernames,
+  sanitizeUsername
 } = require("./utils/validation");
+
+const { verifyRecaptcha } = require('./middlewares/verifyRecaptcha');
 
 const { checkAndConnectDB } = require('./config/db');
 const { generateOtp } = require('./utils/otpGenerator');
 const { logUserAction } = require('./utils/useLogger')
 const { cleanExpired } = require('./middlewares/cleanExpired');
 const { updateLanguageCount } = require('./utils/updateLanguageCount');
+
 const { sendOtpEmail } = require('./smtp/sendMail')
 const { sendDelEmail } = require('./smtp/delEmail')
+const { sendPassChangeEmail } = require('./smtp/passChanged');
+const { sendUsernameChangeEmail } = require('./smtp/usernameChanged');
 
 const app = express();
 
 app.set('trust proxy', 1);
-
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(bodyParser.json({limit:'200kb'}));
 
 const PORT = process.env.PORT || 5000;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+
+const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname, 'templates/index.html'));
 });
 
-app.post('/api/register', cleanExpired, async (req, res) => {
+app.post('/api/register', verifyRecaptcha, cleanExpired, async (req, res) => {
 	const username = req.body.username?.trim();
 	const email = req.body.email?.trim();
 	const password = req.body.password?.trim();
@@ -150,7 +159,7 @@ app.post('/api/register', cleanExpired, async (req, res) => {
 	}
 });
 
-app.post('/api/login', cleanExpired, async (req, res) => {
+app.post('/api/login', verifyRecaptcha, cleanExpired, async (req, res) => {
 	const email = req.body.email?.trim();
 	const password = req.body.password?.trim();
 
@@ -185,6 +194,12 @@ app.post('/api/login', cleanExpired, async (req, res) => {
 			});
 		}
 
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
+			});
+		}
+
 		if (!user.isEmailVerified) {
 			return res.status(400).json({
 				msg: 'Email not verified',
@@ -210,12 +225,14 @@ app.post('/api/login', cleanExpired, async (req, res) => {
 			},
 			process.env.JWT_SECRET, {
 				algorithm: 'HS512',
+				expiresIn: '1w',
 			}
 		);
 
 		res.json({
 			token,
 			username: user.username,
+			isgoogleuser: false,
 		});
 	} catch (err) {
 		console.error(err);
@@ -225,7 +242,91 @@ app.post('/api/login', cleanExpired, async (req, res) => {
 	}
 });
 
-app.post('/api/verify-otp', async (req, res) => {
+app.post('/api/auth/google',verifyRecaptcha, async (req, res) => {
+  const { token } = req.body;
+
+if (!token) {
+	return res.status(401).json({
+		msg: "Token is required"
+	});
+}
+
+  try {
+	await checkAndConnectDB();
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId } = payload;
+
+    let user = await User.findOne({ email: email });
+
+	let finalUsername;
+
+    if (!user) {
+		let baseUsername = sanitizeUsername(name);
+		finalUsername = baseUsername;
+		let tries = 0;
+
+		while (
+			await User.exists({
+				username: finalUsername
+			}) ||
+			reservedUsernames.includes(finalUsername)
+		) {
+			const randomSuffix = Math.random().toString(36).substring(2, 6);
+			finalUsername = `${baseUsername}_${randomSuffix}`;
+			tries++;
+			if (tries > 10) {
+				return res.status(500).json({
+					message: 'Unable to generate unique username.'
+				});
+			}
+		}
+
+      user = new User({
+        username: finalUsername,
+        email: email,
+        googleId: googleId,
+		isEmailVerified: !!googleId,
+      });
+
+      await user.save();
+    } else {
+      user.lastLogin = new Date();
+
+	  if(!user.googleId){
+		user.googleId = googleId;
+	  }
+
+      await user.save();
+    }
+
+	const appToken = jwt.sign({
+			userId: user._id,
+		},
+		process.env.JWT_SECRET, {
+			algorithm: 'HS512',
+			expiresIn: '1w',
+		}
+	);
+    
+    res.status(200).json({
+      message: 'Authentication successful!',
+      token: appToken,
+      username: user.username,
+	  isgoogleuser: true,
+    });
+
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid Google token or authentication failed.' });
+  }
+});
+
+app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp,
@@ -260,6 +361,12 @@ app.post('/api/verify-otp', async (req, res) => {
 		if (!user) {
 			return res.status(400).json({
 				msg: 'User not found',
+			});
+		}
+
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
 			});
 		}
 
@@ -315,7 +422,7 @@ app.post('/api/verify-otp', async (req, res) => {
 	}
 });
 
-app.post('/api/resend-otp', async (req, res) => {
+app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
@@ -342,6 +449,13 @@ app.post('/api/resend-otp', async (req, res) => {
 				msg: 'User not found',
 			});
 		}
+
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
+			});
+		}
+
 
 		if (!forgotPassword) {
 			if (user.isEmailVerified) {
@@ -374,7 +488,7 @@ app.post('/api/resend-otp', async (req, res) => {
 	}
 });
 
-app.delete('/api/wrong-email', async (req, res) => {
+app.delete('/api/wrong-email', verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
@@ -395,6 +509,12 @@ app.delete('/api/wrong-email', async (req, res) => {
 		if (!user) {
 			return res.status(400).json({
 				msg: 'User not found',
+			});
+		}
+
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
 			});
 		}
 
@@ -419,10 +539,14 @@ app.delete('/api/wrong-email', async (req, res) => {
 	}
 });
 
-app.post('/api/check-email-exists', async (req, res) => {
+app.post('/api/check-email-exists', verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
+
+	if (!email || !emailRegex.test(email)) {
+		return res.status(400).json({ msg: "Valid email is required" });
+	}
 
 	try {
 		await checkAndConnectDB();
@@ -430,9 +554,16 @@ app.post('/api/check-email-exists', async (req, res) => {
 		const user = await User.findOne({
 			email
 		});
+
 		if (!user) {
 			return res.status(400).json({
 				msg: "User not found"
+			});
+		}
+
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
 			});
 		}
 
@@ -447,7 +578,7 @@ app.post('/api/check-email-exists', async (req, res) => {
 	}
 });
 
-app.post('/api/forgot-password', async (req, res) => {
+app.post('/api/forgot-password', verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
@@ -458,9 +589,16 @@ app.post('/api/forgot-password', async (req, res) => {
 		const user = await User.findOne({
 			email
 		});
+
 		if (!user) {
 			return res.status(400).json({
 				msg: "User not found"
+			});
+		}
+		
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
 			});
 		}
 
@@ -491,7 +629,7 @@ app.post('/api/forgot-password', async (req, res) => {
 	}
 });
 
-app.post('/api/reset-password', async (req, res) => {
+app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp
@@ -509,9 +647,16 @@ app.post('/api/reset-password', async (req, res) => {
 		const user = await User.findOne({
 			email
 		});
+
 		if (!user) {
 			return res.status(400).json({
 				msg: "User not found"
+			});
+		}
+
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
 			});
 		}
 
@@ -540,7 +685,7 @@ app.post('/api/reset-password', async (req, res) => {
 	}
 });
 
-app.post('/api/update-password', async (req, res) => {
+app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp,
@@ -571,9 +716,16 @@ app.post('/api/update-password', async (req, res) => {
 		const user = await User.findOne({
 			email
 		});
+
 		if (!user) {
 			return res.status(400).json({
 				msg: "User not found"
+			});
+		}
+
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
 			});
 		}
 
@@ -597,6 +749,8 @@ app.post('/api/update-password', async (req, res) => {
 		user.otp = null;
 		user.otpExpires = null;
 		await user.save();
+
+		await sendPassChangeEmail(user.email);
 
 		res.status(200).json({
 			msg: "Password updated successfully"
@@ -657,7 +811,7 @@ app.get('/api/protected', cleanExpired, async (req, res) => {
 	}
 });
 
-app.put('/api/change-username', async (req, res) => {
+app.put('/api/change-username', verifyRecaptcha, async (req, res) => {
 	const {
 		newUsername
 	} = req.body;
@@ -715,8 +869,12 @@ app.put('/api/change-username', async (req, res) => {
 			});
 		}
 
+		const oldUsername = user.username;
+
 		user.username = newUsername;
 		await user.save();
+
+		await sendUsernameChangeEmail(user.email, oldUsername, newUsername)
 
 		res.json({
 			msg: 'Username updated successfully',
@@ -730,7 +888,7 @@ app.put('/api/change-username', async (req, res) => {
 	}
 });
 
-app.put('/api/change-password', async (req, res) => {
+app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 	const {
 		newPassword,
 		confirmPassword
@@ -781,10 +939,18 @@ app.put('/api/change-password', async (req, res) => {
 			});
 		}
 
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
+			});
+		}
+
 		const hashedPassword = await bcrypt.hash(newPassword, 10);
 
 		user.password = hashedPassword;
 		await user.save();
+
+		await sendPassChangeEmail(user.email)
 
 		const newToken = jwt.sign({
 				userId: user._id,
@@ -807,7 +973,7 @@ app.put('/api/change-password', async (req, res) => {
 	}
 });
 
-app.delete('/api/account', async (req, res) => {
+app.delete('/api/account', verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -845,7 +1011,7 @@ app.delete('/api/account', async (req, res) => {
 	}
 });
 
-app.post('/api/verify-password', async (req, res) => {
+app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
 	const {
 		password
 	} = req.body;
@@ -881,6 +1047,12 @@ app.post('/api/verify-password', async (req, res) => {
 			});
 		}
 
+		if (user.googleId && !user.password) {
+			return res.status(403).json({
+				msg: "Login with Google"
+			});
+		}
+
 		const isMatch = await bcrypt.compare(password, user.password);
 		if (!isMatch) {
 			return res.status(400).json({
@@ -899,7 +1071,7 @@ app.post('/api/verify-password', async (req, res) => {
 	}
 });
 
-app.post('/api/runCode/count', async (req, res) => {
+app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
 	const {
 		username,
 		language
@@ -936,7 +1108,7 @@ app.post('/api/runCode/count', async (req, res) => {
 	}
 });
 
-app.post('/api/generateCode/count', async (req, res) => {
+app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
 	const {
 		username,
 		language
@@ -973,7 +1145,7 @@ app.post('/api/generateCode/count', async (req, res) => {
 	}
 });
 
-app.post('/api/refactorCode/count', async (req, res) => {
+app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
 	const {
 		username,
 		language
@@ -1010,7 +1182,7 @@ app.post('/api/refactorCode/count', async (req, res) => {
 	}
 });
 
-app.post('/api/sharedLink/count', async (req, res) => {
+app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
 	const {
 		username,
 		shareId,
@@ -1113,7 +1285,7 @@ app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
 	}
 });
 
-app.delete('/api/sharedLink', async (req, res) => {
+app.delete('/api/sharedLink', verifyRecaptcha, async (req, res) => {
 	const {
 		shareId
 	} = req.body;
@@ -1164,7 +1336,7 @@ app.delete('/api/sharedLink', async (req, res) => {
 	}
 });
 
-app.delete('/api/user/sharedLink/:shareId', async (req, res) => {
+app.delete('/api/user/sharedLink/:shareId', verifyRecaptcha, async (req, res) => {
 	const {
 		shareId
 	} = req.params;

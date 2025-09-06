@@ -4,9 +4,11 @@ import jwt
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+import requests
 from flask import (
     Flask,
     Response,
+    abort,
     jsonify,
     render_template,
     request,
@@ -50,6 +52,29 @@ CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
 gemini_model = os.getenv("GEMINI_MODEL")
 gemini_model_1 = os.getenv("GEMINI_MODEL_1")
 SECRET_KEY = os.getenv("JWT_SECRET")
+RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
+
+
+def is_human(recaptcha_token):
+    if not recaptcha_token or not RECAPTCHA_SECRET_KEY:
+        return False
+
+    payload = {"secret": RECAPTCHA_SECRET_KEY, "response": recaptcha_token}
+
+    try:
+        response = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify", data=payload, timeout=50
+        )
+        response.raise_for_status()
+        result = response.json()
+
+        if result.get("success") and result.get("score", 0) > 0.5:
+            return True
+        else:
+            return False
+
+    except requests.exceptions.RequestException:
+        return False
 
 
 def token_required(f):
@@ -281,6 +306,11 @@ def index():
 @token_required
 def generate_code():
     try:
+        token = request.headers.get("X-Recaptcha-Token")
+
+        if not is_human(token):
+            abort(403, description="reCAPTCHA verification failed.")
+
         problem_description = request.json["problem_description"]
         language = request.json["language"]
 
@@ -293,6 +323,11 @@ def generate_code():
 @app.route("/get-output", methods=["POST"])
 def get_output_api():
     try:
+        token = request.headers.get("X-Recaptcha-Token")
+
+        if not is_human(token):
+            abort(403, description="reCAPTCHA verification failed.")
+
         code = request.json["code"]
         language = request.json["language"]
 
@@ -309,6 +344,11 @@ def get_output_api():
 @token_required
 def refactor_code_api():
     try:
+        token = request.headers.get("X-Recaptcha-Token")
+
+        if not is_human(token):
+            abort(403, description="reCAPTCHA verification failed.")
+
         code = request.json["code"]
         language = request.json["language"]
         problem_description = request.json["problem_description"]
@@ -329,6 +369,11 @@ def refactor_code_api():
 @app.route("/htmlcssjsgenerate-code", methods=["POST"])
 @token_required
 def htmlcssjs_generate_stream():
+    token = request.headers.get("X-Recaptcha-Token")
+
+    if not is_human(token):
+        abort(403, description="reCAPTCHA verification failed.")
+
     data = request.get_json()
     project_description = data.get("prompt")
     code_type = data.get("type")
@@ -361,12 +406,18 @@ def htmlcssjs_generate_stream():
 @token_required
 def htmlcssjs_refactor():
     try:
+        token = request.headers.get("X-Recaptcha-Token")
+
+        if not is_human(token):
+            abort(403, description="reCAPTCHA verification failed.")
+
         data = request.get_json()
         html_content = data.get("html") if len(data.get("html", "")) > 0 else ""
         css_content = data.get("css") if len(data.get("css", "")) > 0 else ""
         js_content = data.get("js") if len(data.get("js", "")) > 0 else ""
         code_type = data.get("type")
         problem_description_raw = data.get("problem_description")
+
         problem_description = (
             problem_description_raw.strip().lower() if problem_description_raw else None
         )

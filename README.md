@@ -11,6 +11,8 @@ An Online IDE with login functionality enables users to run code, generate new c
 VITE_GEMINI_API_URL=
 VITE_BACKEND_API_URL=
 VITE_TEMP_SHARE_URL= #same as TEMP_FILE_URL
+VITE_RECAPTCHA_SITE_KEY=
+VITE_GOOGLE_CLIENT_ID=
 
 #Login
 MONGO_URI=
@@ -19,12 +21,15 @@ PORT=
 OTP_EMAIL_SERVICE=
 OTP_EMAIL_USER=
 OTP_EMAIL_PASS=
+RECAPTCHA_SECRET_KEY=
+GOOGLE_CLIENT_ID= #same as VITE_GOOGLE_CLIENT_ID
 
 #GenAi
 GEMINI_API_KEY=
 GEMINI_MODEL=
 GEMINI_MODEL_1=
 JWT_SECRET= #same from Login
+RECAPTCHA_SECRET_KEY= #same as Login
 
 #TempFile
 REDIS_HOST=
@@ -32,6 +37,7 @@ REDIS_PASSWORD=
 REDIS_PORT=6379
 TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
 JWT_SECRET= #same from Login
+RECAPTCHA_SECRET_KEY= #same as Login
 ```
 
 ## Diagram
@@ -50,6 +56,8 @@ JWT_SECRET= #same from Login
 - **[tailwindcss](https://tailwindcss.com/)**: A utility-first CSS framework designed for rapid styling with predefined classes.
 - **[tailwindcss-motion](https://github.com/romboHQ/tailwindcss-motion)**: A plugin for adding animations and transitions to Tailwind CSS projects.
 - **[vite](https://vitejs.dev/)**: A fast build tool and development server for modern frontend development, featuring hot module replacement (HMR).
+- **[react-oauth/google](https://www.npmjs.com/package/@react-oauth/google)**: A React wrapper for Google OAuth integration, providing easy authentication with Google accounts.
+- **[react-google-recaptcha-v3](https://www.npmjs.com/package/react-google-recaptcha-v3)**: A React component for integrating Google reCAPTCHA v3 to protect your application from spam and abuse.
 
 ## Backend Dependencies:
 - **[bcryptjs](https://github.com/dcodeIO/bcrypt.js)**: A JavaScript library for securely hashing passwords using the bcrypt algorithm.
@@ -62,6 +70,8 @@ JWT_SECRET= #same from Login
 - **[crypto](https://nodejs.org/api/crypto.html)**: A Node.js core module that provides cryptographic functionality, such as hashing, HMAC, and encryption.
 - **[nodemailer](https://nodemailer.com/)**: A module for sending emails from Node.js applications using SMTP, with support for attachments and HTML content.
 - **[path](https://nodejs.org/api/path.html)**: A Node.js core module for working with file and directory paths.
+- **[axios](https://axios-http.com/)**: A popular promise-based HTTP client for making requests from Node.js and browsers, often used for interacting with APIs.
+- **[google-auth-library](https://github.com/googleapis/google-auth-library-nodejs)**: A library for authenticating with Google services, used to handle OAuth 2.0 authorization in Node.js.
 
 ## Python Libraries:
 - **[google-genai](https://ai.google.dev/gemini-api/docs/quickstart?lang=python)**: A collection of Google APIs and tools for integrating generative AI models into applications.
@@ -75,6 +85,7 @@ JWT_SECRET= #same from Login
 - **[datetime](https://docs.python.org/3/library/datetime.html)**: A module in Python for manipulating dates and times, including working with time zones and formatting.
 - **[pyjwt](https://pyjwt.readthedocs.io/en/stable/)**: A library for encoding and decoding JSON Web Tokens (JWT), commonly used for authentication in web applications.
 - **[functools](https://docs.python.org/3/library/functools.html)**: A module in Python providing higher-order functions to work with functions and callable objects, such as `wraps`.
+- **[requests](https://docs.python-requests.org/en/latest/)**: A simple HTTP library for Python, used for making HTTP requests like GET, POST, PUT, DELETE, etc., with ease and flexibility.
 
 ## How to Set Up and Use
 

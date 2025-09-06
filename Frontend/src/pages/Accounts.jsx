@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import InputField from "../utils/InputField";
+import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
   LOCAL_STORAGE_TOKEN_KEY,
   LOCAL_STORAGE_USERNAME_KEY,
   LOCAL_STORAGE_LOGIN_KEY,
+  LOCAL_STORAGE_GOOGLE_USER,
   BACKEND_API_URL,
   USERNAME_REGEX,
   PASSWORD_REGEX,
@@ -24,6 +26,7 @@ const Accounts = () => {
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [isPasswordVerified, setIsPasswordVerified] = useState(false);
+  const [isGoogleAccount, setIsGoogleAccount] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,13 +41,13 @@ const Accounts = () => {
     document.title = `Account - ${
       username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()
     }`;
-    fetchUserData();
   }, []);
 
   const clearSession = () => {
     localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
     localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
     localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_GOOGLE_USER);
     sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
   };
 
@@ -68,12 +71,21 @@ const Accounts = () => {
       );
 
       const data = await response.json();
+
       if (response.ok) {
         setFormData((prevData) => ({
           ...prevData,
           username: data.username.trim(),
           email: data.email.trim(),
         }));
+
+        const isGoogleUser =
+          localStorage.getItem(LOCAL_STORAGE_GOOGLE_USER) === "true";
+
+        if (isGoogleUser) {
+          setIsGoogleAccount(isGoogleUser);
+          setIsPasswordVerified(isGoogleUser);
+        }
       } else {
         setErrorMessage(data.msg || "Failed to fetch user data");
       }
@@ -84,6 +96,10 @@ const Accounts = () => {
 
   const handlePasswordVerification = async (e) => {
     e.preventDefault();
+
+    if (isGoogleAccount) {
+      return;
+    }
 
     const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
     if (!token) {
@@ -107,19 +123,23 @@ const Accounts = () => {
     try {
       setBtnState(true);
 
-      const response = await fetch(`${BACKEND_API_URL}/api/verify-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ password: currentPassword.trim() }),
-      });
+      const response = await apiFetch(
+        `${BACKEND_API_URL}/api/verify-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ password: currentPassword.trim() }),
+        }
+      );
 
       const data = await response.json();
       if (response.ok) {
         setIsPasswordVerified(true);
         setErrorMessage("");
+        fetchUserData();
       } else {
         setErrorMessage(data.msg || "Password verification failed.");
       }
@@ -168,7 +188,16 @@ const Accounts = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(
+          Swal.fire({
+            title: "Updating Username",
+            text: "Please wait while we save your new username...",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          const response = await apiFetch(
             `${BACKEND_API_URL}/api/change-username`,
             {
               method: "PUT",
@@ -181,8 +210,12 @@ const Accounts = () => {
           );
 
           const data = await response.json();
+
+          Swal.close();
+
           if (response.ok) {
             localStorage.setItem(LOCAL_STORAGE_USERNAME_KEY, username);
+
             Swal.fire({
               title: "Updated!",
               text: "Your username has been updated successfully.",
@@ -197,6 +230,7 @@ const Accounts = () => {
             setErrorMessage(data.msg || "Failed to update username");
           }
         } catch (error) {
+          Swal.close();
           setErrorMessage("Error updating username");
         }
       }
@@ -205,6 +239,10 @@ const Accounts = () => {
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
+
+    if (isGoogleAccount) {
+      return;
+    }
 
     if (!isPasswordVerified) {
       setErrorMessage("Please verify your password first.");
@@ -255,7 +293,16 @@ const Accounts = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(
+          Swal.fire({
+            title: "Updating Password",
+            text: "Please wait while we save your new password...",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          const response = await apiFetch(
             `${BACKEND_API_URL}/api/change-password`,
             {
               method: "PUT",
@@ -272,7 +319,11 @@ const Accounts = () => {
 
           const data = await response.json();
 
+          Swal.close();
+
           if (response.ok) {
+            Swal.close();
+
             Swal.fire({
               title: "Updated!",
               text: "Your password has been updated successfully.",
@@ -300,6 +351,7 @@ const Accounts = () => {
             setErrorMessage(data.msg || "Failed to update password");
           }
         } catch (error) {
+          Swal.close();
           setErrorMessage("Error updating password");
         }
       }
@@ -333,7 +385,7 @@ const Accounts = () => {
         try {
           setDelBtnText("Deleting...");
 
-          const response = await fetch(`${BACKEND_API_URL}/api/account`, {
+          const response = await apiFetch(`${BACKEND_API_URL}/api/account`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -383,7 +435,7 @@ const Accounts = () => {
         <p className="text-red-500 text-center">{errorMessage}</p>
       )}
 
-      {!isPasswordVerified && (
+      {!isPasswordVerified && !isGoogleAccount && (
         <form onSubmit={handlePasswordVerification}>
           <InputField
             label="Enter Current Password"
@@ -458,39 +510,41 @@ const Accounts = () => {
             </button>
           </form>
 
-          <form onSubmit={handleUpdatePassword}>
-            <InputField
-              label="New Password"
-              type={showNewPassword ? "text" : "password"}
-              value={formData.newPassword}
-              onChange={handleInputChange}
-              name="newPassword"
-              showPassword={showNewPassword}
-              onTogglePassword={() =>
-                setShowNewPassword((showNewPassword) => !showNewPassword)
-              }
-            />
+          {!isGoogleAccount && (
+            <form onSubmit={handleUpdatePassword}>
+              <InputField
+                label="New Password"
+                type={showNewPassword ? "text" : "password"}
+                value={formData.newPassword}
+                onChange={handleInputChange}
+                name="newPassword"
+                showPassword={showNewPassword}
+                onTogglePassword={() =>
+                  setShowNewPassword((showNewPassword) => !showNewPassword)
+                }
+              />
 
-            <InputField
-              label="Confirm New Password"
-              type={showConfirmPassword ? "text" : "password"}
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              name="confirmPassword"
-              showPassword={showConfirmPassword}
-              onTogglePassword={() =>
-                setShowConfirmPassword(
-                  (showConfirmPassword) => !showConfirmPassword
-                )
-              }
-            />
-            <button
-              type="submit"
-              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
-            >
-              Update Password
-            </button>
-          </form>
+              <InputField
+                label="Confirm New Password"
+                type={showConfirmPassword ? "text" : "password"}
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                name="confirmPassword"
+                showPassword={showConfirmPassword}
+                onTogglePassword={() =>
+                  setShowConfirmPassword(
+                    (showConfirmPassword) => !showConfirmPassword
+                  )
+                }
+              />
+              <button
+                type="submit"
+                className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+              >
+                Update Password
+              </button>
+            </form>
+          )}
         </div>
       )}
 
