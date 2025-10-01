@@ -41,6 +41,12 @@ const Accounts = () => {
     document.title = `Account - ${
       username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()
     }`;
+
+    const isGoogleUser =
+      localStorage.getItem(LOCAL_STORAGE_GOOGLE_USER) === "true";
+    if (isGoogleUser) {
+      fetchUserData();
+    }
   }, []);
 
   const clearSession = () => {

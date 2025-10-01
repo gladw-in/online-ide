@@ -1,10 +1,15 @@
-import { BACKEND_API_URL, GENAI_API_URL } from "./constants.js";
+import {
+  BACKEND_API_URL,
+  GENAI_API_URL,
+  TEMP_SHARE_API_URL,
+} from "./constants.js";
 
 const blocker = `
 (() => {
   const blockedHosts = [
     new URL("${BACKEND_API_URL}").hostname,
     new URL("${GENAI_API_URL}").hostname,
+    new URL("${TEMP_SHARE_API_URL}").hostname,
   ];
 
   const isBlocked = (url) => {

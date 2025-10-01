@@ -1,10 +1,6 @@
 import os
 import re
-import jwt
-from google import genai
-from google.genai import types
 from dotenv import load_dotenv
-import requests
 from flask import (
     Flask,
     Response,
@@ -15,31 +11,10 @@ from flask import (
     stream_with_context,
 )
 from flask_cors import CORS
-from functools import wraps
-from datetime import datetime, timezone
+from google import genai
+from google.genai import types
 from prompts import *
-
-valid_languages = {
-    "python",
-    "javascript",
-    "rust",
-    "mongodb",
-    "swift",
-    "ruby",
-    "dart",
-    "perl",
-    "scala",
-    "julia",
-    "go",
-    "java",
-    "cpp",
-    "csharp",
-    "c",
-    "sql",
-    "typescript",
-    "kotlin",
-    "verilog",
-}
+from utils import *
 
 app = Flask(__name__)
 
@@ -47,57 +22,8 @@ CORS(app)
 
 load_dotenv()
 
-CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
-
 gemini_model = os.getenv("GEMINI_MODEL")
 gemini_model_1 = os.getenv("GEMINI_MODEL_1")
-SECRET_KEY = os.getenv("JWT_SECRET")
-RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
-
-
-def is_human(recaptcha_token):
-    if not recaptcha_token or not RECAPTCHA_SECRET_KEY:
-        return False
-
-    payload = {"secret": RECAPTCHA_SECRET_KEY, "response": recaptcha_token}
-
-    try:
-        response = requests.post(
-            "https://www.google.com/recaptcha/api/siteverify", data=payload, timeout=50
-        )
-        response.raise_for_status()
-        result = response.json()
-
-        if result.get("success") and result.get("score", 0) > 0.5:
-            return True
-        else:
-            return False
-
-    except requests.exceptions.RequestException:
-        return False
-
-
-def token_required(f):
-    @wraps(f)
-    def decorator(*args, **kwargs):
-        token = None
-        if "Authorization" in request.headers:
-            auth_header = request.headers["Authorization"]
-            if auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
-
-        if not token:
-            return jsonify({"message": "Token is missing!"}), 403
-
-        try:
-            decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS512"])
-            request.user_data = decoded
-        except jwt.InvalidTokenError as e:
-            return jsonify({"message": "Invalid token!"}), 401
-
-        return f(*args, **kwargs)
-
-    return decorator
 
 
 def get_generated_code(problem_description, language):
@@ -291,12 +217,6 @@ def generate_js(html_content, css_content, project_description):
     return Response(stream_with_context(stream()), mimetype="text/plain")
 
 
-def utc_time_reference():
-    utc_now = datetime.now(timezone.utc)
-    formatted_time = utc_now.strftime("%I:%M:%S %p on %B %d, %Y")
-    return f"{formatted_time} UTC time zone"
-
-
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -364,6 +284,46 @@ def refactor_code_api():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+@app.route("/improve-prompt", methods=["POST"])
+@token_required
+def improve_prompt():
+    token = request.headers.get("X-Recaptcha-Token")
+
+    if not is_human(token):
+        abort(403, description="reCAPTCHA verification failed.")
+
+    data = request.get_json()
+
+    topic = data.get("topic")
+    if not topic:
+        return jsonify({"error": "Missing topic"}), 400
+
+    language = data.get("language")
+    if not language or language not in {"htmlcssjs"} | valid_languages:
+        return jsonify({"error": "Invalid or missing language"}), 400
+
+    try:
+        client = genai.Client()
+
+        prompt_template = improve_prompts[language].format(topic=topic)
+        response = client.models.generate_content(
+            model=gemini_model,
+            config=types.GenerateContentConfig(
+                system_instruction=system_improve_prompt,
+            ),
+            contents=prompt_template,
+        )
+
+        gemini_output = response.text
+        is_valid, parsed = validate_json(gemini_output)
+        if not is_valid:
+            return jsonify({"error": "Invalid prompt format"}), 400
+
+        return jsonify({"prompts": parsed})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/htmlcssjsgenerate-code", methods=["POST"])

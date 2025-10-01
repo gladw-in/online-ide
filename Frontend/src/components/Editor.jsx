@@ -456,17 +456,28 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       return;
     }
 
-    const { value: prompt } = await Swal.fire({
+    const { value: result } = await Swal.fire({
       title: "Generate Code",
-      input: "textarea",
-      inputLabel: "What code do you want?",
-      inputPlaceholder: "e.g., simple calculator",
-      confirmButtonText: "Generate",
+      html: `
+        <textarea id="swal-input1" class="swal2-textarea !w-[82%]" placeholder="e.g., simple calculator"></textarea>
+        <label class="flex justify-center mt-3">
+          <input type="checkbox" id="improvePrompt" class="mr-2">
+          Improve Prompt
+        </label>
+      `,
+      focusConfirm: false,
       showCancelButton: true,
-      allowOutsideClick: false,
-      footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">Refactor the code if the <span class="font-bold">generated code</span> is not functioning properly.</p>`,
-      inputValidator: (value) => {
-        if (!value) return "This field is mandatory! Please enter a prompt.";
+      confirmButtonText: "Generate",
+      preConfirm: () => {
+        const prompt = document.getElementById("swal-input1").value.trim();
+        const improve = document.getElementById("improvePrompt").checked;
+        if (!prompt) {
+          Swal.showValidationMessage(
+            "This field is mandatory! Please enter a prompt."
+          );
+          return;
+        }
+        return { prompt, improve };
       },
       didOpen: () => {
         const modal = Swal.getPopup();
@@ -477,9 +488,106 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
           }
         });
       },
+      allowOutsideClick: false,
     });
 
-    if (!prompt) return;
+    if (!result) return;
+
+    let finalPrompt = result.prompt;
+
+    if (result.improve) {
+      Swal.fire({
+        title: "Improving Prompt...",
+        html: "Please wait while we generate new ideas.",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+      try {
+        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+        if (!token) throw new Error("Token not found");
+
+        const response = await apiFetch(`${GENAI_API_URL}/improve-prompt`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            topic: finalPrompt,
+            language: "htmlcssjs",
+          }),
+        });
+
+        const json = await response.json();
+
+        if (!json.prompts || Object.keys(json.prompts).length === 0) {
+          await Swal.fire(
+            "Error",
+            "Failed to generate improved prompts.",
+            "error"
+          );
+          return;
+        }
+
+        const prompts = Object.values(json?.prompts);
+
+        const selectedPrompt = await new Promise((resolve) => {
+          const promptsHtml = prompts
+            .map(
+              (prompt, index) => `
+              <div class="flex items-center justify-between border border-gray-200 p-[10px] rounded-md mb-[10px]">
+                <p class="flex-grow select-text text-left m-0">${prompt}</p>
+                <button 
+                  class="swal2-confirm swal2-styled select-prompt-btn ml-[15px] py-[10px] px-[12px]" 
+                  data-index="${index}" 
+                  title="Select this prompt"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
+              </div>
+            `
+            )
+            .join("");
+
+          Swal.fire({
+            title: "Select an Improved Prompt",
+            html: `<div>${promptsHtml}</div>`,
+            showConfirmButton: false,
+            showCancelButton: true,
+            allowOutsideClick: false,
+            cancelButtonText: "Cancel",
+            didOpen: () => {
+              const promptButtons =
+                document.querySelectorAll(".select-prompt-btn");
+              promptButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                  const index = button.getAttribute("data-index");
+                  if (index !== null) {
+                    resolve(prompts[parseInt(index, 10)]);
+                    Swal.close();
+                  }
+                });
+              });
+            },
+          }).then((result) => {
+            if (result.dismiss) {
+              resolve(null);
+            }
+          });
+        });
+
+        if (!selectedPrompt) return;
+
+        finalPrompt = selectedPrompt;
+      } catch {
+        await Swal.fire("Error", "Failed to improve prompt.", "error");
+        return;
+      }
+    }
 
     setLoadingAction("generate");
     setIsOverlayVisible(true);
@@ -497,14 +605,13 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
       htmlCode = await generateCodeStream(
         "html",
-        { prompt, type: "html" },
+        { prompt: finalPrompt, type: "html" },
         (chunk) => {
           if (isFirstChunk) {
             setIsPreviewEnabled(false);
             setCode((prev) => ({ ...prev, html: "" }));
             isFirstChunk = false;
           }
-
           setCode((prev) => ({ ...prev, html: (prev.html || "") + chunk }));
           scrollToLastLine(languages[0]);
         }
@@ -513,12 +620,11 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       setIsPreviewEnabled(true);
 
       isFirstChunk = true;
-
       setOverlayText("Generating CSS...");
 
       cssCode = await generateCodeStream(
         "css",
-        { prompt, htmlContent: htmlCode, type: "css" },
+        { prompt: finalPrompt, htmlContent: htmlCode, type: "css" },
         (chunk) => {
           if (isFirstChunk) {
             setIsPreviewEnabled(false);
@@ -533,13 +639,12 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       setIsPreviewEnabled(true);
 
       isFirstChunk = true;
-
       setOverlayText("Generating JS...");
 
       jsCode = await generateCodeStream(
         "js",
         {
-          prompt,
+          prompt: finalPrompt,
           htmlContent: htmlCode,
           cssContent: cssCode,
           type: "js",
@@ -563,7 +668,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       if (isLoggedIn) {
         await getGenerateCodeCount();
       }
-    } catch (error) {
+    } catch {
       Swal.fire("Error", "Failed to generate code.", "error");
     } finally {
       generatesetBtnTxt("Generate");
@@ -584,16 +689,16 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     const { value: formValues, isConfirmed } = await Swal.fire({
       title: "Refactor Code",
       html: `
-        <div id="custom-html-wrapper">
-          <div class="swal2-radio-group gap-x-[10px] flex text-left my-4 justify-center">
-            <label><input type="radio" name="codeType" value="all" checked> All</label><br>
-            <label><input type="radio" name="codeType" value="html"> HTML</label><br>
-            <label><input type="radio" name="codeType" value="css"> CSS</label><br>
-            <label><input type="radio" name="codeType" value="js"> JavaScript</label>
-          </div>
-          <textarea id="swal-input-textarea" class="swal2-textarea" placeholder="e.g., remove comments, optimize loop, etc."></textarea>
+      <div id="custom-html-wrapper">
+        <div class="swal2-radio-group gap-x-[10px] flex text-left my-4 justify-center">
+          <label><input type="checkbox" id="select-all" value="all"> All</label><br>
+          <label><input type="checkbox" class="code-type" value="html"> HTML</label><br>
+          <label><input type="checkbox" class="code-type" value="css"> CSS</label><br>
+          <label><input type="checkbox" class="code-type" value="js"> JavaScript</label>
         </div>
-      `,
+        <textarea id="swal-input-textarea" class="swal2-textarea" placeholder="e.g., remove comments, optimize loop, etc."></textarea>
+      </div>
+    `,
       didOpen: () => {
         const container = document.getElementById("swal2-html-container");
         const customWrapper = document.getElementById("custom-html-wrapper");
@@ -620,14 +725,50 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
             Swal.clickConfirm();
           }
         });
+
+        const checkboxes = document.querySelectorAll(".code-type");
+        const selectAll = document.getElementById("select-all");
+        const confirmButton = Swal.getConfirmButton();
+
+        selectAll.checked = true;
+        checkboxes.forEach((cb) => (cb.checked = true));
+
+        const updateSelectAll = () => {
+          const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+          selectAll.checked = allChecked;
+        };
+
+        const validateCheckboxes = () => {
+          const anyChecked = Array.from(checkboxes).some((cb) => cb.checked);
+          confirmButton.disabled = !anyChecked;
+          updateSelectAll();
+        };
+
+        validateCheckboxes();
+
+        selectAll.addEventListener("change", () => {
+          const isChecked = selectAll.checked;
+          checkboxes.forEach((cb) => (cb.checked = isChecked));
+          validateCheckboxes();
+        });
+
+        checkboxes.forEach((cb) => {
+          cb.addEventListener("change", validateCheckboxes);
+        });
       },
       focusConfirm: false,
       preConfirm: () => {
-        const selectedType = document.querySelector(
-          'input[name="codeType"]:checked'
-        ).value;
+        const selectedTypes = Array.from(
+          document.querySelectorAll(".code-type:checked")
+        ).map((cb) => cb.value);
         const suggestion = document.getElementById("swal-input-textarea").value;
-        return { selectedType, suggestion };
+
+        if (selectedTypes.length === 0) {
+          Swal.showValidationMessage("Please select at least one code type.");
+          return false;
+        }
+
+        return { selectedTypes, suggestion };
       },
       confirmButtonText: "Refactor",
       showCancelButton: true,
@@ -638,7 +779,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
     if (!isConfirmed) return;
 
-    const selectedType = formValues.selectedType;
+    const selectedTypes = formValues.selectedTypes;
     const prompt = formValues.suggestion;
 
     setLoadingAction("refactor");
@@ -686,7 +827,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         }));
       };
 
-      if (selectedType === "all" || selectedType === "html") {
+      if (selectedTypes.includes("html")) {
         setOverlayText("Refactoring HTML...");
         const resultHtml = await refactor("html", { html, css, javascript });
         updateCodeState(resultHtml.html, null, null);
@@ -694,7 +835,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         scrollToLastLine(languages[0]);
       }
 
-      if (selectedType === "all" || selectedType === "css") {
+      if (selectedTypes.includes("css")) {
         setOverlayText("Refactoring CSS...");
         const resultCss = await refactor("css", { html, css, javascript });
         updateCodeState(null, resultCss.css, null);
@@ -702,7 +843,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         scrollToLastLine(languages[1]);
       }
 
-      if (selectedType === "all" || selectedType === "js") {
+      if (selectedTypes.includes("js")) {
         setOverlayText("Refactoring JS...");
         const resultJs = await refactor("js", { html, css, javascript });
         updateCodeState(null, null, resultJs.js);
@@ -1078,7 +1219,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       </div>
       <div className="mt-4 relative flex flex-col items-start dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg">
         {isOverlayVisible && overlayText && (
-          <div className="absolute inset-0 bg-transparent flex justify-center items-center z-[2] rounded-lg backdrop-blur-[2px]">
+          <div className="absolute inset-0 bg-transparent flex justify-center items-center z-[2] backdrop-blur-[2px]">
             <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg flex items-center space-x-2 sm:w-auto dark:bg-gray-800 dark:text-white">
               <FaSpinner className="text-2xl animate-spin" />
               <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">

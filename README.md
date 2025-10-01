@@ -1,4 +1,4 @@
-An Online IDE with login functionality enables users to run code, generate new code refactor existing code through secure login  and share the code with anyone.
+An online IDE with secure login functionality that allows users to run code, generate new code, refactor existing code, and share it with anyone.
 
 ![Homepage](Images/Homepage.png)
 
@@ -116,7 +116,7 @@ cd Backend/Login
 npm install
 ```
 
-3. Remember to have the **.env**.
+3. Make sure the **.env** file is present and properly configured.
 
 4. Run the server:
 ```
@@ -144,7 +144,7 @@ cd Backend/Genai
 pip install -r requirements.txt
 ```
 
-3. Remember to have the **.env**.
+3. Make sure the **.env** file is present and properly configured.
 
 4. Run it:
 ```
@@ -163,7 +163,7 @@ cd Backend/TempFile
 pip install -r requirements.txt
 ```
 
-3. Remember to have the **.env**.
+3. Make sure the **.env** file is present and properly configured.
 
 4. Run it:
 ```
@@ -182,7 +182,7 @@ cd ./Frontend
 npm install
 ```
 
-3. Remember to have the **.env**.
+3. Make sure the **.env** file is present and properly configured.
 
 ### For Development
 

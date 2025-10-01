@@ -305,19 +305,27 @@ const CodeEditor = ({
 
     if (!language) return;
 
-    const { value: prompt } = await Swal.fire({
+    const { value: result } = await Swal.fire({
       title: "Generate Code",
-      input: "textarea",
-      inputLabel: "What code do you want?",
-      inputPlaceholder: "e.g., simple calculator",
-      confirmButtonText: "Generate",
+      html: `
+      <textarea id="swal-input1" class="swal2-textarea !w-[82%]" placeholder="e.g., simple calculator"></textarea>
+      <label class="flex justify-center mt-3">
+        <input type="checkbox" id="improvePrompt" class="mr-2"> Improve Prompt
+      </label>
+    `,
+      focusConfirm: false,
       showCancelButton: true,
-      allowOutsideClick: false,
-      footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">Refactor the code if the <span class="font-bold">generated code</span> is not functioning properly.</p>`,
-      inputValidator: (value) => {
-        if (!value) {
-          return "This field is mandatory! Please enter a prompt.";
+      confirmButtonText: "Generate",
+      preConfirm: () => {
+        const prompt = document.getElementById("swal-input1").value.trim();
+        const improve = document.getElementById("improvePrompt").checked;
+        if (!prompt) {
+          Swal.showValidationMessage(
+            "This field is mandatory! Please enter a prompt."
+          );
+          return;
         }
+        return { prompt, improve };
       },
       didOpen: () => {
         const modal = Swal.getPopup();
@@ -328,9 +336,102 @@ const CodeEditor = ({
           }
         });
       },
+      allowOutsideClick: false,
     });
 
-    if (!prompt) return;
+    if (!result) return;
+
+    let finalPrompt = result.prompt;
+
+    if (result.improve) {
+      Swal.fire({
+        title: "Improving Prompt...",
+        html: "Please wait while we generate new ideas.",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      try {
+        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+        if (!token) throw new Error("Authentication token missing.");
+
+        const response = await apiFetch(`${GENAI_API_URL}/improve-prompt`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            topic: finalPrompt,
+            language: language,
+          }),
+        });
+
+        const json = await response.json();
+
+        if (!json.prompts || Object.keys(json.prompts).length === 0) {
+          await Swal.fire(
+            "Error",
+            "Failed to generate improved prompts.",
+            "error"
+          );
+          return;
+        }
+
+        const prompts = Object.values(json?.prompts);
+        const selectedPrompt = await new Promise((resolve) => {
+          const promptsHtml = prompts
+            .map(
+              (prompt, index) => `
+            <div class="flex items-center justify-between border border-gray-200 p-[10px] rounded-md mb-[10px]">
+              <p class="flex-grow select-text text-left m-0">${prompt}</p>
+              <button class="swal2-confirm swal2-styled select-prompt-btn ml-[15px] py-[10px] px-[12px]" data-index="${index}" title="Select this prompt">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            </div>
+          `
+            )
+            .join("");
+
+          Swal.fire({
+            title: "Select an Improved Prompt",
+            html: `<div>${promptsHtml}</div>`,
+            showConfirmButton: false,
+            showCancelButton: true,
+            allowOutsideClick: false,
+            cancelButtonText: "Cancel",
+            didOpen: () => {
+              const promptButtons =
+                document.querySelectorAll(".select-prompt-btn");
+              promptButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                  const index = button.getAttribute("data-index");
+                  if (index !== null) {
+                    resolve(prompts[parseInt(index, 10)]);
+                    Swal.close();
+                  }
+                });
+              });
+            },
+          }).then((result) => {
+            if (result.dismiss) {
+              resolve(null);
+            }
+          });
+        });
+
+        if (!selectedPrompt) return;
+
+        finalPrompt = selectedPrompt;
+      } catch {
+        await Swal.fire("Error", "Failed to improve prompt.", "error");
+        return;
+      }
+    }
 
     setLoadingActionGen("thinking");
     setIsEditorReadOnly(true);
@@ -347,7 +448,7 @@ const CodeEditor = ({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          problem_description: prompt,
+          problem_description: finalPrompt,
           language: language,
         }),
       });
@@ -373,6 +474,7 @@ const CodeEditor = ({
 
         const chunk = decoder.decode(value, { stream: true });
         generatedCode += chunk;
+
         setCode((prev) => {
           const updatedCode = prev + chunk;
 

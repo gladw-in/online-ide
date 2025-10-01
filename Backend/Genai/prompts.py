@@ -551,6 +551,255 @@ languages_prompts = {
     """,
 }
 
+improve_prompts = {
+    "htmlcssjs": """
+        Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to create a **responsive, interactive frontend experience** using **HTML, CSS, and vanilla JavaScript**.
+
+    - You may allow lightweight libraries
+    - Do NOT allow frameworks like React, Vue, or Angular
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "python": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to create **Python code** that addresses a specific task or solves a problem in a **clear, concise, and efficient** manner.
+
+    - You may allow use of standard libraries
+    - Do NOT allow external libraries or frameworks unless specified
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "javascript": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to create **JavaScript code** that addresses a specific task or solves a problem in a **clear, concise, and efficient** manner.
+
+    - You may allow use of standard libraries
+    - Do NOT allow external libraries or frameworks unless specified
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "c": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **C code** that performs a specific task or solves a problem in a **clear and efficient** way.
+
+    - Use only standard C (C89/C99/C11 depending on the context)
+    - Avoid external libraries unless explicitly allowed
+    - Focus on performance, memory management, and clarity
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "cpp": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **C++ code** that solves a problem or performs a specific task using **modern and efficient practices**.
+
+    - Prefer modern C++ (C++11 and newer)
+    - Use standard libraries like STL where appropriate
+    - Avoid external libraries unless explicitly allowed
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "java": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Java code** that performs a specific task or solves a problem using **clean, object-oriented practices**.
+
+    - Use standard Java libraries (no external frameworks unless specified)
+    - Follow Java conventions and best practices
+    - Suitable for Java 8 and newer
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "csharp": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **C# code** that performs a specific task or solves a problem using **clear syntax and object-oriented principles**.
+
+    - Use standard .NET libraries (no external frameworks unless specified)
+    - Suitable for C# 8.0 or newer
+    - Follow C# coding conventions and best practices
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "rust": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Rust code** that performs a specific task or solves a problem using **safe, idiomatic Rust practices**.
+
+    - Use standard Rust libraries and idioms
+    - Emphasize memory safety and concurrency where appropriate
+    - Avoid external crates unless explicitly allowed
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "go": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Go code** that performs a specific task or solves a problem using **idiomatic and efficient Go practices**.
+
+    - Use only Go standard libraries (no external packages unless specified)
+    - Focus on simplicity, concurrency, and clear error handling
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "verilog": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Verilog code** that describes hardware behavior or design for a specific digital logic task.
+
+    - Focus on synthesizable RTL code
+    - Use standard Verilog constructs (avoid SystemVerilog unless specified)
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "sql": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **SQL queries** or statements that perform specific data retrieval, manipulation, or database management tasks.
+
+    - Use standard SQL syntax (ANSI SQL)
+    - Avoid database-specific extensions unless specified
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "mongodb": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **MongoDB queries or commands** to perform specific data operations using the MongoDB query language.
+
+    - Use standard MongoDB query syntax and operators
+    - Focus on CRUD operations, aggregation, or indexing as needed
+    - Avoid external tools or libraries unless specified
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "swift": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to create **Swift code** that addresses a specific task or solves a problem in a **clear, concise, and efficient** manner.
+
+    - You may allow use of standard libraries
+    - Do NOT allow external libraries or frameworks unless specified
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "ruby": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Ruby code** that performs a specific task or solves a problem using **clear and idiomatic Ruby practices**.
+
+    - Use standard Ruby libraries (no external gems unless specified)
+    - Follow Ruby conventions and best practices
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "typescript": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **TypeScript code** that performs a specific task or builds functionality using **type-safe, clear, and maintainable practices**.
+
+    - Use vanilla TypeScript with standard libraries
+    - Avoid frameworks like React, Angular, or Vue unless specified
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "dart": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Dart code** that performs a specific task or builds functionality using **clear and idiomatic Dart practices**.
+
+    - Use standard Dart libraries (no Flutter or other frameworks unless specified)
+    - Focus on clean, maintainable, and efficient code
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "kotlin": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Kotlin code** that performs a specific task or solves a problem using **concise, idiomatic Kotlin practices**.
+
+    - Use standard Kotlin libraries (no Android or other frameworks unless specified)
+    - Follow Kotlin coding conventions and best practices
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "perl": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Perl code** that performs a specific task or solves a problem using **concise and idiomatic Perl practices**.
+
+    - Use standard Perl modules (no external CPAN modules unless specified)
+    - Follow Perl best practices and conventions
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "scala": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Scala code** that performs a specific task or solves a problem using **functional and object-oriented Scala practices**.
+
+    - Use standard Scala libraries (no external frameworks unless specified)
+    - Follow Scala conventions and best practices
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+    "julia": """
+    Return 3 to 5 short, high-quality prompt variations in **JSON format**.
+
+    Each prompt should instruct an AI to write **Julia code** that performs a specific task or solves a problem using **efficient and idiomatic Julia practices**.
+
+    - Use standard Julia libraries and functions
+    - Focus on performance and clarity
+    - Keep prompts short, direct, and suitable for immediate code generation
+    - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
+
+    Topic: {topic}
+    """,
+}
+
 compiler_instruction = """
 You are a **deterministic {language} program compiler**.
 
@@ -577,6 +826,25 @@ You are a **deterministic {language} code generator**.
 Your behavior must mirror that of a real-world code generation tool:
 - Output the **exact source code** that implements the described functionality — nothing more, nothing less.
 - The generated code must be **syntactically correct**, **logically sound**, and follow standard conventions.
+"""
+
+system_improve_prompt = """
+You are a prompt optimization assistant specialized in generating high-quality prompt variations for AI code generation.
+
+Your task is to return 3 to 5 concise, well-structured prompt variations in **valid JSON format** only.
+
+Each variation must:
+- Be short, clear, and direct
+- Instruct an AI to generate code in the specified language and context
+- Follow any language-specific constraints (e.g., no frameworks, use standard libraries, etc.)
+- Be suitable for immediate code generation
+
+You must:
+- Return only a valid JSON object
+- Use keys like "prompt_1", "prompt_2", ..., with string values
+- Do not include any explanation, markdown, or surrounding text—**only the JSON**
+
+Failing to return valid JSON is not acceptable.
 """
 
 html_generate_instruction = """
