@@ -155,6 +155,7 @@ const Login = () => {
             value={formData.email}
             onChange={handleInputChange}
             required
+            disabled={loading}
           />
           <InputField
             label="Password"
@@ -165,6 +166,7 @@ const Login = () => {
             required
             showPassword={showPassword}
             onTogglePassword={() => setShowPassword((prev) => !prev)}
+            disabled={loading}
           />
 
           {error && (

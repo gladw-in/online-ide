@@ -31,7 +31,7 @@ const Accounts = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [delBtnText, setDelBtnText] = useState("Delete Account");
-  const [btnState, setBtnState] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -66,6 +66,8 @@ const Accounts = () => {
     }
 
     try {
+      setLoading(true);
+
       const response = await fetch(
         `${BACKEND_API_URL}/api/protected?email=true`,
         {
@@ -97,6 +99,8 @@ const Accounts = () => {
       }
     } catch (error) {
       setErrorMessage("Failed to fetch user data");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -127,7 +131,7 @@ const Accounts = () => {
     }
 
     try {
-      setBtnState(true);
+      setLoading(true);
 
       const response = await apiFetch(
         `${BACKEND_API_URL}/api/verify-password`,
@@ -152,7 +156,7 @@ const Accounts = () => {
     } catch (error) {
       setErrorMessage("Error verifying password.");
     } finally {
-      setBtnState(false);
+      setLoading(false);
     }
   };
 
@@ -203,6 +207,8 @@ const Accounts = () => {
             },
           });
 
+          setLoading(true);
+
           const response = await apiFetch(
             `${BACKEND_API_URL}/api/change-username`,
             {
@@ -238,6 +244,8 @@ const Accounts = () => {
         } catch (error) {
           Swal.close();
           setErrorMessage("Error updating username");
+        } finally {
+          setLoading(false);
         }
       }
     });
@@ -308,6 +316,8 @@ const Accounts = () => {
             },
           });
 
+          setLoading(true);
+
           const response = await apiFetch(
             `${BACKEND_API_URL}/api/change-password`,
             {
@@ -359,6 +369,8 @@ const Accounts = () => {
         } catch (error) {
           Swal.close();
           setErrorMessage("Error updating password");
+        } finally {
+          setLoading(false);
         }
       }
     });
@@ -390,6 +402,7 @@ const Accounts = () => {
 
         try {
           setDelBtnText("Deleting...");
+          setLoading(true);
 
           const response = await apiFetch(`${BACKEND_API_URL}/api/account`, {
             method: "DELETE",
@@ -417,6 +430,8 @@ const Accounts = () => {
           }
         } catch (error) {
           setErrorMessage("Error deleting account");
+        } finally {
+          setLoading(false);
         }
       }
     });
@@ -456,13 +471,15 @@ const Accounts = () => {
                 (showCurrentPassword) => !showCurrentPassword
               )
             }
+            disabled={loading}
           />
 
           <button
             type="submit"
-            className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+            disabled={loading}
+            className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg disabled:cursor-not-allowed"
           >
-            {btnState ? (
+            {loading ? (
               <>
                 <TbLoader className="animate-spin text-xl inline-block mr-1" />{" "}
                 Verifying...
@@ -475,7 +492,8 @@ const Accounts = () => {
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
             <button
               onClick={() => navigate("/forgot-password")}
-              className="text-blue-600 cursor-pointer dark:text-blue-400 hover:underline"
+              disabled={loading}
+              className="text-blue-600 cursor-pointer dark:text-blue-400 hover:underline disabled:cursor-not-allowed"
             >
               Forgot Password?
             </button>
@@ -507,10 +525,12 @@ const Accounts = () => {
               onChange={handleInputChange}
               required
               name="username"
+              disabled={loading}
             />
             <button
               type="submit"
-              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+              disabled={loading}
+              className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg disabled:cursor-not-allowed"
             >
               Update Username
             </button>
@@ -528,6 +548,7 @@ const Accounts = () => {
                 onTogglePassword={() =>
                   setShowNewPassword((showNewPassword) => !showNewPassword)
                 }
+                disabled={loading}
               />
 
               <InputField
@@ -542,10 +563,12 @@ const Accounts = () => {
                     (showConfirmPassword) => !showConfirmPassword
                   )
                 }
+                disabled={loading}
               />
               <button
                 type="submit"
-                className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+                disabled={loading}
+                className="w-full p-2 text-sm bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg disabled:cursor-not-allowed"
               >
                 Update Password
               </button>
@@ -558,7 +581,8 @@ const Accounts = () => {
         <div className="mt-4 text-center">
           <button
             onClick={handleDeleteAccount}
-            className="w-full p-2 text-sm bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600 focus:outline-none transition duration-300 dark:bg-red-600 dark:hover:bg-red-500 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
+            disabled={loading}
+            className="w-full p-2 text-sm bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600 focus:outline-none transition duration-300 dark:bg-red-600 dark:hover:bg-red-500 ease-in-out transform hover:scale-x-95 hover:shadow-lg disabled:cursor-not-allowed"
           >
             {delBtnText}
           </button>

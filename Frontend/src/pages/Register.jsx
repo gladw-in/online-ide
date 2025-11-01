@@ -369,6 +369,7 @@ const Register = () => {
                 value={formData.username}
                 onChange={handleInputChange}
                 required
+                disabled={loading}
               />
 
               <div className="relative mb-4">
@@ -379,6 +380,7 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
+                  disabled={loading}
                 />
               </div>
 
@@ -391,6 +393,7 @@ const Register = () => {
                 required
                 showPassword={showPassword}
                 onTogglePassword={() => setShowPassword((prev) => !prev)}
+                disabled={loading}
               />
 
               {error && (

@@ -4,16 +4,22 @@ import os
 import ast
 import requests
 import jwt
+import logging
 from datetime import datetime, timezone
 from functools import wraps
-from flask import request, jsonify, g
+from flask import request, jsonify
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
+)
+
 CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
 SECRET_KEY = os.getenv("JWT_SECRET")
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
+MAX_SIZE = int(0.5 * 1024 * 1024)
 
 
 valid_languages = {
@@ -55,22 +61,28 @@ def validate_json(gemini_output):
     try:
         data = json.loads(gemini_output)
     except json.JSONDecodeError:
+        logging.warning("JSON decoding failed, attempting ast.literal_eval.")
         try:
             data = ast.literal_eval(gemini_output)
-        except:
+        except Exception as e:
+            logging.error(f"ast.literal_eval also failed: {e}")
             return False, None
 
     for key, value in data.items():
         if not re.match(r"^prompt_\d+$", key):
+            logging.warning(f"Invalid key format in JSON data: '{key}'")
             return False, None
         if not isinstance(value, str) or not value.strip():
+            logging.warning(f"Invalid value for key '{key}': not a non-empty string.")
             return False, None
 
+    logging.info("Successfully validated JSON data.")
     return True, data
 
 
 def is_human(recaptcha_token):
     if not recaptcha_token or not RECAPTCHA_SECRET_KEY:
+        logging.warning("reCAPTCHA check failed: Token or secret key is missing.")
         return False
 
     payload = {"secret": RECAPTCHA_SECRET_KEY, "response": recaptcha_token}
@@ -83,11 +95,16 @@ def is_human(recaptcha_token):
         result = response.json()
 
         if result.get("success") and result.get("score", 0) > 0.5:
+            logging.info(
+                f"reCAPTCHA verification successful. Score: {result.get('score')}"
+            )
             return True
         else:
+            logging.warning(f"reCAPTCHA verification failed. Result: {result}")
             return False
 
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
+        logging.error(f"reCAPTCHA request to Google failed: {e}")
         return False
 
 
@@ -101,12 +118,15 @@ def token_required(f):
                 token = auth_header.split(" ")[1]
 
         if not token:
+            logging.warning("Access attempt without a token.")
             return jsonify({"message": "Token is missing!"}), 403
 
         try:
             decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS512"])
-            g.user = decoded
+            request.user = decoded
+            logging.info("Token successfully decoded.")
         except jwt.InvalidTokenError as e:
+            logging.warning(f"Invalid token received: {e}")
             return jsonify({"message": "Invalid token!"}), 401
 
         return f(*args, **kwargs)
