@@ -558,7 +558,6 @@ improve_prompts = {
     Each prompt should instruct an AI to create a **responsive, interactive frontend experience** using **HTML, CSS, and vanilla JavaScript**.
 
     - You may allow lightweight libraries
-    - Do NOT allow frameworks like React, Vue, or Angular
     - Keep prompts short, direct, and suitable for immediate code generation
     - Return only valid JSON with keys like "prompt_1", "prompt_2", etc.
 

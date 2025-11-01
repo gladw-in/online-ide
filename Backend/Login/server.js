@@ -141,7 +141,7 @@ app.post('/api/register', verifyRecaptcha, cleanExpired, async (req, res) => {
 			otpExpires: Date.now() + 10 * 60 * 1000,
 			isEmailVerified: false,
 			lastLogin: null,
-			createdDate: null,
+			createdDate: Date.now(),
 		});
 
 		await newUser.save();

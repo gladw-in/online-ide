@@ -9,6 +9,7 @@ import {
   GENAI_API_URL,
   TEMP_SHARE_API_URL,
   BACKEND_API_URL,
+  MAX_SIZE,
 } from "../utils/constants";
 import { useNavigate } from "react-router-dom";
 import {
@@ -150,6 +151,17 @@ const CodeEditor = ({
 
   const runCode = async () => {
     if (code.trim().length === 0) return;
+
+    if (code.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: `The ${
+          language.charAt(0).toUpperCase() + language.slice(1)
+        } code exceeds the maximum allowed size of 500 KB.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
 
     setIsEditorReadOnly(true);
     setLoadingActionRun("run");
@@ -329,6 +341,13 @@ const CodeEditor = ({
       },
       didOpen: () => {
         const modal = Swal.getPopup();
+        const checkbox = modal.querySelector("#improvePrompt");
+        const confirmBtn = modal.querySelector(".swal2-confirm");
+
+        checkbox.addEventListener("change", () => {
+          confirmBtn.textContent = checkbox.checked ? "Improve" : "Generate";
+        });
+
         modal.addEventListener("keydown", (e) => {
           if (e.key === "Enter" && e.ctrlKey) {
             e.preventDefault();
@@ -520,6 +539,17 @@ const CodeEditor = ({
 
     if (code.trim().length === 0 || !language) return;
 
+    if (code.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: `The ${
+          language.charAt(0).toUpperCase() + language.slice(1)
+        } code exceeds the maximum allowed size of 500 KB.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+
     const { value: prompt, isConfirmed } = await Swal.fire({
       title: "Refactor Code",
       input: "textarea",
@@ -642,6 +672,17 @@ const CodeEditor = ({
         text: "Please provide both code and language before uploading.",
       });
       return;
+    }
+
+    if (code.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: `The ${
+          language.charAt(0).toUpperCase() + language.slice(1)
+        } code exceeds the maximum allowed size of 500 KB.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
 
     const defaultTitle = `${language}-untitled-${Math.random()

@@ -337,6 +337,7 @@ const ForgotPassword = () => {
               onChange={handleInputChange}
               required
               name="email"
+              disabled={loading}
             />
 
             {error && (
@@ -452,6 +453,7 @@ const ForgotPassword = () => {
               name="newPassword"
               showPassword={shownewPassword}
               onTogglePassword={() => setshownewPassword((prev) => !prev)}
+              disabled={loading}
             />
 
             <InputField
@@ -463,6 +465,7 @@ const ForgotPassword = () => {
               name="confirmPassword"
               showPassword={showConfirmPassword}
               onTogglePassword={() => setShowconfirmPassword((prev) => !prev)}
+              disabled={loading}
             />
 
             {error && (

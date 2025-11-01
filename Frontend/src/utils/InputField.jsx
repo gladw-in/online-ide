@@ -9,6 +9,7 @@ const InputField = ({
   name,
   showPassword,
   onTogglePassword,
+  disabled = false,
 }) => {
   const isPasswordField = [
     "password",
@@ -50,14 +51,16 @@ const InputField = ({
         onChange={onChange}
         required={required}
         autoComplete={getAutoCompleteValue()}
-        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+        disabled={disabled}
+        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed"
       />
 
       {isPasswordField && (
         <button
           type="button"
-          className="absolute cursor-pointer right-3 top-[70%] transform -translate-y-1/2 text-gray-500 dark:text-gray-300"
+          className="absolute cursor-pointer right-3 top-[70%] transform -translate-y-1/2 text-gray-500 dark:text-gray-300 disabled:cursor-not-allowed"
           onClick={onTogglePassword}
+          disabled={disabled}
         >
           {showPassword ? "Hide" : "Show"}
         </button>

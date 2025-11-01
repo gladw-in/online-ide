@@ -5,6 +5,7 @@
 .dark div:where(.swal2-container) div:where(.swal2-popup) {
   background: #333;
   color: #e8e6e3;
+  color-scheme: dark;
 }
 
 .dark div:where(.swal2-container) div:where(.swal2-validation-message) {

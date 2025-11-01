@@ -187,7 +187,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
               <>
                 <Link
                   to={`${baseUrl}/account/${username}`}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                  className="text-lg hover:text-gray-300 hover:underline transition-colors duration-200 focus:outline-none"
                   title={username.trim()}
                   aria-label={`Go to ${formatUsername(username)}'s account`}
                 >
@@ -195,7 +195,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 cursor-pointer focus:outline-none"
+                  className="text-lg hover:text-gray-300 hover:underline transition-colors duration-200 cursor-pointer focus:outline-none"
                   disabled={isLoading}
                 >
                   Logout
@@ -205,14 +205,14 @@ const Header = ({ isDarkMode, toggleTheme }) => {
               <>
                 <Link
                   to={`${baseUrl}/login`}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                  className="text-lg hover:text-gray-300 hover:underline transition-colors duration-200 focus:outline-none"
                   aria-label="Go to Login page"
                 >
                   Login
                 </Link>
                 <Link
                   to={`${baseUrl}/register`}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                  className="text-lg hover:text-gray-300 hover:underline transition-colors duration-200 focus:outline-none"
                   aria-label="Go to Register page"
                 >
                   Register
@@ -278,7 +278,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 <>
                   <Link
                     to="/login"
-                    className="block text-lg text-center focus:outline-none hover:text-gray-300"
+                    className="block text-lg text-center focus:outline-none hover:text-gray-300 hover:underline"
                     aria-label="Go to Login page"
                     onClick={() => setIsDropdownOpen(false)}
                   >
@@ -286,7 +286,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                   </Link>
                   <Link
                     to="/register"
-                    className="block text-lg text-center focus:outline-none hover:text-gray-300"
+                    className="block text-lg text-center focus:outline-none hover:text-gray-300 hover:underline"
                     aria-label="Go to Register page"
                     onClick={() => setIsDropdownOpen(false)}
                   >

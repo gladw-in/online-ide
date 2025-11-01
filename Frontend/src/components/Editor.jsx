@@ -9,6 +9,7 @@ import {
   GENAI_API_URL,
   TEMP_SHARE_API_URL,
   BACKEND_API_URL,
+  MAX_SIZE,
 } from "../utils/constants";
 import { apiFetch } from "../utils/apifetch";
 import blocker from "../utils/blocker.js";
@@ -481,6 +482,13 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       },
       didOpen: () => {
         const modal = Swal.getPopup();
+        const checkbox = modal.querySelector("#improvePrompt");
+        const confirmBtn = modal.querySelector(".swal2-confirm");
+
+        checkbox.addEventListener("change", () => {
+          confirmBtn.textContent = checkbox.checked ? "Improve" : "Generate";
+        });
+
         modal.addEventListener("keydown", (e) => {
           if (e.key === "Enter" && e.ctrlKey) {
             e.preventDefault();
@@ -686,6 +694,36 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       return;
     }
 
+    const storageData = JSON.parse(sessionStorage.getItem(storageKey)) || {};
+    const { html: htmlCode, css: cssCode, javascript: jsCode } = storageData;
+
+    if (htmlCode && htmlCode.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: "The HTML code size exceeds the maximum allowed size of 500 KB.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+
+    if (cssCode && cssCode.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: "The CSS code size exceeds the maximum allowed size of 500 KB.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+
+    if (jsCode && jsCode.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: "The JavaScript code size exceeds the maximum allowed size of 500 KB.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+
     const { value: formValues, isConfirmed } = await Swal.fire({
       title: "Refactor Code",
       html: `
@@ -872,6 +910,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     }
 
     const editorCode = JSON.parse(sessionStorage.getItem(storageKey));
+    const { html: htmlCode, css: cssCode, javascript: jsCode } = editorCode;
+
     const language = "htmlcssjs";
     const defaultTitle = `${language}-untitled-${Math.random()
       .toString(36)
@@ -884,6 +924,33 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         text: "Please provide the code before uploading.",
       });
       return;
+    }
+
+    if (htmlCode && htmlCode.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: "The HTML code size exceeds the maximum allowed size of 500 KB.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+
+    if (cssCode && cssCode.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: "The CSS code size exceeds the maximum allowed size of 500 KB.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+
+    if (jsCode && jsCode.trim().length > MAX_SIZE) {
+      return Swal.fire({
+        title: "Error",
+        text: "The JavaScript code size exceeds the maximum allowed size of 500 KB.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
 
     const { isDismissed } = await Swal.fire({
