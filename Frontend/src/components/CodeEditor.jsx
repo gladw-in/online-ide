@@ -735,7 +735,7 @@ const CodeEditor = ({
       const load = JSON.stringify({
         language,
         code,
-        title: finalTitle,
+        title: finalTitle.trim(),
         expiryTime,
       });
 
@@ -851,9 +851,9 @@ const CodeEditor = ({
   };
 
   const getGenerateCodeCount = async () => {
-    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
-    if (!username) {
+    if (!token) {
       return;
     }
 
@@ -863,9 +863,9 @@ const CodeEditor = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          username: username,
           language: language,
         }),
       }
@@ -877,9 +877,9 @@ const CodeEditor = ({
   };
 
   const getRefactorCodeCount = async () => {
-    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
-    if (!username) {
+    if (!token) {
       return;
     }
 
@@ -889,9 +889,9 @@ const CodeEditor = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          username: username,
           language: language,
         }),
       }
@@ -904,9 +904,9 @@ const CodeEditor = ({
 
   const saveSharedLinkCount = async (shareId, title, expiryTime) => {
     try {
-      const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
-      if (!username) {
+      if (!token) {
         return;
       }
 
@@ -916,9 +916,9 @@ const CodeEditor = ({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            username,
             shareId,
             title,
             expiryTime,

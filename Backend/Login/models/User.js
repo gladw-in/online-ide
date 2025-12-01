@@ -142,17 +142,23 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-userSchema.pre('save', function(next) {
+userSchema.pre('save', async function() {
     const user = this;
     const actionType = user.isNew ? 'create' : 'update';
-    logUserAction(user, actionType);
-    next();
+    try {
+        await logUserAction(user, actionType);
+    } catch (err) {
+        console.error('Error in pre-save logUserAction:', err);
+    }
 });
 
-userSchema.pre('remove', function(next) {
+userSchema.pre('remove', async function() {
     const user = this;
-    logUserAction(user, 'delete');
-    next();
+    try {
+        await logUserAction(user, 'delete');
+    } catch (err) {
+        console.error('Error in pre-remove logUserAction:', err);
+    }
 });
 
 module.exports = mongoose.model('User', userSchema);
