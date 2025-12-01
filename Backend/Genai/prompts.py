@@ -890,7 +890,7 @@ Generate HTML code for the following project, suitable for placement directly wi
 *   Use proper heading levels in a logical order (e.g., `<h1>` followed by `<h2>`, not jumping to `<h4>`).
 *   Use `<button>` for actions and `<a>` for navigation — do not misuse elements.
 *   Add `alt` attributes for all `<img>` tags to support accessibility and screen readers.
-*   Add Font Awesome icons for visual enhancement and improved UI clarity where appropriate.
+*   Add Font Awesome icons sourced from Cloudflare or jsDelivr to visually enhance the interface and increase UI clarity when needed.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
 *   Use form elements semantically (e.g., `<label>` for `<input>`) when applicable.
 *   Ensure elements are keyboard-accessible — avoid using non-interactive tags (like `<div>`) for clickable elements.

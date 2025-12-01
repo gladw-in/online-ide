@@ -28,7 +28,7 @@ export default defineConfig({
       compress: {
         drop_debugger: true
       },
-      output: {
+      format: {
         comments: false
       },
       mangle: {

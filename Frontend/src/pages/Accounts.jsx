@@ -65,39 +65,48 @@ const Accounts = () => {
       return;
     }
 
+    setLoading(true);
+
     try {
-      setLoading(true);
+      const headers = { Authorization: `Bearer ${token}` };
+      let response;
+      let data;
 
-      const response = await fetch(
-        `${BACKEND_API_URL}/api/protected?email=true`,
-        {
+      const isGoogleUser =
+        localStorage.getItem(LOCAL_STORAGE_GOOGLE_USER) === "true";
+
+      if (isGoogleUser) {
+        response = await fetch(`${BACKEND_API_URL}/api/protected`, {
           method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setFormData((prevData) => ({
-          ...prevData,
-          username: data.username.trim(),
-          email: data.email.trim(),
-        }));
-
-        const isGoogleUser =
-          localStorage.getItem(LOCAL_STORAGE_GOOGLE_USER) === "true";
-
-        if (isGoogleUser) {
-          setIsGoogleAccount(isGoogleUser);
-          setIsPasswordVerified(isGoogleUser);
-        }
+          headers,
+        });
       } else {
-        setErrorMessage(data.msg || "Failed to fetch user data");
+        response = await apiFetch(`${BACKEND_API_URL}/api/account-details`, {
+          method: "POST",
+          headers,
+        });
       }
-    } catch (error) {
+
+      data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.msg || "Failed to fetch user data");
+        return;
+      }
+
+      if (data) {
+        setFormData((prev) => ({
+          ...prev,
+          username: data.username?.trim() || "",
+          email: data.email?.trim() || "",
+        }));
+      }
+
+      if (isGoogleUser) {
+        setIsGoogleAccount(true);
+        setIsPasswordVerified(true);
+      }
+    } catch (err) {
       setErrorMessage("Failed to fetch user data");
     } finally {
       setLoading(false);
@@ -147,9 +156,9 @@ const Accounts = () => {
 
       const data = await response.json();
       if (response.ok) {
+        fetchUserData();
         setIsPasswordVerified(true);
         setErrorMessage("");
-        fetchUserData();
       } else {
         setErrorMessage(data.msg || "Password verification failed.");
       }
@@ -237,6 +246,7 @@ const Accounts = () => {
               navigate(`/account/${username}`);
               location.reload();
             });
+
             fetchUserData();
           } else {
             setErrorMessage(data.msg || "Failed to update username");

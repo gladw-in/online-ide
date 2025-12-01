@@ -793,15 +793,53 @@ app.get('/api/protected', cleanExpired, async (req, res) => {
 			await user.save();
 		}
 
-		const includeEmail = req.query.email === 'true';
 		const response = {
 			msg: 'Protected data',
 			username: user.username,
 		};
 
-		if (includeEmail) {
-			response.email = user.email;
+		res.json(response);
+	} catch (err) {
+		res.status(403).json({
+			msg: 'Invalid or expired token',
+		});
+	}
+});
+
+app.post('/api/account-details', cleanExpired, verifyRecaptcha, async (req, res) => {
+	const token = req.headers['authorization']?.split(' ')[1];
+
+	if (!token) {
+		return res.status(403).json({
+			msg: 'No token provided',
+		});
+	}
+
+	try {
+		await checkAndConnectDB();
+
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId).select('-password');
+
+		if (!user) {
+			return res.status(404).json({
+				msg: 'User not found',
+			});
 		}
+
+		const fiveMinutes = 5 * 60 * 1000;
+		const now = Date.now();
+
+		if (!user.lastLogin || now - user.lastLogin > fiveMinutes) {
+			user.lastLogin = now;
+			await user.save();
+		}
+
+		const response = {
+			msg: 'Protected data',
+			username: user.username,
+			email: user.email,
+		};
 
 		res.json(response);
 	} catch (err) {
@@ -1109,17 +1147,27 @@ app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
-	const {
-		username,
-		language
-	} = req.body;
+	const token = req.headers['authorization']?.split(' ')[1];
+
+	if (!token) {
+		return res.status(403).json({
+			msg: 'No token provided',
+		});
+	}
+
+	const { language } = req.body;
+
+	if (!language) {
+		return res.status(400).json({
+			msg: 'No valid language provided',
+		});
+	}
 
 	try {
 		await checkAndConnectDB();
 
-		const user = await User.findOne({
-			username,
-		});
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
 		if (!user) {
 			return res.status(404).json({
@@ -1146,17 +1194,27 @@ app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
-	const {
-		username,
-		language
-	} = req.body;
+	const token = req.headers['authorization']?.split(' ')[1];
+
+	if (!token) {
+		return res.status(403).json({
+			msg: 'No token provided',
+		});
+	}
+
+	const { language } = req.body;
+
+	if (!language) {
+		return res.status(400).json({
+			msg: 'No valid language provided',
+		});
+	}
 
 	try {
 		await checkAndConnectDB();
 
-		const user = await User.findOne({
-			username,
-		});
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
 		if (!user) {
 			return res.status(404).json({
@@ -1183,25 +1241,31 @@ app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
+	const token = req.headers['authorization']?.split(' ')[1];
+
+	if (!token) {
+		return res.status(403).json({
+			msg: 'No token provided',
+		});
+	}
+
 	const {
-		username,
 		shareId,
 		title,
 		expiryTime,
 	} = req.body;
 
-	if (!username || !shareId || !title) {
+	if (!shareId || !title || !expiryTime) {
 		return res.status(400).json({
-			msg: 'Missing required fields: username, shareId, or title',
+			msg: 'Missing required fields: shareId, title, or expiryTime',
 		});
 	}
 
 	try {
 		await checkAndConnectDB();
 
-		const user = await User.findOne({
-			username,
-		});
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
 		if (!user) {
 			return res.status(404).json({
