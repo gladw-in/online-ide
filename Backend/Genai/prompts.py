@@ -892,6 +892,7 @@ Generate HTML code for the following project, suitable for placement directly wi
 *   Add `alt` attributes for all `<img>` tags to support accessibility and screen readers.
 *   Add Font Awesome icons sourced from Cloudflare or jsDelivr to visually enhance the interface and increase UI clarity when needed.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
+*   When placeholder avatars are needed, use https://i.pravatar.cc/SIZE (max size 1000) instead of real user images.
 *   Use form elements semantically (e.g., `<label>` for `<input>`) when applicable.
 *   Ensure elements are keyboard-accessible — avoid using non-interactive tags (like `<div>`) for clickable elements.
 *   Avoid redundant wrappers or excessive nesting — keep the markup clean and purposeful.
@@ -937,6 +938,7 @@ Generate CSS to style the following HTML.
 *   **If the project includes a header or navigation bar, make it mobile-friendly with a hamburger menu for smaller screens.** Structure the HTML to support a toggleable menu.
 *   Add Font Awesome icons for visual enhancement and improved UI clarity where appropriate.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
+*   When placeholder avatars are needed, use https://i.pravatar.cc/SIZE (max size 1000) instead of real user images.
 *   Avoid inline styles unless absolutely necessary — keep styles in the CSS file for maintainability.
 *   Keep specificity low to avoid issues with overriding styles later.
 *   Minimize the use of `!important` — rely on proper CSS structure instead.
@@ -971,6 +973,7 @@ Generate JavaScript to add interactivity to the following HTML.
 *   If the project requires fetching data from an API, use the fetch API.
 *   Add Font Awesome icons for visual enhancement and improved UI clarity where appropriate.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
+*   When placeholder avatars are needed, use https://i.pravatar.cc/SIZE (max size 1000) instead of real user images.
 *   Ensure the JavaScript is unobtrusive and degrades gracefully if JavaScript is disabled.
 *   **If the project includes a header or navigation bar, make it mobile-friendly with a hamburger menu for smaller screens.** Structure the HTML to support a toggleable menu.
 *   Keep your code modular — use functions to break tasks into logical chunks.
@@ -1015,6 +1018,7 @@ Refactor HTML code for the following project, suitable for placement directly wi
 *   Add `alt` attributes for all `<img>` tags to support accessibility and screen readers.
 *   Use form elements semantically (e.g., `<label>` for `<input>`) when applicable.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
+*   When placeholder avatars are needed, use https://i.pravatar.cc/SIZE (max size 1000) instead of real user images.
 *   Ensure elements are keyboard-accessible — avoid using non-interactive tags (like `<div>`) for clickable elements.
 *   Avoid redundant wrappers or excessive nesting — keep the markup clean and purposeful.
 *   Use placeholder text or descriptive content where necessary to make the structure understandable during development.
@@ -1062,6 +1066,7 @@ Refactor CSS to style the following HTML.
 *   Minimize the use of `!important` — rely on proper CSS structure instead.
 *   Use CSS custom properties (variables) for colors, spacing, etc., to ensure consistency and easier updates.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
+*   When placeholder avatars are needed, use https://i.pravatar.cc/SIZE (max size 1000) instead of real user images.
 *   Stick to a consistent naming convention (e.g., BEM or project-specific pattern).
 *   Avoid unnecessary nesting if using a preprocessor like SCSS — keep the CSS flat and readable.
 *   Use `rem` or `em` units for font sizes and spacing instead of `px` to improve scalability and accessibility.
@@ -1096,6 +1101,7 @@ Refactor JavaScript to add interactivity to the following HTML.
 *   Handle errors gracefully — use try/catch where appropriate, especially with async/await and fetch.
 *   Use meaningful variable and function names for better readability and maintainability.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
+*   When placeholder avatars are needed, use https://i.pravatar.cc/SIZE (max size 1000) instead of real user images.
 *   Avoid deeply nested callbacks — consider using promises or async/await for cleaner asynchronous code.
 *   Clean up event listeners when elements are removed from the DOM to prevent memory leaks.
 *   Comment complex logic where needed, but avoid redundant or obvious comments.
@@ -1129,6 +1135,7 @@ Refactor HTML code for the following project, suitable for placement directly wi
 *   **Absolutely do not include any inline CSS** (e.g., `<style>...</style>` within HTML tags. The HTML should be purely structural.
 *   **Do not include any inline styles (e.g., `style="..."`), or links to external CSS/JS files except for essential CDNs as specified below.**
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
+*   When placeholder avatars are needed, use https://i.pravatar.cc/SIZE (max size 1000) instead of real user images.
 
 **VERY IMPORTANT**: Regarding external libraries/CDNs:
 
@@ -1159,6 +1166,7 @@ Refactor CSS to style the following HTML.
 *   The CSS should be valid and well-formatted.
 *   Remove custom css if frame works are used.
 *   Use https://placehold.co/HEIGHTxWIDTH or https://picsum.photos/[mode/]WIDTH/HEIGHT[.jpg|.webp][?grayscale][&blur[=level]][&random][#cachebust] instead of images to create placeholder visuals during development or prototyping.
+*   When placeholder avatars are needed, use https://i.pravatar.cc/SIZE (max size 1000) instead of real user images.
 *   Do not use `@apply` for utility classes or styles. If it's present, please remove it.
 
 Problem statement:

@@ -426,16 +426,28 @@ const Register = () => {
               <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
             </div>
 
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleLoginSuccess}
-                onError={handleGoogleLoginError}
-                theme="outline"
-                shape="square"
-                scope="profile email"
-                text="continue_with"
-                useOneTap
-              />
+            <div className="flex justify-center w-full">
+              <div className="relative w-fit max-w-full">
+                <GoogleLogin
+                  onSuccess={handleGoogleLoginSuccess}
+                  onError={handleGoogleLoginError}
+                  theme="outline"
+                  shape="square"
+                  scope="profile email"
+                  text="continue_with"
+                  useOneTap
+                />
+
+                {loading && (
+                  <div
+                    className="absolute inset-0 z-50 bg-transparent cursor-not-allowed"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  ></div>
+                )}
+              </div>
             </div>
 
             {googleLoginError && (

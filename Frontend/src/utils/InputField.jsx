@@ -52,7 +52,7 @@ const InputField = ({
         required={required}
         autoComplete={getAutoCompleteValue()}
         disabled={disabled}
-        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed"
+        className="w-full p-3 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed"
       />
 
       {isPasswordField && (

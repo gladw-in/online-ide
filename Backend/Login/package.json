@@ -16,10 +16,10 @@
     "body-parser": "^2.2.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "google-auth-library": "^10.5.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^9.0.0",
-    "nodemailer": "^7.0.11"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.1.1",
+    "nodemailer": "^7.0.12"
   }
 }

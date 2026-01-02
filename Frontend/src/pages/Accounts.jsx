@@ -461,7 +461,9 @@ const Accounts = () => {
 
   return (
     <div className="max-w-md mx-auto my-8 p-4 bg-white rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
-      <h2 className="text-xl font-semibold text-center">Account Settings</h2>
+      <h2 className="text-xl font-semibold text-center text-gray-700 dark:text-gray-300">
+        Account Settings
+      </h2>
       {errorMessage && (
         <p className="text-red-500 text-center">{errorMessage}</p>
       )}
@@ -513,14 +515,14 @@ const Accounts = () => {
 
       {isPasswordVerified && (
         <p className="mt-4 overflow-auto">
-          <span className="text-gray-600 dark:text-gray-300 font-medium mb-1">
+          <span className="text-gray-700 dark:text-gray-300 dark:text-gray-300 font-medium mb-1">
             Email:
           </span>
           <span
-            className="pl-2 text-base font-semibold select-text"
-            title={formData.email}
+            className="pl-2 text-gray-700 dark:text-gray-300 text-base font-semibold select-text"
+            title={formData.email.trim()}
           >
-            {formData.email}
+            {formData.email.trim()}
           </span>
         </p>
       )}

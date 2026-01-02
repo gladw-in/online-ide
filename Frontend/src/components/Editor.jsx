@@ -5,7 +5,6 @@ import ShareLinkModal from "../utils/ShareLinkModal.js";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
   LOCAL_STORAGE_TOKEN_KEY,
-  LOCAL_STORAGE_USERNAME_KEY,
   GENAI_API_URL,
   TEMP_SHARE_API_URL,
   BACKEND_API_URL,
@@ -297,6 +296,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         iframeRef.current.contentDocument ||
         iframeRef.current.contentWindow.document;
 
+      setIsPreviewEnabled(false);
+
       iframeDocument.open();
       iframeDocument.write(`
         <!DOCTYPE html>
@@ -319,6 +320,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         </html>
       `);
       iframeDocument.close();
+
+      setIsPreviewEnabled(true);
     }
   };
 

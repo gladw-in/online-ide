@@ -290,7 +290,7 @@ const SharedLinks = () => {
         <div className="mb-6">
           {isLoggedIn && visibleLinks.length > 0 && (
             <div className="flex items-center">
-              <h2 className="text-2xl font-bold mb-4 text-left mr-4 underline underline-offset-2 decoration-4 decoration-blue-500 hover:decoration-blue-400 dark:decoration-blue-600 dark:hover:decoration-blue-700">
+              <h2 className="text-2xl font-bold mb-4 text-left mr-4 text-gray-700 underline underline-offset-2 decoration-4 decoration-blue-500 hover:decoration-blue-400 dark:decoration-blue-600 dark:text-gray-300 dark:hover:decoration-blue-700">
                 Shared Links
               </h2>
               <button

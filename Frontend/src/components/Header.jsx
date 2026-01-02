@@ -164,7 +164,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       {isLoading && (
         <div className="fixed inset-0 bg-opacity-50 bg-transparent backdrop-blur-[2px] dark:bg-opacity-70 flex justify-center items-center z-50 overflow-hidden">
           <div className="flex items-center space-x-3 bg-white p-4 rounded-lg shadow-lg dark:bg-gray-800 dark:text-white">
-            <FaSpinner className="text-4xl animate-spin" />
+            <FaSpinner className="text-4xl text-gray-700 dark:text-gray-300 animate-spin" />
             <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">
               Loading...
             </span>
