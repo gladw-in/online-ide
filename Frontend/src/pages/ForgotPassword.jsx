@@ -48,8 +48,8 @@ const ForgotPassword = () => {
   }, [emailVerified, otpVerified]);
 
   useEffect(() => {
-    const token = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
-    setIsLogin(!!token);
+    const isLogin = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
+    setIsLogin(isLogin === "true");
   }, []);
 
   const handleInputChange = (e) => {

@@ -16,6 +16,6 @@ export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{5,30}$/;
 export const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
-export const PASSWORD_REGEX = /^.{8,}$/;
+export const PASSWORD_REGEX = /^.{8,64}$/;
 
 export const MAX_SIZE = 0.5 * 1024 * 1024;

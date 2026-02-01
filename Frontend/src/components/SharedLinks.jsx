@@ -52,7 +52,7 @@ const SharedLinks = () => {
       const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
       const isLogin = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
 
-      if (!token || !isLogin) {
+      if (!token || isLogin !== "true") {
         sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
         return;
       }
@@ -246,7 +246,7 @@ const SharedLinks = () => {
   useEffect(() => {
     const isLogin = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
 
-    if (!isLogin) {
+    if (isLogin !== "true") {
       sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
       setIsLoggedIn(false);
       return;
@@ -254,7 +254,7 @@ const SharedLinks = () => {
 
     const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
     if (username) {
-      setIsLoggedIn(true);
+      setIsLoggedIn(isLogin === "true" && !!username);
     } else {
       setIsLoggedIn(false);
     }
@@ -264,7 +264,13 @@ const SharedLinks = () => {
     }
 
     const sharedLink = sessionStorage.getItem(SESSION_STORAGE_SHARELINKS_KEY);
-    if (sharedLink === null || sharedLink === "[]") {
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
+    if (
+      (sharedLink === null || sharedLink === "[]") &&
+      token &&
+      isLogin === "true"
+    ) {
       fetchSharedLinks();
     } else {
       setSharedLinks(JSON.parse(sharedLink));

@@ -4,7 +4,7 @@ const usernameRegex = /^[a-zA-Z0-9_.-]{5,30}$/;
 
 const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
-const pwdRegex = /^.{8,}$/;
+const pwdRegex = /^.{8,64}$/;
 
 const reservedUsernames = [
 	'admin', 'root', 'support', 'system', 'null', 'undefined',
