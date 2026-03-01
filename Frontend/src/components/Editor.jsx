@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { debounce } from "lodash";
 import MonacoEditor from "@monaco-editor/react";
 import ShareLinkModal from "../utils/ShareLinkModal.js";
@@ -51,7 +51,10 @@ const EditorSection = ({
   return (
     <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-lg">
       <div className="flex items-center my-2 ml-3">
-        {React.createElement(getLanguageIcon(), { className: "mr-2 text-xl" })}
+        {(() => {
+          const Icon = getLanguageIcon();
+          return Icon ? <Icon className="mr-2 text-xl" /> : null;
+        })()}
         <h2 className="text-xl">{capFirst(language)} Editor</h2>
       </div>
       <MonacoEditor

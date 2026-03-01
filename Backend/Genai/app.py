@@ -23,6 +23,8 @@ logging.basicConfig(
 
 app = Flask(__name__)
 
+app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
+
 CORS(app)
 
 load_dotenv()
@@ -52,9 +54,13 @@ def get_generated_code(problem_description, language):
                 ),
             )
 
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
+            try:
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
+            except Exception as stream_e:
+                logging.error(f"Error during Gemini stream: {stream_e}")
+                yield f"\n\n[Error: Connection to AI interrupted. Please try again.]"
 
         return Response(stream_with_context(stream()), mimetype="text/plain")
 
@@ -84,9 +90,13 @@ def get_output(code, language):
                 ),
             )
 
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
+            try:
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
+            except Exception as stream_e:
+                logging.error(f"Error during Gemini stream: {stream_e}")
+                yield f"\n\n[Error: Connection to AI interrupted. Please try again.]"
 
         return Response(stream_with_context(stream()), mimetype="text/plain")
     except Exception as e:
@@ -122,9 +132,13 @@ def refactor_code(code, language, output, problem_description=None):
                 ),
             )
 
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
+            try:
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
+            except Exception as stream_e:
+                logging.error(f"Error during Gemini stream: {stream_e}")
+                yield f"\n\n[Error: Connection to AI interrupted. Please try again.]"
 
         return Response(stream_with_context(stream()), mimetype="text/plain")
 
@@ -174,9 +188,13 @@ def generate_html(prompt):
             ),
         )
 
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
+        try:
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as stream_e:
+            logging.error(f"Error during Gemini stream: {stream_e}")
+            yield f"\n\n[Error: Connection to AI interrupted. Please try again.]"
 
     return Response(stream_with_context(stream()), mimetype="text/plain")
 
@@ -199,9 +217,13 @@ def generate_css(html_content, project_description):
             ),
         )
 
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
+        try:
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as stream_e:
+            logging.error(f"Error during Gemini stream: {stream_e}")
+            yield f"\n\n[Error: Connection to AI interrupted. Please try again.]"
 
     return Response(stream_with_context(stream()), mimetype="text/plain")
 
@@ -225,9 +247,13 @@ def generate_js(html_content, css_content, project_description):
             ),
         )
 
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
+        try:
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as stream_e:
+            logging.error(f"Error during Gemini stream: {stream_e}")
+            yield f"\n\n[Error: Connection to AI interrupted. Please try again.]"
 
     return Response(stream_with_context(stream()), mimetype="text/plain")
 
@@ -250,8 +276,9 @@ def generate_code():
             logging.warning("reCAPTCHA verification failed for /generate_code.")
             abort(403, description="reCAPTCHA verification failed.")
 
-        problem_description = request.json["problem_description"]
-        language = request.json["language"]
+        data = request.get_json(silent=True) or {}
+        problem_description = data.get("problem_description")
+        language = data.get("language")
 
         logging.info(f"Generating code for language: {language}")
         return get_generated_code(problem_description, language)
@@ -272,8 +299,9 @@ def get_output_api():
             logging.warning("reCAPTCHA verification failed for /get-output.")
             abort(403, description="reCAPTCHA verification failed.")
 
-        code = request.json["code"]
-        language = request.json["language"]
+        data = request.get_json(silent=True) or {}
+        code = data.get("code")
+        language = data.get("language")
 
         if not code or not language:
             logging.warning("Missing code or language in /get-output request.")
@@ -282,7 +310,7 @@ def get_output_api():
         if len(code.encode("utf-8")) > MAX_SIZE:
             logging.warning("Code size exceeds maximum allowed limit.")
             return jsonify({"error": "Code size exceeds the 0.5 MB limit"}), 413
-        
+
         code = f"\n\n{code}\n\n"
 
         logging.info(f"Getting output for language: {language}")
@@ -306,10 +334,11 @@ def refactor_code_api():
             logging.warning("reCAPTCHA verification failed for /refactor_code.")
             abort(403, description="reCAPTCHA verification failed.")
 
-        code = request.json["code"]
-        language = request.json["language"]
-        problem_description = request.json["problem_description"]
-        output = request.json["output"]
+        data = request.get_json(silent=True) or {}
+        code = data.get("code")
+        language = data.get("language")
+        problem_description = data.get("problem_description")
+        output = data.get("output")
 
         if not code or not language:
             logging.warning("Missing code or language in /refactor_code request.")
@@ -341,7 +370,7 @@ def improve_prompt():
         logging.warning("reCAPTCHA verification failed for /improve-prompt.")
         abort(403, description="reCAPTCHA verification failed.")
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
     topic = data.get("topic")
 
@@ -362,6 +391,7 @@ def improve_prompt():
             model=gemini_model,
             config=types.GenerateContentConfig(
                 system_instruction=system_improve_prompt,
+                response_mime_type="application/json",
             ),
             contents=prompt_template,
         )
@@ -395,7 +425,7 @@ def htmlcssjs_generate_stream():
             )
             abort(403, description="reCAPTCHA verification failed.")
 
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         code_type = data.get("type")
         prompt = data.get("prompt")
         html_content = data.get("htmlContent", "")
@@ -435,7 +465,7 @@ def htmlcssjs_refactor():
             )
             abort(403, description="reCAPTCHA verification failed.")
 
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
 
         html_content = data.get("html") if len(data.get("html", "")) > 0 else ""
         css_content = data.get("css") if len(data.get("css", "")) > 0 else ""

@@ -13,7 +13,7 @@ import uuid
 import json
 import redis
 from utils import *
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import logging
 
@@ -82,7 +82,11 @@ def upload_file():
         language = data["language"]
         title = data["title"]
 
-        current_time = datetime.utcnow()
+        if len(code) > 512000:
+            logging.warning("Payload too large rejected.")
+            return jsonify({"error": "Code exceeds maximum allowed size (500KB)."}), 413
+
+        current_time = datetime.now(timezone.utc)
         expiry_time = current_time + timedelta(minutes=expiry_time_minutes)
         formatted_expiry_time = expiry_time.strftime("%Y-%m-%d %H:%M:%S UTC")
 

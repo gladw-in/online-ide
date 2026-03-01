@@ -379,6 +379,20 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 		const isOtpValid = await bcrypt.compare(otp, user.otp);
 
 		if (!isOtpValid) {
+			user.otpAttempts = (user.otpAttempts || 0) + 1;
+			
+			if (user.otpAttempts >= 5) {
+				user.otp = null;
+				user.otpExpires = null;
+				user.otpAttempts = 0;
+				
+				await user.save();
+				return res.status(400).json({
+					msg: 'Too many incorrect attempts. OTP invalidated. Please request a new one.',
+				});
+			}
+			await user.save();
+
 			return res.status(400).json({
 				msg: 'Invalid OTP',
 			});
@@ -401,6 +415,7 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 		user.otpExpires = null;
 		user.lastLogin = ISTDate;
 		user.createdDate = ISTDate;
+		user.otpAttempts = 0;
 
 		await user.save();
 
@@ -473,6 +488,7 @@ app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
 
 		user.otp = hashedOtp;
 		user.otpExpires = otpExpires;
+		user.otpAttempts = 0;
 		await user.save();
 
 		await sendOtpEmail(user.email, otp);
@@ -609,6 +625,7 @@ app.post('/api/forgot-password', verifyRecaptcha, async (req, res) => {
 
 			user.otp = hashedOtp;
 			user.otpExpires = Date.now() + 10 * 60 * 1000;
+			user.otpAttempts = 0;
 			await user.save();
 
 			await sendOtpEmail(user.email, otp);
@@ -662,8 +679,21 @@ app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
 
 		const isOtpValid = await bcrypt.compare(otp, user.otp);
 		if (!isOtpValid) {
+			user.otpAttempts = (user.otpAttempts || 0) + 1;
+			
+			if (user.otpAttempts >= 5) {
+				user.otp = null;
+				user.otpExpires = null;
+				user.otpAttempts = 0;
+				await user.save();
+				return res.status(400).json({
+					msg: 'Too many incorrect attempts. OTP invalidated. Please request a new one.',
+				});
+			}
+			await user.save();
+
 			return res.status(400).json({
-				msg: "Invalid OTP"
+				msg: 'Invalid OTP',
 			});
 		}
 
@@ -672,6 +702,9 @@ app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
 				msg: "OTP has expired"
 			});
 		}
+
+		user.otpAttempts = 0;
+		await user.save();
 
 		res.status(200).json({
 			msg: "OTP verified successfully"
@@ -731,8 +764,21 @@ app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 
 		const isOtpValid = await bcrypt.compare(otp, user.otp);
 		if (!isOtpValid) {
+			user.otpAttempts = (user.otpAttempts || 0) + 1;
+			
+			if (user.otpAttempts >= 5) {
+				user.otp = null;
+				user.otpExpires = null;
+				user.otpAttempts = 0;
+				await user.save();
+				return res.status(400).json({
+					msg: 'Too many incorrect attempts. OTP invalidated. Please request a new one.',
+				});
+			}
+			await user.save();
+
 			return res.status(400).json({
-				msg: "Invalid OTP"
+				msg: 'Invalid OTP',
 			});
 		}
 
@@ -748,6 +794,8 @@ app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 		user.password = hashedPassword;
 		user.otp = null;
 		user.otpExpires = null;
+		user.otpAttempts = 0;
+		user.passwordChangedAt = new Date();
 		await user.save();
 
 		await sendPassChangeEmail(user.email);
@@ -783,6 +831,15 @@ app.get('/api/protected', cleanExpired, async (req, res) => {
 			return res.status(404).json({
 				msg: 'User not found',
 			});
+		}
+
+		if (user.passwordChangedAt) {
+			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
+			if (decoded.iat < changedTimestamp) {
+				return res.status(403).json({
+					msg: 'Session expired due to a recent password change. Please log in again.',
+				});
+			}
 		}
 
 		const fiveMinutes = 5 * 60 * 1000;
@@ -825,6 +882,15 @@ app.post('/api/account-details', cleanExpired, verifyRecaptcha, async (req, res)
 			return res.status(404).json({
 				msg: 'User not found',
 			});
+		}
+
+		if (user.passwordChangedAt) {
+			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
+			if (decoded.iat < changedTimestamp) {
+				return res.status(403).json({
+					msg: 'Session expired due to a recent password change. Please log in again.',
+				});
+			}
 		}
 
 		const fiveMinutes = 5 * 60 * 1000;
@@ -895,6 +961,15 @@ app.put('/api/change-username', verifyRecaptcha, async (req, res) => {
 			return res.status(404).json({
 				msg: 'User not found',
 			});
+		}
+
+		if (user.passwordChangedAt) {
+			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
+			if (decoded.iat < changedTimestamp) {
+				return res.status(403).json({
+					msg: 'Session expired due to a recent password change. Please log in again.',
+				});
+			}
 		}
 
 		const existingUser = await User.findOne({
@@ -986,6 +1061,7 @@ app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 		const hashedPassword = await bcrypt.hash(newPassword, 10);
 
 		user.password = hashedPassword;
+		user.passwordChangedAt = new Date();
 		await user.save();
 
 		await sendPassChangeEmail(user.email)
@@ -1030,6 +1106,15 @@ app.delete('/api/account', verifyRecaptcha, async (req, res) => {
 			return res.status(404).json({
 				msg: 'User not found',
 			});
+		}
+
+		if (user.passwordChangedAt) {
+			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
+			if (decoded.iat < changedTimestamp) {
+				return res.status(403).json({
+					msg: 'Session expired due to a recent password change. Please log in again.',
+				});
+			}
 		}
 
 		await logUserAction(user, 'delete');
@@ -1083,6 +1168,15 @@ app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
 			return res.status(404).json({
 				msg: 'User not found',
 			});
+		}
+
+		if (user.passwordChangedAt) {
+			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
+			if (decoded.iat < changedTimestamp) {
+				return res.status(403).json({
+					msg: 'Session expired due to a recent password change. Please log in again.',
+				});
+			}
 		}
 
 		if (user.googleId && !user.password) {
@@ -1281,11 +1375,14 @@ app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
 		);
 
 		if (!linkExists) {
-			user.sharedLinks.push({
-				shareId,
-				title,
-				expiryTime: expiryDate,
-			});
+			await User.updateOne(
+				{ _id: user._id },
+				{ 
+					$push: { 
+						sharedLinks: { shareId, title, expiryTime: expiryDate } 
+					} 
+				}
+			);
 
 			await logUserAction(user, 'update');
 			await user.save();

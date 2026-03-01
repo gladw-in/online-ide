@@ -45,6 +45,13 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: null,
     },
+    otpAttempts: {
+        type: Number,
+        default: 0,
+    },
+    passwordChangedAt: {
+        type: Date,
+    },
     generateCodeCount: {
         type: Map,
         of: Number,
@@ -152,13 +159,16 @@ userSchema.pre('save', async function() {
     }
 });
 
-userSchema.pre('remove', async function() {
-    const user = this;
-    try {
-        await logUserAction(user, 'delete');
-    } catch (err) {
-        console.error('Error in pre-remove logUserAction:', err);
-    }
+userSchema.pre(['deleteOne', 'findOneAndDelete'], {
+	document: true,
+	query: false
+}, async function() {
+	const user = this;
+	try {
+		await logUserAction(user, 'delete');
+	} catch (err) {
+		console.error('Error in pre-delete logUserAction:', err);
+	}
 });
 
 module.exports = mongoose.model('User', userSchema);

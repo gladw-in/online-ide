@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import ShareLinkModal from "../utils/ShareLinkModal.js";
 import { apiFetch } from "../utils/apifetch";
@@ -23,6 +23,7 @@ import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
 import { BiTerminal } from "react-icons/bi";
 import { GiBrain } from "react-icons/gi";
 import Swal from "sweetalert2/dist/sweetalert2.js";
+import { debounce } from "lodash";
 
 const CodeEditor = ({
   title,
@@ -135,19 +136,29 @@ const CodeEditor = ({
     return () => window.removeEventListener("resize", handleResize);
   }, [language]);
 
+  const debouncedSaveToStorage = useCallback(
+    debounce((currentCode, currentOutput, codeKey, outputKey) => {
+      if (
+        currentCode !== sessionStorage.getItem(codeKey) ||
+        currentCode === ""
+      ) {
+        sessionStorage.setItem(codeKey, currentCode);
+      }
+      if (
+        currentOutput !== sessionStorage.getItem(outputKey) ||
+        currentOutput === ""
+      ) {
+        sessionStorage.setItem(outputKey, currentOutput);
+      }
+    }, 500),
+    []
+  );
+
   useEffect(() => {
-    if (code !== sessionStorage.getItem(codeStorageKey) || code === "") {
-      sessionStorage.setItem(codeStorageKey, code);
-    }
+    debouncedSaveToStorage(code, output, codeStorageKey, outputStorageKey);
 
-    if (output !== sessionStorage.getItem(outputStorageKey) || output === "") {
-      sessionStorage.setItem(outputStorageKey, output);
-    }
-  }, [code, output, language]);
-
-  const handleEditorDidMount = (editor, monaco) => {
-    editorRef.current = editor;
-  };
+    return () => debouncedSaveToStorage.cancel();
+  }, [code, output, codeStorageKey, outputStorageKey, debouncedSaveToStorage]);
 
   const runCode = async () => {
     if (code.trim().length === 0) return;
@@ -1186,7 +1197,10 @@ const CodeEditor = ({
       <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-lg">
         <div className="flex items-center my-2 ml-3 pt-2">
           {reactIcon &&
-            React.createElement(reactIcon, { className: "text-xl mr-2" })}
+            (() => {
+              const Icon = reactIcon;
+              return <Icon className="text-xl mr-2" />;
+            })()}
           <h2 className="text-xl">
             {language.charAt(0).toUpperCase() + language.slice(1)} Editor
           </h2>
@@ -1196,7 +1210,6 @@ const CodeEditor = ({
           value={code}
           onChange={(newValue) => setCode(newValue)}
           editorDidMount={(editor) => editor.focus()}
-          onMount={handleEditorDidMount}
           loading={`Loading ${capFirst(language)} Editor...`}
           height="350px"
           theme={isDarkMode ? "vs-dark" : "vs-light"}
