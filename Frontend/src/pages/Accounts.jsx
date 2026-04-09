@@ -11,7 +11,7 @@ import {
   USERNAME_REGEX,
   PASSWORD_REGEX,
 } from "../utils/constants";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { TbLoader } from "react-icons/tb";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 
@@ -33,10 +33,18 @@ const Accounts = () => {
   const [delBtnText, setDelBtnText] = useState("Delete Account");
   const [loading, setLoading] = useState(false);
 
+  const { username } = useParams();
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+    const localUsername =
+      localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY) || "";
+
+    if (username !== localUsername) {
+      navigate(`/account/${localUsername}`, { replace: true });
+      return;
+    }
 
     document.title = `Account - ${
       username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()

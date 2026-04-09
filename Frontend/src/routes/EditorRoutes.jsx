@@ -30,30 +30,7 @@ import NavigationLinks from "../components/NavigationLinks";
 import Editor from "../components/Editor";
 import CodeEditor from "../components/CodeEditor";
 import ShareEditor from "../components/ShareEditor";
-import {
-  LOCAL_STORAGE_TOKEN_KEY,
-  GENAI_API_URL,
-  LOCAL_STORAGE_USERNAME_KEY,
-} from "../utils/constants";
-import samplePy from "../samples/python.py?raw";
-import sampleJs from "../samples/javascript.js?raw";
-import sampleC from "../samples/c.c?raw";
-import sampleCpp from "../samples/cpp.cpp?raw";
-import sampleJava from "../samples/java.java?raw";
-import sampleCsharp from "../samples/csharp.cs?raw";
-import sampleRust from "../samples/rust.rs?raw";
-import sampleGo from "../samples/go.go?raw";
-import sampleVerilog from "../samples/verilog.v?raw";
-import sampleSQL from "../samples/sql.sql?raw";
-import sampleMongoDB from "../samples/mongodb.js?raw";
-import sampleSwift from "../samples/swift.swift?raw";
-import sampleRuby from "../samples/ruby.rb?raw";
-import sampleTypeScript from "../samples/typescript.ts?raw";
-import sampleDart from "../samples/dart.dart?raw";
-import sampleKotlin from "../samples/kotlin.kt?raw";
-import samplePerl from "../samples/perl.pl?raw";
-import sampleScala from "../samples/scala.scala?raw";
-import sampleJulia from "../samples/julia.jl?raw";
+import { LOCAL_STORAGE_TOKEN_KEY, GENAI_API_URL } from "../utils/constants";
 import sampleHtml from "../samples/index.html?raw";
 import sampleCSS from "../samples/style.css?raw";
 import sampleJavaScript from "../samples/script.js?raw";
@@ -74,124 +51,139 @@ const RedirectedRoute = ({ element }) => {
   return !isAuthenticated() ? element : <Navigate to="/" />;
 };
 
-const GetUsername = () => {
-  return localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY) || "";
-};
-
 const languages = [
   {
     path: "/python",
     language: "python",
     icon: IoLogoPython,
-    sampleCode: samplePy,
+    getSample: () =>
+      import("../samples/python.py?raw").then((module) => module.default),
   },
   {
     path: "/javascript",
     language: "javascript",
     icon: SiJavascript,
-    sampleCode: sampleJs,
+    getSample: () =>
+      import("../samples/javascript.js?raw").then((module) => module.default),
   },
   {
     path: "/c",
     language: "c",
     icon: PiFileCFill,
-    sampleCode: sampleC,
+    getSample: () =>
+      import("../samples/c.c?raw").then((module) => module.default),
   },
   {
     path: "/cpp",
     language: "cpp",
     icon: PiFileCppFill,
-    sampleCode: sampleCpp,
+    getSample: () =>
+      import("../samples/cpp.cpp?raw").then((module) => module.default),
   },
   {
     path: "/java",
     language: "java",
     icon: RiJavaFill,
-    sampleCode: sampleJava,
+    getSample: () =>
+      import("../samples/java.java?raw").then((module) => module.default),
   },
   {
     path: "/csharp",
     language: "csharp",
     icon: PiFileCSharpFill,
-    sampleCode: sampleCsharp,
+    getSample: () =>
+      import("../samples/csharp.cs?raw").then((module) => module.default),
   },
   {
     path: "/rust",
     language: "rust",
     icon: SiRust,
-    sampleCode: sampleRust,
+    getSample: () =>
+      import("../samples/rust.rs?raw").then((module) => module.default),
   },
   {
     path: "/go",
     language: "go",
     icon: FaGolang,
-    sampleCode: sampleGo,
+    getSample: () =>
+      import("../samples/go.go?raw").then((module) => module.default),
   },
   {
     path: "/verilog",
     language: "verilog",
     icon: IoHardwareChipOutline,
-    sampleCode: sampleVerilog,
+    getSample: () =>
+      import("../samples/verilog.v?raw").then((module) => module.default),
   },
   {
     path: "/sql",
     language: "sql",
     icon: PiFileSqlFill,
-    sampleCode: sampleSQL,
+    getSample: () =>
+      import("../samples/sql.sql?raw").then((module) => module.default),
   },
   {
     path: "/mongodb",
     language: "mongodb",
     icon: SiMongodb,
-    sampleCode: sampleMongoDB,
+    getSample: () =>
+      import("../samples/mongodb.js?raw").then((module) => module.default),
   },
   {
     path: "/swift",
     language: "swift",
     icon: SiSwift,
-    sampleCode: sampleSwift,
+    getSample: () =>
+      import("../samples/swift.swift?raw").then((module) => module.default),
   },
   {
     path: "/ruby",
     language: "ruby",
     icon: SiRuby,
-    sampleCode: sampleRuby,
+    getSample: () =>
+      import("../samples/ruby.rb?raw").then((module) => module.default),
   },
   {
     path: "/typescript",
     language: "typescript",
     icon: BiLogoTypescript,
-    sampleCode: sampleTypeScript,
+    getSample: () =>
+      import("../samples/typescript.ts?raw").then((module) => module.default),
   },
   {
     path: "/dart",
     language: "dart",
     icon: SiDart,
-    sampleCode: sampleDart,
+    getSample: () =>
+      import("../samples/dart.dart?raw").then((module) => module.default),
   },
   {
     path: "/kotlin",
     language: "kotlin",
     icon: TbBrandKotlin,
-    sampleCode: sampleKotlin,
+    getSample: () =>
+      import("../samples/kotlin.kt?raw").then((module) => module.default),
   },
   {
     path: "/perl",
     language: "perl",
     icon: SiPerl,
-    sampleCode: samplePerl,
+    getSample: () =>
+      import("../samples/perl.pl?raw").then((module) => module.default),
   },
   {
     path: "/scala",
     language: "scala",
     icon: SiScala,
-    sampleCode: sampleScala,
+    getSample: () =>
+      import("../samples/scala.scala?raw").then((module) => module.default),
   },
   {
     path: "/julia",
     language: "julia",
     icon: SiJulia,
-    sampleCode: sampleJulia,
+    getSample: () =>
+      import("../samples/julia.jl?raw").then((module) => module.default),
   },
 ];
 
@@ -208,7 +200,7 @@ const EditorRoutes = ({ isDarkMode }) => (
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route
-        path={`/account/${GetUsername()?.trim() || "*"}`}
+        path="/account/:username"
         element={<ProtectedRoute element={<Accounts />} />}
       />
 
@@ -224,7 +216,7 @@ const EditorRoutes = ({ isDarkMode }) => (
         element={<ShareEditor isDarkMode={isDarkMode} />}
       />
 
-      {languages.map(({ path, language, icon, sampleCode }) => (
+      {languages.map(({ path, language, icon, getSample }) => (
         <Route
           key={language}
           path={path}
@@ -234,7 +226,7 @@ const EditorRoutes = ({ isDarkMode }) => (
               reactIcon={icon}
               apiEndpoint={`${GENAI_API_URL}/get-output`}
               isDarkMode={isDarkMode}
-              defaultCode={sampleCode}
+              defaultCode={getSample}
             />
           }
         />

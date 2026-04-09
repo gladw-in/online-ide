@@ -38,7 +38,7 @@ const CodeEditor = ({
   const outputStorageKey = `__${shareIdData || language}Output__`;
 
   const [code, setCode] = useState(
-    sessionStorage.getItem(codeStorageKey) || defaultCode || ""
+    sessionStorage.getItem(codeStorageKey) || ""
   );
   const [output, setOutput] = useState(
     sessionStorage.getItem(outputStorageKey) ||
@@ -89,13 +89,29 @@ const CodeEditor = ({
   }, [title, language]);
 
   useEffect(() => {
+    if (
+      !sessionStorage.getItem(codeStorageKey) &&
+      typeof defaultCode === "function"
+    ) {
+      defaultCode().then((resolvedCode) => {
+        setCode(resolvedCode);
+      });
+    } else if (
+      typeof defaultCode === "string" &&
+      !sessionStorage.getItem(codeStorageKey)
+    ) {
+      setCode(defaultCode);
+    }
+  }, [defaultCode, codeStorageKey]);
+
+  useEffect(() => {
     const savedCode = sessionStorage.getItem(codeStorageKey);
     const savedOutput = sessionStorage.getItem(outputStorageKey);
 
     if (savedCode && savedCode.trim().length !== 0) {
       setCode(savedCode);
     } else {
-      setCode(defaultCode || "");
+      setCode(typeof defaultCode === "string" ? defaultCode : "");
     }
 
     if (

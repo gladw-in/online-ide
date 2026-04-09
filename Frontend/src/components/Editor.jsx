@@ -193,74 +193,103 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     editorRefs.current[id] = editor;
   };
 
+  const buildFinalHtml = (
+    htmlCode,
+    cssCode,
+    jsCode,
+    includeBlocker = false
+  ) => {
+    const blockerScript =
+      includeBlocker && typeof blocker !== "undefined"
+        ? `<script>${blocker}</script>`
+        : "";
+
+    if (/<html/i.test(htmlCode)) {
+      let finalDoc = htmlCode;
+
+      if (/<\/head>/i.test(finalDoc)) {
+        finalDoc = finalDoc.replace(
+          /<\/head>/i,
+          `${blockerScript}\n<style>${cssCode || ""}</style>\n</head>`
+        );
+      } else {
+        finalDoc = finalDoc.replace(
+          /(<html.*?>)/i,
+          `$1\n<head>${blockerScript}\n<style>${cssCode || ""}</style>\n</head>`
+        );
+      }
+
+      if (/<\/body>/i.test(finalDoc)) {
+        finalDoc = finalDoc.replace(
+          /<\/body>/i,
+          `<script>${jsCode || ""}</script>\n</body>`
+        );
+      } else {
+        finalDoc += `\n<script>${jsCode || ""}</script>`;
+      }
+
+      return finalDoc;
+    }
+
+    return `<!DOCTYPE html>
+<html style="scrollbar-width: thin;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    ${blockerScript}
+    <style>${cssCode || ""}</style>
+  </head>
+  <body>
+    ${htmlCode || ""}
+    <script>
+      (function() {
+        try {
+          ${jsCode || ""}
+        } catch (error) {
+          console.error("Error executing JS:", error);
+        }
+      })();
+    </script>
+  </body>
+</html>`;
+  };
+
+  const codeRef = useRef(code);
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
+
   const updatePreview = useCallback(
     debounce(() => {
       if (!isPreviewEnabled) return;
 
       try {
-        const { html, css, javascript } = code;
+        const { html, css, javascript } = codeRef.current;
 
         if (iframeRef.current) {
           const iframeDocument =
             iframeRef.current.contentDocument ||
             iframeRef.current.contentWindow.document;
 
+          const finalHtml = buildFinalHtml(html, css, javascript, true);
+
           iframeDocument.open();
-          iframeDocument.write(`
-        <!DOCTYPE html>
-        <html style="scrollbar-width: thin;">
-          <head>
-            <style>${css.trim() || ""}</style>
-            <script>${blocker || ""}</script>
-          </head>
-          <body>
-            ${html.trim() || ""}
-            <script>
-              (function() {
-                try {
-                  ${javascript.trim() || ""}
-                } catch (error) {
-                  console.error("Error executing JS:", error);
-                }
-              })();
-            </script>
-          </body>
-        </html>
-      `);
+          iframeDocument.write(finalHtml);
           iframeDocument.close();
         }
       } catch {}
     }, 500),
-    [code, isPreviewEnabled]
+    [isPreviewEnabled]
   );
 
   const openPreviewFullScreen = () => {
     try {
       const { html, css, javascript } = code;
       const newWindow = window.open("", "_blank");
-      newWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Preview</title>
-        <style>${css.trim() || ""}</style>
-        <script>${blocker || ""}</script>
-      </head>
-      <body>
-        ${html.trim() || ""}
-        <script>
-          (function() {
-            try {
-              ${javascript.trim() || ""}
-            } catch (error) {
-              console.error("Error executing JS:", error);
-            }
-          })();
-        </script>
-      </body>
-      </html>
-    `);
+
+      const finalHtml = buildFinalHtml(html, css, javascript, true);
+
+      newWindow.document.write(finalHtml);
       newWindow.document.close();
     } catch {}
   };
@@ -292,8 +321,6 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     setCode({ html: "", css: "", javascript: "" });
     sessionStorage.removeItem(storageKey);
 
-    const { html, css, javascript } = code;
-
     if (iframeRef.current) {
       const iframeDocument =
         iframeRef.current.contentDocument ||
@@ -301,27 +328,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
       setIsPreviewEnabled(false);
 
+      const finalHtml = buildFinalHtml("", "", "", true);
+
       iframeDocument.open();
-      iframeDocument.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <style>${css || ""}</style>
-          </head>
-          <body>
-            ${html || ""}
-            <script>
-              (function() {
-                try {
-                  ${javascript || ""}
-                } catch (error) {
-                  console.error("Error executing JS:", error);
-                }
-              })();
-            </script>
-          </body>
-        </html>
-      `);
+      iframeDocument.write(finalHtml);
       iframeDocument.close();
 
       setIsPreviewEnabled(true);
@@ -331,9 +341,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   const downloadFile = () => {
     const editorCode = JSON.parse(sessionStorage.getItem(storageKey));
 
-    if (!editorCode) {
-      return;
-    }
+    if (!editorCode) return;
 
     const { html, css, javascript } = editorCode;
 
@@ -344,24 +352,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     )
       return;
 
-    const cleanedHtml = html
-      .replace(/<html.*?>|<\/html>/gi, "")
-      .replace(/<head.*?>|<\/head>/gi, "")
-      .replace(/<body.*?>|<\/body>/gi, "");
-
-    const finalHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <style>${css || ""}</style>
-        </head>
-        <body>
-          ${cleanedHtml || ""}
-          <script>${javascript || ""}</script>
-        </body>
-      </html>
-    `;
+    const finalHtml = buildFinalHtml(html, css, javascript, false);
 
     const blob = new Blob([finalHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);

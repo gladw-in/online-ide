@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
-import { GoogleLogin } from "@react-oauth/google";
 import InputField from "../utils/InputField";
 import OtpInputForm from "../utils/OtpInputForm";
 import { apiFetch } from "../utils/apifetch";
@@ -17,6 +16,12 @@ import {
   EMAIL_REGEX,
   PASSWORD_REGEX,
 } from "../utils/constants";
+
+const GoogleLogin = lazy(() =>
+  import("@react-oauth/google").then((module) => ({
+    default: module.GoogleLogin,
+  }))
+);
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -135,6 +140,8 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
 
     if (!validateForm()) return;
 
@@ -426,17 +433,25 @@ const Register = () => {
               <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
             </div>
 
-            <div className="flex justify-center w-full">
+            <div className="flex justify-center w-full min-h-[40px]">
               <div className="relative w-fit max-w-full">
-                <GoogleLogin
-                  onSuccess={handleGoogleLoginSuccess}
-                  onError={handleGoogleLoginError}
-                  theme="outline"
-                  shape="square"
-                  scope="profile email"
-                  text="continue_with"
-                  useOneTap
-                />
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center w-[250px] h-[40px] border border-gray-300 rounded">
+                      <TbLoader className="animate-spin text-xl text-gray-500" />
+                    </div>
+                  }
+                >
+                  <GoogleLogin
+                    onSuccess={handleGoogleLoginSuccess}
+                    onError={handleGoogleLoginError}
+                    theme="outline"
+                    shape="square"
+                    scope="profile email"
+                    text="continue_with"
+                    useOneTap
+                  />
+                </Suspense>
 
                 {loading && (
                   <div
