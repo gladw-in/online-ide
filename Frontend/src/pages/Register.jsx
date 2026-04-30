@@ -1,9 +1,11 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
+import { GoogleLogin } from "@react-oauth/google";
 import InputField from "../utils/InputField";
 import OtpInputForm from "../utils/OtpInputForm";
+import TurnstileCaptcha from "../utils/TurnstileCaptcha";
 import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
@@ -17,12 +19,6 @@ import {
   PASSWORD_REGEX,
 } from "../utils/constants";
 
-const GoogleLogin = lazy(() =>
-  import("@react-oauth/google").then((module) => ({
-    default: module.GoogleLogin,
-  }))
-);
-
 const Register = () => {
   const [formData, setFormData] = useState({
     username: "",
@@ -33,6 +29,7 @@ const Register = () => {
   const [googleLoginError, setGoogleLoginError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
@@ -57,7 +54,7 @@ const Register = () => {
     localStorage.setItem(LOCAL_STORAGE_LOGIN_KEY, "true");
     sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
     localStorage.setItem(LOCAL_STORAGE_GOOGLE_USER, data.isgoogleuser);
-    navigate(window.history.length > 2 ? -1 : "/");
+    navigate("/");
     location.reload();
   };
 
@@ -145,6 +142,11 @@ const Register = () => {
 
     if (!validateForm()) return;
 
+    if (!captchaToken) {
+      setError("Please complete CAPTCHA");
+      return;
+    }
+
     setLoading(true);
 
     const { username, email, newPassword } = formData;
@@ -159,6 +161,7 @@ const Register = () => {
           username: username.trim(),
           email: email.trim(),
           password: newPassword.trim(),
+          turnstileToken: captchaToken,
         }),
       });
 
@@ -167,25 +170,36 @@ const Register = () => {
 
         if (errorData.msg === "Email not verified.") {
           setOtpSent(true);
-          setLoading(false);
           setIsRegistered(true);
+          setOtpResent(true);
+          setLoading(false);
           return;
         } else {
-          throw new Error(errorData.msg || "Server error, please try again.");
+          setError(errorData.msg || "Server error, please try again.");
+          setCaptchaToken(null);
+          setLoading(false);
+          return;
         }
       }
 
       setOtpSent(true);
-      setLoading(false);
       setIsRegistered(true);
       setOtpResent(true);
+      setLoading(false);
     } catch (err) {
       setError(err.message || "Server error, please try again.");
+    } finally {
       setLoading(false);
+      setCaptchaToken(null);
     }
   };
 
   const handleGoogleLoginSuccess = async (credentialResponse) => {
+    if (!captchaToken) {
+      setGoogleLoginError("Please complete CAPTCHA first");
+      return;
+    }
+
     setLoading(true);
 
     if (error || googleLoginError) {
@@ -198,7 +212,10 @@ const Register = () => {
       const response = await apiFetch(`${BACKEND_API_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: idToken }),
+        body: JSON.stringify({
+          token: idToken,
+          turnstileToken: captchaToken,
+        }),
       });
 
       const data = await response.json();
@@ -211,6 +228,7 @@ const Register = () => {
       setGoogleLoginError("Google login failed. Please try again.");
     } finally {
       setLoading(false);
+      setCaptchaToken(null);
     }
   };
 
@@ -376,7 +394,7 @@ const Register = () => {
                 value={formData.username}
                 onChange={handleInputChange}
                 required
-                disabled={loading}
+                disabled={loading || !captchaToken}
               />
 
               <div className="relative mb-4">
@@ -387,7 +405,7 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  disabled={loading}
+                  disabled={loading || !captchaToken}
                 />
               </div>
 
@@ -400,7 +418,7 @@ const Register = () => {
                 required
                 showPassword={showPassword}
                 onTogglePassword={() => setShowPassword((prev) => !prev)}
-                disabled={loading}
+                disabled={loading || !captchaToken}
               />
 
               {error && (
@@ -409,10 +427,19 @@ const Register = () => {
                 </p>
               )}
 
+              <div className="flex justify-center my-2">
+                <TurnstileCaptcha
+                  onVerify={(token) => {
+                    setCaptchaToken(token);
+                    if (token) setError("");
+                  }}
+                />
+              </div>
+
               <button
                 type="submit"
                 className="w-full py-3 cursor-pointer text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
-                disabled={loading}
+                disabled={loading || !captchaToken}
               >
                 {loading ? (
                   <>
@@ -433,25 +460,23 @@ const Register = () => {
               <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
             </div>
 
-            <div className="flex justify-center w-full min-h-[40px]">
+            <div
+              className={`flex justify-center w-full min-h-[40px] ${
+                !captchaToken || loading
+                  ? "pointer-events-none"
+                  : "pointer-events-auto"
+              }`}
+            >
               <div className="relative w-fit max-w-full">
-                <Suspense
-                  fallback={
-                    <div className="flex items-center justify-center w-[250px] h-[40px] border border-gray-300 rounded">
-                      <TbLoader className="animate-spin text-xl text-gray-500" />
-                    </div>
-                  }
-                >
-                  <GoogleLogin
-                    onSuccess={handleGoogleLoginSuccess}
-                    onError={handleGoogleLoginError}
-                    theme="outline"
-                    shape="square"
-                    scope="profile email"
-                    text="continue_with"
-                    useOneTap
-                  />
-                </Suspense>
+                <GoogleLogin
+                  onSuccess={handleGoogleLoginSuccess}
+                  onError={handleGoogleLoginError}
+                  theme="outline"
+                  shape="square"
+                  scope="profile email"
+                  text="continue_with"
+                  useOneTap
+                />
 
                 {loading && (
                   <div

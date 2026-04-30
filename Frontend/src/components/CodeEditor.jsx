@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import MonacoEditor from "@monaco-editor/react";
-import ShareLinkModal from "../utils/ShareLinkModal.js";
 import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
@@ -22,8 +21,8 @@ import {
 import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
 import { BiTerminal } from "react-icons/bi";
 import { GiBrain } from "react-icons/gi";
-import Swal from "sweetalert2/dist/sweetalert2.js";
-import { debounce } from "lodash";
+import { getSwal } from "../utils/swal";
+import debounce from "lodash/debounce";
 
 const CodeEditor = ({
   title,
@@ -179,6 +178,8 @@ const CodeEditor = ({
   const runCode = async () => {
     if (code.trim().length === 0) return;
 
+    const Swal = await getSwal();
+
     if (code.trim().length > MAX_SIZE) {
       return Swal.fire({
         title: "Error",
@@ -300,7 +301,7 @@ const CodeEditor = ({
   const handleCopy = async () => {
     const content = sessionStorage.getItem(codeStorageKey);
 
-    if (content.length === 0) return;
+    if (!content || content.trim().length === 0) return;
 
     try {
       await navigator.clipboard.writeText(content);
@@ -318,6 +319,8 @@ const CodeEditor = ({
 
       setCpyBtnState("Copied!");
     } catch (err) {
+      const Swal = await getSwal();
+
       Swal.fire({
         title: "Failed to copy",
         text: `Could not copy the ${language} code to clipboard.`,
@@ -343,6 +346,8 @@ const CodeEditor = ({
     }
 
     if (!language) return;
+
+    const Swal = await getSwal();
 
     const { value: result } = await Swal.fire({
       title: "Generate Code",
@@ -566,6 +571,8 @@ const CodeEditor = ({
 
     if (code.trim().length === 0 || !language) return;
 
+    const Swal = await getSwal();
+
     if (code.trim().length > MAX_SIZE) {
       return Swal.fire({
         title: "Error",
@@ -691,6 +698,11 @@ const CodeEditor = ({
       navigate("/login");
       return;
     }
+
+    const Swal = await getSwal();
+    const { default: ShareLinkModal } = await import(
+      "../utils/ShareLinkModal.js"
+    );
 
     if (!code || !language) {
       Swal.fire({
@@ -864,10 +876,17 @@ const CodeEditor = ({
       return;
     }
 
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
+    if (!token) {
+      return;
+    }
+
     const response = await apiFetch(`${BACKEND_API_URL}/api/runCode/count`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ username, language }),
     });
@@ -1225,7 +1244,10 @@ const CodeEditor = ({
           language={language === "mongodb" ? "javascript" : language}
           value={code}
           onChange={(newValue) => setCode(newValue)}
-          editorDidMount={(editor) => editor.focus()}
+          onMount={(editor) => {
+            editorRef.current = editor;
+            editor.focus();
+          }}
           loading={`Loading ${capFirst(language)} Editor...`}
           height="350px"
           theme={isDarkMode ? "vs-dark" : "vs-light"}
@@ -1244,7 +1266,7 @@ const CodeEditor = ({
             cursorStyle: "line",
             fontSize: fontSizeMap[deviceType],
             readOnly: isEditorReadOnly,
-            scrollBeyondLastLine: false,
+            scrollBeyondLastLine: true,
           }}
         />
       </div>

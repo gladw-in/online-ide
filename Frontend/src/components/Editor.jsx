@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import MonacoEditor from "@monaco-editor/react";
-import ShareLinkModal from "../utils/ShareLinkModal.js";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
   LOCAL_STORAGE_TOKEN_KEY,
@@ -19,7 +18,7 @@ import { IoMdRefreshCircle } from "react-icons/io";
 import { SlSizeFullscreen } from "react-icons/sl";
 import { FaSpinner, FaDownload, FaWrench } from "react-icons/fa6";
 import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
-import Swal from "sweetalert2/dist/sweetalert2.js";
+import { getSwal } from "../utils/swal";
 
 const EditorSection = ({
   language,
@@ -76,7 +75,7 @@ const EditorSection = ({
           folding: true,
           cursorBlinking: "smooth",
           cursorSmoothCaretAnimation: true,
-          scrollBeyondLastLine: false,
+          scrollBeyondLastLine: true,
           cursorStyle: "line",
           fontSize,
           readOnly,
@@ -442,7 +441,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         }
       }
     } catch (error) {
-      Swal.fire("Error", "Failed to generate code.", "error");
+      throw error;
     }
 
     return result;
@@ -453,6 +452,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       navigate("/login");
       return;
     }
+
+    const Swal = await getSwal();
 
     const { value: result } = await Swal.fire({
       title: "Generate Code",
@@ -694,6 +695,8 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     const storageData = JSON.parse(sessionStorage.getItem(storageKey)) || {};
     const { html: htmlCode, css: cssCode, javascript: jsCode } = storageData;
 
+    const Swal = await getSwal();
+
     if (htmlCode && htmlCode.trim().length > MAX_SIZE) {
       return Swal.fire({
         title: "Error",
@@ -913,6 +916,9 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     const defaultTitle = `${language}-untitled-${Math.random()
       .toString(36)
       .substring(2, 7)}`;
+
+    const Swal = await getSwal();
+    const { default: ShareLinkModal } = await import("../utils/ShareLinkModal.js");
 
     if (!editorCode) {
       Swal.fire({

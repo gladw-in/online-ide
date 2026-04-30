@@ -34,9 +34,18 @@ const verifyRecaptcha = async (req, res, next) => {
 			score
 		} = response.data;
 
-		if (success && score >= 0.5) {
+		const THRESHOLD = parseFloat(process.env.RECAPTCHA_THRESHOLD || '0.5');
+
+		if (success && score >= THRESHOLD) {
 			next();
 		} else {
+			console.warn(JSON.stringify({
+				event: 'recaptcha_rejected',
+				score,
+				success,
+				ip: req.ip,
+				path: req.path,
+			}));
 			return res.status(403).json({
 				msg: 'reCAPTCHA verification failed.'
 			});
@@ -48,4 +57,6 @@ const verifyRecaptcha = async (req, res, next) => {
 	}
 };
 
-module.exports = { verifyRecaptcha };
+module.exports = {
+	verifyRecaptcha
+};

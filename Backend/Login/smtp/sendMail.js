@@ -1,4 +1,4 @@
-const transporter = require('./transporter')
+const transporter = require('./transporter');
 
 async function sendOtpEmail(email, otp) {
 	const mailOptions = {
@@ -20,11 +20,20 @@ async function sendOtpEmail(email, otp) {
         `,
 	};
 
+	let timerId;
+	const timeout = new Promise((_, reject) => {
+		timerId = setTimeout(() => reject(new Error('SMTP timeout')), 8000);
+	});
+	
 	try {
-		await transporter.sendMail(mailOptions);
+		await Promise.race([transporter.sendMail(mailOptions), timeout]);
 	} catch (error) {
-		throw new Error('Failed to send OTP email');
+		console.error('SMTP failed (non-fatal):', error.message);
+	} finally {
+		clearTimeout(timerId);
 	}
 }
 
-module.exports = {sendOtpEmail};
+module.exports = {
+	sendOtpEmail
+};

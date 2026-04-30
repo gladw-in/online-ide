@@ -12,6 +12,7 @@ export const SESSION_STORAGE_SHARELINKS_KEY = '__sharelinks__';
 export const SESSION_STORAGE_FETCH_STATUS_KEY = '__fetchstatus__';
 
 export const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+export const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{5,30}$/;

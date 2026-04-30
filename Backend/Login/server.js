@@ -2,40 +2,93 @@ const express = require('express');
 const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { OAuth2Client } = require('google-auth-library');
-const bodyParser = require('body-parser');
+const helmet = require('helmet');
+const pino = require('pino');
+const pinoHttp = require('pino-http');
+const {
+	OAuth2Client
+} = require('google-auth-library');
 const cors = require('cors');
 require('dotenv').config();
+
+const REQUIRED_ENV = [
+	'MONGO_URI', 'JWT_SECRET', 'RECAPTCHA_SECRET_KEY', 'RECAPTCHA_THRESHOLD',
+	'GOOGLE_CLIENT_ID', 'OTP_EMAIL_SERVICE', 'OTP_EMAIL_USER', 'OTP_EMAIL_PASS',
+	'REDIS_URL', 'REDIS_PASSWORD', 'FRONTEND_URL', 'RATE_LIMIT_WINDOW',
+	'TURNSTILE_SECRET_KEY'
+];
+
+const missing = REQUIRED_ENV.filter(key => !process.env[key]);
+if (missing.length > 0) {
+	console.error('FATAL: Missing required environment variables:', missing.join(', '));
+	throw new Error(`Missing env vars: ${missing.join(', ')}`);
+}
 
 const corsOptions = require('./config/corsOptions');
 const User = require('./models/User');
 const {
-  usernameRegex,
-  emailRegex,
-  pwdRegex,
-  reservedUsernames,
-  sanitizeUsername
+	usernameRegex,
+	emailRegex,
+	pwdRegex,
+	reservedUsernames,
+	sanitizeUsername
 } = require("./utils/validation");
 
-const { verifyRecaptcha } = require('./middlewares/verifyRecaptcha');
+const {
+	verifyTurnstile
+} = require("./middlewares/verifyTurnstile");
 
-const { checkAndConnectDB } = require('./config/db');
-const { generateOtp } = require('./utils/otpGenerator');
-const { logUserAction } = require('./utils/useLogger')
-const { cleanExpired } = require('./middlewares/cleanExpired');
-const { updateLanguageCount } = require('./utils/updateLanguageCount');
+const {
+	verifyRecaptcha
+} = require('./middlewares/verifyRecaptcha');
+const {
+	rateLimit
+} = require('./middlewares/rateLimit');
 
-const { sendOtpEmail } = require('./smtp/sendMail')
-const { sendDelEmail } = require('./smtp/delEmail')
-const { sendPassChangeEmail } = require('./smtp/passChanged');
-const { sendUsernameChangeEmail } = require('./smtp/usernameChanged');
+const {
+	checkAndConnectDB
+} = require('./config/db');
+const {
+	generateOtp
+} = require('./utils/otpGenerator');
+const {
+	logUserAction
+} = require('./utils/useLogger')
+const {
+	updateLanguageCount
+} = require('./utils/updateLanguageCount');
+
+const {
+	sendOtpEmail
+} = require('./smtp/sendMail')
+const {
+	sendDelEmail
+} = require('./smtp/delEmail')
+const {
+	sendPassChangeEmail
+} = require('./smtp/passChanged');
+const {
+	sendUsernameChangeEmail
+} = require('./smtp/usernameChanged');
 
 const app = express();
 
+const logger = pino({
+	level: process.env.LOG_LEVEL || 'info',
+	base: {
+		service: 'online-ide-backend'
+	}
+});
+
+app.use(pinoHttp({
+	logger
+}));
+app.use(helmet());
 app.set('trust proxy', 1);
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(bodyParser.json({limit:'200kb'}));
+app.use(express.json({
+	limit: '100kb'
+}));
 
 const PORT = process.env.PORT || 5000;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -46,10 +99,10 @@ app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname, 'templates/index.html'));
 });
 
-app.post('/api/register', verifyRecaptcha, cleanExpired, async (req, res) => {
+app.post('/api/register', rateLimit, verifyTurnstile, verifyRecaptcha, async (req, res) => {
 	const username = req.body.username?.trim();
 	const email = req.body.email?.trim();
-	const password = req.body.password?.trim();
+	const password = req.body.password;
 
 	try {
 		await checkAndConnectDB();
@@ -159,9 +212,9 @@ app.post('/api/register', verifyRecaptcha, cleanExpired, async (req, res) => {
 	}
 });
 
-app.post('/api/login', verifyRecaptcha, cleanExpired, async (req, res) => {
+app.post('/api/login', rateLimit, verifyTurnstile, verifyRecaptcha, async (req, res) => {
 	const email = req.body.email?.trim();
-	const password = req.body.password?.trim();
+	const password = req.body.password;
 
 	if (!emailRegex.test(email)) {
 		return res.status(400).json({
@@ -214,20 +267,17 @@ app.post('/api/login', verifyRecaptcha, cleanExpired, async (req, res) => {
 			});
 		}
 
-		const currentDate = new Date();
-		const ISTDate = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000);
-		user.lastLogin = ISTDate;
+		user.lastLogin = new Date();
 
 		await user.save();
 
 		const token = jwt.sign({
-				userId: user._id,
-			},
-			process.env.JWT_SECRET, {
-				algorithm: 'HS512',
-				expiresIn: '1w',
-			}
-		);
+			userId: user._id,
+			v: user.tokenVersion
+		}, process.env.JWT_SECRET, {
+			algorithm: 'HS512',
+			expiresIn: '1w'
+		});
 
 		res.json({
 			token,
@@ -242,91 +292,104 @@ app.post('/api/login', verifyRecaptcha, cleanExpired, async (req, res) => {
 	}
 });
 
-app.post('/api/auth/google',verifyRecaptcha, async (req, res) => {
-  const { token } = req.body;
+app.post('/api/auth/google', rateLimit, verifyTurnstile, verifyRecaptcha, async (req, res) => {
+	const {
+		token
+	} = req.body;
 
-if (!token) {
-	return res.status(401).json({
-		msg: "Token is required"
-	});
-}
+	if (!token) {
+		return res.status(401).json({
+			msg: "Token is required"
+		});
+	}
 
-  try {
-	await checkAndConnectDB();
+	try {
+		await checkAndConnectDB();
 
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: GOOGLE_CLIENT_ID,
-    });
+		const ticket = await client.verifyIdToken({
+			idToken: token,
+			audience: GOOGLE_CLIENT_ID,
+		});
 
-    const payload = ticket.getPayload();
-    const { email, name, sub: googleId } = payload;
+		const payload = ticket.getPayload();
+		const {
+			email,
+			name,
+			sub: googleId
+		} = payload;
 
-    let user = await User.findOne({ email: email });
+		let user = await User.findOne({
+			email
+		});
 
-	let finalUsername;
+		let finalUsername;
 
-    if (!user) {
-		let baseUsername = sanitizeUsername(name);
-		finalUsername = baseUsername;
-		let tries = 0;
+		if (!user) {
+			let baseUsername = sanitizeUsername(name);
+			finalUsername = baseUsername;
+			let tries = 0;
 
-		while (
-			await User.exists({
-				username: finalUsername
-			}) ||
-			reservedUsernames.includes(finalUsername)
-		) {
-			const randomSuffix = Math.random().toString(36).substring(2, 6);
-			finalUsername = `${baseUsername}_${randomSuffix}`;
-			tries++;
-			if (tries > 10) {
+			const {
+				randomBytes
+			} = require('crypto');
+			let saved = false;
+
+			while (!saved && tries < 10) {
+				try {
+					user = new User({
+						username: finalUsername,
+						email: email,
+						googleId: googleId,
+						isEmailVerified: !!googleId,
+					});
+					await user.save();
+					saved = true;
+				} catch (err) {
+					if (err.code === 11000 && err.keyPattern?.username) {
+						finalUsername = `${baseUsername}_${randomBytes(3).toString('hex')}`;
+						tries++;
+					} else {
+						throw err;
+					}
+				}
+			}
+
+			if (!saved) {
 				return res.status(500).json({
 					message: 'Unable to generate unique username.'
 				});
 			}
+		} else {
+			user.lastLogin = new Date();
+			if (!user.googleId) {
+				user.googleId = googleId;
+			}
+			await user.save();
 		}
 
-      user = new User({
-        username: finalUsername,
-        email: email,
-        googleId: googleId,
-		isEmailVerified: !!googleId,
-      });
-
-      await user.save();
-    } else {
-      user.lastLogin = new Date();
-
-	  if(!user.googleId){
-		user.googleId = googleId;
-	  }
-
-      await user.save();
-    }
-
-	const appToken = jwt.sign({
+		const appToken = jwt.sign({
 			userId: user._id,
-		},
-		process.env.JWT_SECRET, {
+			v: user.tokenVersion
+		}, process.env.JWT_SECRET, {
 			algorithm: 'HS512',
-			expiresIn: '1w',
-		}
-	);
-    
-    res.status(200).json({
-      message: 'Authentication successful!',
-      token: appToken,
-      username: user.username,
-	  isgoogleuser: true,
-    });
+			expiresIn: '1w'
+		});
 
-  } catch (err) {
-    res.status(401).json({ message: 'Invalid Google token or authentication failed.' });
-  }
+		res.status(200).json({
+			message: 'Authentication successful!',
+			token: appToken,
+			username: user.username,
+			isgoogleuser: true,
+		});
+	} catch (err) {
+		console.error('Google auth error:', err);
+		res.status(401).json({
+			message: 'Invalid Google token or authentication failed.'
+		});
+	}
 });
 
-app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
+app.post('/api/verify-otp', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp,
@@ -376,16 +439,31 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 			});
 		}
 
+		if (!user.otp || !user.otpExpires) {
+			return res.status(400).json({
+				msg: 'No active OTP. Please request a new one.'
+			});
+		}
+
+		if (user.otpExpires < Date.now()) {
+			user.otp = null;
+			user.otpExpires = null;
+			await user.save();
+			return res.status(400).json({
+				msg: 'OTP has expired. Please request a new one.'
+			});
+		}
+
 		const isOtpValid = await bcrypt.compare(otp, user.otp);
 
 		if (!isOtpValid) {
 			user.otpAttempts = (user.otpAttempts || 0) + 1;
-			
+
 			if (user.otpAttempts >= 5) {
 				user.otp = null;
 				user.otpExpires = null;
 				user.otpAttempts = 0;
-				
+
 				await user.save();
 				return res.status(400).json({
 					msg: 'Too many incorrect attempts. OTP invalidated. Please request a new one.',
@@ -398,31 +476,24 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 			});
 		}
 
-		if (user.otpExpires < Date.now()) {
-			return res.status(400).json({
-				msg: 'OTP has expired',
-			});
-		}
-
 		const salt = await bcrypt.genSalt(10);
 		const hashedPassword = await bcrypt.hash(password, salt);
-		const currentDate = new Date();
-		const ISTDate = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000);
 
 		user.password = hashedPassword;
 		user.isEmailVerified = true;
 		user.otp = null;
 		user.otpExpires = null;
-		user.lastLogin = ISTDate;
-		user.createdDate = ISTDate;
+		user.lastLogin = new Date();
 		user.otpAttempts = 0;
 
 		await user.save();
 
 		const token = jwt.sign({
-			userId: user._id
+			userId: user._id,
+			v: user.tokenVersion
 		}, process.env.JWT_SECRET, {
-			algorithm: 'HS512'
+			algorithm: 'HS512',
+			expiresIn: '1w'
 		});
 
 		res.status(200).json({
@@ -437,7 +508,7 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
+app.post('/api/resend-otp', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
@@ -459,25 +530,15 @@ app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
 			email
 		});
 
-		if (!user) {
-			return res.status(400).json({
-				msg: 'User not found',
+		if (!user || user.googleId && !user.password) {
+			return res.status(200).json({
+				msg: 'If that email is registered, an OTP has been sent.'
 			});
 		}
-
-		if (user.googleId && !user.password) {
-			return res.status(403).json({
-				msg: "Login with Google"
+		if (!forgotPassword && user.isEmailVerified) {
+			return res.status(200).json({
+				msg: 'If that email is registered, an OTP has been sent.'
 			});
-		}
-
-
-		if (!forgotPassword) {
-			if (user.isEmailVerified) {
-				return res.status(400).json({
-					msg: 'Email is already verified',
-				});
-			}
 		}
 
 		const otp = generateOtp();
@@ -494,7 +555,7 @@ app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
 		await sendOtpEmail(user.email, otp);
 
 		res.status(200).json({
-			msg: 'OTP resent successfully',
+			msg: 'If that email is registered, an OTP has been sent.'
 		});
 	} catch (err) {
 		console.error(err);
@@ -506,62 +567,58 @@ app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
 
 app.delete('/api/wrong-email', verifyRecaptcha, async (req, res) => {
 	const {
-		email
+		email,
+		otp
 	} = req.body;
-
-	if (!email) {
+	if (!email || !otp) {
 		return res.status(400).json({
-			msg: 'Email is required',
+			msg: 'Email and OTP are required'
 		});
 	}
 
 	try {
 		await checkAndConnectDB();
-
 		const user = await User.findOne({
-			email
+			email,
+			isEmailVerified: false
 		});
-
-		if (!user) {
+		if (!user || !user.otp || user.otpExpires < Date.now()) {
 			return res.status(400).json({
-				msg: 'User not found',
+				msg: 'Invalid request'
 			});
 		}
 
-		if (user.googleId && !user.password) {
-			return res.status(403).json({
-				msg: "Login with Google"
-			});
-		}
-
-		if (user.isEmailVerified) {
+		const isValid = await bcrypt.compare(otp, user.otp);
+		if (!isValid) {
 			return res.status(400).json({
-				msg: 'Email is already verified',
+				msg: 'Invalid OTP'
 			});
 		}
 
 		await User.deleteOne({
-			email
+			email,
+			isEmailVerified: false
 		});
-
 		res.status(200).json({
-			msg: 'Unverified account deleted successfully',
+			msg: 'Unverified account deleted successfully'
 		});
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
-			msg: 'Server error, please try again later',
+			msg: 'Server error, please try again later'
 		});
 	}
 });
 
-app.post('/api/check-email-exists', verifyRecaptcha, async (req, res) => {
+app.post('/api/check-email-exists', rateLimit, verifyTurnstile, verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
 
 	if (!email || !emailRegex.test(email)) {
-		return res.status(400).json({ msg: "Valid email is required" });
+		return res.status(400).json({
+			msg: "Valid email is required"
+		});
 	}
 
 	try {
@@ -572,72 +629,51 @@ app.post('/api/check-email-exists', verifyRecaptcha, async (req, res) => {
 		});
 
 		if (!user) {
-			return res.status(400).json({
-				msg: "User not found"
+			return res.status(200).json({
+				msg: "Email check completed"
 			});
 		}
 
 		if (user.googleId && !user.password) {
-			return res.status(403).json({
-				msg: "Login with Google"
+			return res.status(200).json({
+				msg: "Email check completed"
 			});
 		}
 
-		res.status(200).json({
-			msg: "Email exists"
+		return res.status(200).json({
+			msg: "Email check completed"
 		});
+
 	} catch (err) {
 		console.error(err);
-		res.status(500).json({
+		return res.status(500).json({
 			msg: "Server error"
 		});
 	}
 });
 
-app.post('/api/forgot-password', verifyRecaptcha, async (req, res) => {
+app.post('/api/forgot-password', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
-
 	try {
 		await checkAndConnectDB();
-
 		const user = await User.findOne({
 			email
 		});
-
-		if (!user) {
-			return res.status(400).json({
-				msg: "User not found"
-			});
-		}
-		
-		if (user.googleId && !user.password) {
-			return res.status(403).json({
-				msg: "Login with Google"
-			});
-		}
-
-		if (user.isEmailVerified) {
+		if (user && user.isEmailVerified && !(user.googleId && !user.password)) {
 			const otp = generateOtp();
 			const salt = await bcrypt.genSalt(10);
 			const hashedOtp = await bcrypt.hash(otp, salt);
-
 			user.otp = hashedOtp;
 			user.otpExpires = Date.now() + 10 * 60 * 1000;
 			user.otpAttempts = 0;
 			await user.save();
-
 			await sendOtpEmail(user.email, otp);
-
-			return res.status(200).json({
-				msg: "OTP sent to your email"
-			});
-		} else {
-			return res.status(400).json({
-				msg: "Email not verified"
-			});
 		}
+		res.status(200).json({
+			msg: "If that email is registered and verified, an OTP has been sent."
+		});
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
@@ -646,7 +682,7 @@ app.post('/api/forgot-password', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
+app.post('/api/reset-password', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp
@@ -665,22 +701,31 @@ app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
 			email
 		});
 
-		if (!user) {
+		if (!user || (user.googleId && !user.password)) {
 			return res.status(400).json({
-				msg: "User not found"
+				msg: "Invalid request"
 			});
 		}
 
-		if (user.googleId && !user.password) {
-			return res.status(403).json({
-				msg: "Login with Google"
+		if (!user.otp || !user.otpExpires) {
+			return res.status(400).json({
+				msg: 'No active OTP. Please request a new one.'
+			});
+		}
+
+		if (user.otpExpires < Date.now()) {
+			user.otp = null;
+			user.otpExpires = null;
+			await user.save();
+			return res.status(400).json({
+				msg: 'OTP has expired. Please request a new one.'
 			});
 		}
 
 		const isOtpValid = await bcrypt.compare(otp, user.otp);
 		if (!isOtpValid) {
 			user.otpAttempts = (user.otpAttempts || 0) + 1;
-			
+
 			if (user.otpAttempts >= 5) {
 				user.otp = null;
 				user.otpExpires = null;
@@ -694,12 +739,6 @@ app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
 
 			return res.status(400).json({
 				msg: 'Invalid OTP',
-			});
-		}
-
-		if (user.otpExpires < Date.now()) {
-			return res.status(400).json({
-				msg: "OTP has expired"
 			});
 		}
 
@@ -718,7 +757,7 @@ app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
+app.post('/api/update-password', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp,
@@ -750,22 +789,31 @@ app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 			email
 		});
 
-		if (!user) {
+		if (!user || (user.googleId && !user.password)) {
 			return res.status(400).json({
-				msg: "User not found"
+				msg: "Invalid request"
 			});
 		}
 
-		if (user.googleId && !user.password) {
-			return res.status(403).json({
-				msg: "Login with Google"
+		if (!user.otp || !user.otpExpires) {
+			return res.status(400).json({
+				msg: 'No active OTP. Please request a new one.'
+			});
+		}
+
+		if (user.otpExpires < Date.now()) {
+			user.otp = null;
+			user.otpExpires = null;
+			await user.save();
+			return res.status(400).json({
+				msg: 'OTP has expired. Please request a new one.'
 			});
 		}
 
 		const isOtpValid = await bcrypt.compare(otp, user.otp);
 		if (!isOtpValid) {
 			user.otpAttempts = (user.otpAttempts || 0) + 1;
-			
+
 			if (user.otpAttempts >= 5) {
 				user.otp = null;
 				user.otpExpires = null;
@@ -782,12 +830,6 @@ app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 			});
 		}
 
-		if (user.otpExpires < Date.now()) {
-			return res.status(400).json({
-				msg: "OTP has expired"
-			});
-		}
-
 		const salt = await bcrypt.genSalt(10);
 		const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -796,6 +838,7 @@ app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 		user.otpExpires = null;
 		user.otpAttempts = 0;
 		user.passwordChangedAt = new Date();
+		user.tokenVersion = (user.tokenVersion || 0) + 1;
 		await user.save();
 
 		await sendPassChangeEmail(user.email);
@@ -812,7 +855,7 @@ app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.get('/api/protected', cleanExpired, async (req, res) => {
+app.get('/api/protected', async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -825,11 +868,11 @@ app.get('/api/protected', cleanExpired, async (req, res) => {
 		await checkAndConnectDB();
 
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
-		const user = await User.findById(decoded.userId).select('-password');
+		const user = await User.findById(decoded.userId).select('tokenVersion passwordChangedAt username email lastLogin');
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
@@ -863,7 +906,7 @@ app.get('/api/protected', cleanExpired, async (req, res) => {
 	}
 });
 
-app.post('/api/account-details', cleanExpired, verifyRecaptcha, async (req, res) => {
+app.post('/api/account-details', verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -876,13 +919,14 @@ app.post('/api/account-details', cleanExpired, verifyRecaptcha, async (req, res)
 		await checkAndConnectDB();
 
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
-		const user = await User.findById(decoded.userId).select('-password');
+		const user = await User.findById(decoded.userId).select('tokenVersion passwordChangedAt username email lastLogin');
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
+
 
 		if (user.passwordChangedAt) {
 			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
@@ -957,9 +1001,9 @@ app.put('/api/change-username', verifyRecaptcha, async (req, res) => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId);
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
@@ -995,8 +1039,7 @@ app.put('/api/change-username', verifyRecaptcha, async (req, res) => {
 	} catch (err) {
 		console.error('Error updating username:', err);
 		res.status(401).json({
-			msg: 'Invalid or expired token',
-			error: err.message,
+			msg: 'Invalid or expired token'
 		});
 	}
 });
@@ -1046,9 +1089,9 @@ app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId);
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
@@ -1062,17 +1105,18 @@ app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 
 		user.password = hashedPassword;
 		user.passwordChangedAt = new Date();
+		user.tokenVersion = (user.tokenVersion || 0) + 1;
 		await user.save();
 
 		await sendPassChangeEmail(user.email)
 
 		const newToken = jwt.sign({
-				userId: user._id,
-			},
-			process.env.JWT_SECRET, {
-				algorithm: 'HS512',
-			}
-		);
+			userId: user._id,
+			v: user.tokenVersion
+		}, process.env.JWT_SECRET, {
+			algorithm: 'HS512',
+			expiresIn: '1w'
+		});
 
 		res.json({
 			msg: 'Password updated successfully',
@@ -1102,9 +1146,9 @@ app.delete('/api/account', verifyRecaptcha, async (req, res) => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId);
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
@@ -1164,9 +1208,9 @@ app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId);
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
@@ -1204,38 +1248,42 @@ app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
+	const token = req.headers['authorization']?.split(' ')[1];
+	if (!token) return res.status(403).json({
+		msg: 'No token provided'
+	});
+
 	const {
-		username,
 		language
 	} = req.body;
+	if (!language) return res.status(400).json({
+		msg: 'No valid language provided'
+	});
 
 	try {
 		await checkAndConnectDB();
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
-		const user = await User.findOne({
-			username,
-		});
-
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
 		if (!updateLanguageCount(user, 'runCodeCount', language)) {
 			return res.status(400).json({
-				msg: 'Unsupported language',
+				msg: 'Unsupported language'
 			});
 		}
 
 		await logUserAction(user, 'update');
 		await user.save();
-
 		res.status(204).send();
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
-			msg: 'Server error',
+			msg: 'Server error'
 		});
 	}
 });
@@ -1249,7 +1297,9 @@ app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
 		});
 	}
 
-	const { language } = req.body;
+	const {
+		language
+	} = req.body;
 
 	if (!language) {
 		return res.status(400).json({
@@ -1263,9 +1313,9 @@ app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId);
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
@@ -1296,7 +1346,9 @@ app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
 		});
 	}
 
-	const { language } = req.body;
+	const {
+		language
+	} = req.body;
 
 	if (!language) {
 		return res.status(400).json({
@@ -1310,9 +1362,9 @@ app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId);
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
@@ -1355,15 +1407,32 @@ app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
 		});
 	}
 
+	if (shareId.length > 128) {
+		return res.status(400).json({
+			msg: 'shareId must be at most 128 characters'
+		});
+	}
+	if (title.length > 200) {
+		return res.status(400).json({
+			msg: 'Title must be at most 200 characters'
+		});
+	}
+
 	try {
 		await checkAndConnectDB();
 
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.userId);
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
+			});
+		}
+
+		if (user.sharedLinks.length >= 100) {
+			return res.status(400).json({
+				msg: 'Maximum 100 shared links reached. Delete some to continue.'
 			});
 		}
 
@@ -1375,17 +1444,20 @@ app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
 		);
 
 		if (!linkExists) {
-			await User.updateOne(
-				{ _id: user._id },
-				{ 
-					$push: { 
-						sharedLinks: { shareId, title, expiryTime: expiryDate } 
-					} 
+			await User.updateOne({
+				_id: user._id
+			}, {
+				$push: {
+					sharedLinks: {
+						shareId,
+						title,
+						expiryTime: expiryDate
+					}
 				}
-			);
+			});
 
-			await logUserAction(user, 'update');
-			await user.save();
+			const freshUser = await User.findById(user._id);
+			await logUserAction(freshUser, 'update');
 		}
 
 		res.status(204).send();
@@ -1397,7 +1469,7 @@ app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
+app.post('/api/user/sharedLinks', async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -1413,9 +1485,9 @@ app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
 
 		const user = await User.findById(decoded.userId);
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
@@ -1447,52 +1519,45 @@ app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
 });
 
 app.delete('/api/sharedLink', verifyRecaptcha, async (req, res) => {
+	const token = req.headers['authorization']?.split(' ')[1];
+	if (!token) return res.status(403).json({
+		msg: 'No token provided'
+	});
+
 	const {
 		shareId
 	} = req.body;
 
-	if (!shareId) {
-		return res.status(400).json({
-			msg: 'ShareId is required',
-		});
-	}
-
 	try {
 		await checkAndConnectDB();
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
-		const user = await User.findOne({
-			'sharedLinks.shareId': shareId,
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
+			});
+		}
+
+		const linkIndex = user.sharedLinks.findIndex(link => link.shareId === shareId);
+		if (linkIndex === -1) return res.status(403).json({
+			msg: 'Forbidden'
 		});
 
-		if (!user) {
-			return res.status(404).json({
-				msg: 'Shared link not found',
-			});
-		}
-
-		const linkIndex = user.sharedLinks.findIndex(
-			(link) => link.shareId === shareId
-		);
-
-		if (linkIndex === -1) {
-			return res.status(404).json({
-				msg: 'Shared link not found',
-			});
-		}
-
 		user.sharedLinks.splice(linkIndex, 1);
-
-		await logUserAction(user, 'update');
-
 		await user.save();
-
-		return res.status(200).json({
-			msg: 'Shared link deleted successfully',
+		res.status(200).json({
+			msg: 'Shared link deleted successfully'
 		});
 	} catch (err) {
 		console.error(err);
-		return res.status(500).json({
-			msg: 'Server error',
+		if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+			return res.status(403).json({
+				msg: 'Invalid or expired token'
+			});
+		}
+		res.status(500).json({
+			msg: 'Server error'
 		});
 	}
 });
@@ -1502,52 +1567,41 @@ app.delete('/api/user/sharedLink/:shareId', verifyRecaptcha, async (req, res) =>
 		shareId
 	} = req.params;
 	const token = req.headers['authorization']?.split(' ')[1];
+	if (!token) return res.status(403).json({
+		msg: 'No token provided'
+	});
 
 	try {
 		await checkAndConnectDB();
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
-		let user;
-
-		if (token) {
-			const decoded = jwt.verify(token, process.env.JWT_SECRET);
-			user = await User.findById(decoded.userId);
-		} else {
-			user = await User.findOne({
-				'sharedLinks.shareId': shareId,
-			});
-		}
-
-		if (!user) {
-			return res.status(404).json({
-				msg: 'User or Shared link not found',
+		if (!user || decoded.v !== user.tokenVersion) {
+			return res.status(403).json({
+				msg: 'Session expired. Please log in again.'
 			});
 		}
 
 		const linkIndex = user.sharedLinks.findIndex(link => link.shareId === shareId);
-		if (linkIndex === -1) {
-			return res.status(404).json({
-				msg: 'Shared link not found',
-			});
-		}
+		if (linkIndex === -1) return res.status(403).json({
+			msg: 'Forbidden'
+		});
 
 		user.sharedLinks.splice(linkIndex, 1);
 		await logUserAction(user, 'update');
 		await user.save();
-
 		res.status(200).json({
-			msg: 'Shared link deleted successfully',
+			msg: 'Shared link deleted successfully'
 		});
 	} catch (err) {
 		console.error(err);
-
 		if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
 			return res.status(403).json({
-				msg: 'Invalid or expired token',
+				msg: 'Invalid or expired token'
 			});
 		}
-
 		res.status(500).json({
-			msg: 'Server error',
+			msg: 'Server error'
 		});
 	}
 });

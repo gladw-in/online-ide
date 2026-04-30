@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
-import SharedLinks from "./SharedLinks";
+import { LOCAL_STORAGE_TOKEN_KEY } from "../utils/constants";
 
 const navLinks = [
   {
@@ -105,8 +105,12 @@ const navLinks = [
   },
 ];
 
+const SharedLinks = lazy(() => import("./SharedLinks"));
+
 const NavigationLinks = () => {
   const baseUrl = window.location.origin;
+
+  const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
   useEffect(() => {
     document.title = "Online IDE - Glad432";
@@ -129,7 +133,15 @@ const NavigationLinks = () => {
           ))}
         </div>
       </div>
-      <SharedLinks />
+      {token && (
+        <Suspense
+          fallback={
+            <div className="text-center p-4">Loading shared links...</div>
+          }
+        >
+          <SharedLinks />
+        </Suspense>
+      )}
     </>
   );
 };

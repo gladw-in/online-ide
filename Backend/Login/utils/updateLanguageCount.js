@@ -69,4 +69,6 @@ const updateLanguageCount = (user, countType, language) => {
 	return true;
 };
 
-module.exports = { updateLanguageCount };
+module.exports = {
+	updateLanguageCount
+};

@@ -17,11 +17,20 @@ async function sendPassChangeEmail(email) {
         `,
 	};
 
+	let timerId;
+	const timeout = new Promise((_, reject) => {
+		timerId = setTimeout(() => reject(new Error('SMTP timeout')), 8000);
+	});
+
 	try {
-		await transporter.sendMail(mailOptions);
+		await Promise.race([transporter.sendMail(mailOptions), timeout]);
 	} catch (error) {
-		throw new Error('Failed to send password change notification email');
+		console.error('SMTP failed (non-fatal):', error.message);
+	} finally {
+		clearTimeout(timerId);
 	}
 }
 
-module.exports = { sendPassChangeEmail };
+module.exports = {
+	sendPassChangeEmail
+};

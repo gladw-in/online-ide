@@ -1,6 +1,14 @@
 const Log = require('../models/Log.js');
 
 async function logUserAction(user, actionType) {
+	if (!user.email) {
+		console.warn('Skipping logUserAction: user.email is missing', {
+			userId: user._id,
+			actionType
+		});
+		return;
+	}
+
 	try {
 		let log = await Log.findOne({
 			username: user.username,
@@ -35,4 +43,6 @@ async function logUserAction(user, actionType) {
 	}
 }
 
-module.exports = { logUserAction };
+module.exports = {
+	logUserAction
+};

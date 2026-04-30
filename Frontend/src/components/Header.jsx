@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { FaSpinner, FaBarsStaggered } from "react-icons/fa6";
 import { SiIfixit } from "react-icons/si";
 import { RxMoon, RxSun } from "react-icons/rx";
-import Swal from "sweetalert2/dist/sweetalert2.js";
+import { getSwal } from "../utils/swal";
 import "sweetalert2/src/sweetalert2.scss";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
@@ -117,14 +117,14 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         setUsername("");
         location.reload();
       }
-    } catch (error) {
-      location.reload();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const Swal = await getSwal();
+
     Swal.fire({
       title: "Are you sure?",
       icon: "warning",

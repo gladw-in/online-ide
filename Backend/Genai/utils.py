@@ -1,7 +1,6 @@
 import json
 import re
 import os
-import ast
 import requests
 import jwt
 import logging
@@ -12,17 +11,29 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
-)
-
 CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
-SECRET_KEY = os.getenv("JWT_SECRET")
-RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
-MAX_SIZE = int(0.5 * 1024 * 1024)
+MAX_PROMPT_CHARS = 2000
+MAX_CODE_SIZE_BYTES = int(os.getenv("MAX_CODE_SIZE_BYTES", str(512 * 1024)))
+RECAPTCHA_MIN_SCORE = float(os.getenv("RECAPTCHA_MIN_SCORE", "0.5"))
+RECAPTCHA_TIMEOUT = float(os.getenv("RECAPTCHA_TIMEOUT", "3.0"))
+MAX_CODE_SCAN_CHARS = 131072
 
+CODE_INJECTION_PATTERNS = [
+    r"ignore\s+all\s+previous\s+instructions",
+    r"jailbreak",
+]
 
-valid_languages = {
+PROMPT_INJECTION_PATTERNS = [
+    r"ignore\s+(all\s+)?previous\s+instructions",
+    r"system\s+prompt",
+    r"jailbreak",
+    r"\bDAN\b",
+    r"you\s+are\s+now\s+",
+    r"new\s+task\s*:",
+    r"disregard",
+]
+
+VALID_LANGUAGES = {
     "python",
     "javascript",
     "rust",
@@ -44,6 +55,29 @@ valid_languages = {
     "verilog",
 }
 
+SECRET_KEY = os.getenv("JWT_SECRET")
+RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
+
+
+def sanitize_prompt_input(text, max_chars=MAX_PROMPT_CHARS, is_code=False):
+    if not isinstance(text, str):
+        raise ValueError("Input must be a string")
+
+    patterns = CODE_INJECTION_PATTERNS if is_code else PROMPT_INJECTION_PATTERNS
+    scan_len = MAX_CODE_SCAN_CHARS if is_code else max_chars
+
+    if not is_code:
+        text = text[:max_chars]
+
+    sample = text[:scan_len]
+
+    for pat in patterns:
+        if re.search(pat, sample, re.IGNORECASE):
+            logging.warning(f"Injection blocked: pattern={pat!r}")
+            raise ValueError("Invalid input detected")
+
+    return text
+
 
 def utc_time_reference():
     utc_now = datetime.now(timezone.utc)
@@ -52,59 +86,59 @@ def utc_time_reference():
 
 
 def validate_json(gemini_output):
-    gemini_output = gemini_output.strip()
-    if gemini_output.startswith("```json"):
-        gemini_output = gemini_output[7:-3].strip()
-    elif gemini_output.startswith("```"):
-        gemini_output = gemini_output[3:-3].strip()
+    text = gemini_output.strip()
+    m = re.match(r"^```(?:json)?\s*\n?(.*?)\n?```\s*$", text, re.DOTALL)
+    if m:
+        cleaned = m.group(1).strip()
+    else:
+        cleaned = text
 
     try:
-        data = json.loads(gemini_output)
-    except json.JSONDecodeError:
-        logging.warning("JSON decoding failed, attempting ast.literal_eval.")
-        try:
-            data = ast.literal_eval(gemini_output)
-        except Exception as e:
-            logging.error(f"ast.literal_eval also failed: {e}")
+        data = json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON parse failed: {e}. Output[:200]: {cleaned[:200]}")
+        return False, None
+
+    if not isinstance(data, dict):
+        return False, None
+
+    for k, v in data.items():
+        if not re.match(r"^prompt_\d+$", k):
             return False, None
 
-    for key, value in data.items():
-        if not re.match(r"^prompt_\d+$", key):
-            logging.warning(f"Invalid key format in JSON data: '{key}'")
-            return False, None
-        if not isinstance(value, str) or not value.strip():
-            logging.warning(f"Invalid value for key '{key}': not a non-empty string.")
+        if not isinstance(v, str) or not v.strip():
             return False, None
 
-    logging.info("Successfully validated JSON data.")
     return True, data
 
 
-def is_human(recaptcha_token):
-    if not recaptcha_token or not RECAPTCHA_SECRET_KEY:
-        logging.warning("reCAPTCHA check failed: Token or secret key is missing.")
+def is_human(token):
+    if not token or not RECAPTCHA_SECRET_KEY:
+        logging.warning("reCAPTCHA: missing token or secret")
         return False
 
-    payload = {"secret": RECAPTCHA_SECRET_KEY, "response": recaptcha_token}
-
     try:
-        response = requests.post(
-            "https://www.google.com/recaptcha/api/siteverify", data=payload, timeout=50
+        r = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={"secret": RECAPTCHA_SECRET_KEY, "response": token},
+            timeout=(1.5, RECAPTCHA_TIMEOUT),
         )
-        response.raise_for_status()
-        result = response.json()
 
-        if result.get("success") and result.get("score", 0) > 0.5:
-            logging.info(
-                f"reCAPTCHA verification successful. Score: {result.get('score')}"
-            )
+        r.raise_for_status()
+        res = r.json()
+        score = res.get("score", 0)
+
+        if res.get("success") and score >= RECAPTCHA_MIN_SCORE:
+            logging.info(f"reCAPTCHA OK score={score}")
             return True
-        else:
-            logging.warning(f"reCAPTCHA verification failed. Result: {result}")
-            return False
 
+        logging.warning(
+            f'reCAPTCHA rejected score={score}, success={res.get("success")}'
+        )
+
+        return False
     except requests.exceptions.RequestException as e:
-        logging.error(f"reCAPTCHA request to Google failed: {e}")
+        logging.error(f"reCAPTCHA request failed: {e}")
         return False
 
 

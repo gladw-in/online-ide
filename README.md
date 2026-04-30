@@ -4,42 +4,6 @@ An online IDE with secure login functionality that allows users to run code, gen
 
 ![Lines of code](https://sloc.xyz/github/gladw-in/online-ide)
 
-## Structure of a `.env` File
-
-```dotenv
-#Frontend
-VITE_GEMINI_API_URL=
-VITE_BACKEND_API_URL=
-VITE_TEMP_SHARE_URL= #same as TEMP_FILE_URL
-VITE_RECAPTCHA_SITE_KEY=
-VITE_GOOGLE_CLIENT_ID=
-
-#Login
-MONGO_URI=
-JWT_SECRET=
-PORT=
-OTP_EMAIL_SERVICE=
-OTP_EMAIL_USER=
-OTP_EMAIL_PASS=
-RECAPTCHA_SECRET_KEY=
-GOOGLE_CLIENT_ID= #same as VITE_GOOGLE_CLIENT_ID
-
-#GenAi
-GEMINI_API_KEY=
-GEMINI_MODEL=
-GEMINI_MODEL_1=
-JWT_SECRET= #same from Login
-RECAPTCHA_SECRET_KEY= #same as Login
-
-#TempFile
-REDIS_HOST=
-REDIS_PASSWORD=
-REDIS_PORT=6379
-TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
-JWT_SECRET= #same from Login
-RECAPTCHA_SECRET_KEY= #same as Login
-```
-
 ## Diagram
 
 ![Diagram](Images/Diagram.png)
@@ -58,10 +22,10 @@ RECAPTCHA_SECRET_KEY= #same as Login
 - **[vite](https://vitejs.dev/)**: A fast build tool and development server for modern frontend development, featuring hot module replacement (HMR).
 - **[react-oauth/google](https://www.npmjs.com/package/@react-oauth/google)**: A React wrapper for Google OAuth integration, providing easy authentication with Google accounts.
 - **[react-google-recaptcha-v3](https://www.npmjs.com/package/react-google-recaptcha-v3)**: A React component for integrating Google reCAPTCHA v3 to protect your application from spam and abuse.
+- **[@marsidev/react-turnstile](https://www.npmjs.com/package/@marsidev/react-turnstile)**: A React wrapper for Cloudflare Turnstile, used to protect forms and authentication flows from bots and abuse without impacting user experience.
 
 ## Backend Dependencies:
 - **[bcryptjs](https://github.com/dcodeIO/bcrypt.js)**: A JavaScript library for securely hashing passwords using the bcrypt algorithm.
-- **[body-parser](https://github.com/expressjs/body-parser)**: Middleware to parse incoming request bodies in JSON or URL-encoded format.  
 - **[cors](https://expressjs.com/en/resources/middleware/cors.html)**: A Node.js package that enables Cross-Origin Resource Sharing (CORS) for handling requests from different origins.
 - **[dotenv](https://dotenvx.com/)**: A module that loads environment variables from a `.env` file into `process.env`.
 - **[express](https://expressjs.com/)**: A minimal and flexible Node.js web framework for building web and mobile applications.
@@ -72,6 +36,11 @@ RECAPTCHA_SECRET_KEY= #same as Login
 - **[path](https://nodejs.org/api/path.html)**: A Node.js core module for working with file and directory paths.
 - **[axios](https://axios-http.com/)**: A popular promise-based HTTP client for making requests from Node.js and browsers, often used for interacting with APIs.
 - **[google-auth-library](https://github.com/googleapis/google-auth-library-nodejs)**: A library for authenticating with Google services, used to handle OAuth 2.0 authorization in Node.js.
+- **[helmet](https://helmetjs.github.io/)**: Middleware that sets various HTTP security headers (HSTS, X‑Frame‑Options, etc.).
+- **[pino](https://getpino.io/)**: A very fast, low‑overhead JSON logger.
+- **[pino-http](https://github.com/pinojs/pino-http)**: Express middleware for automatic request logging with Pino.
+- **[@upstash/ratelimit](https://upstash.com/docs/ratelimit/overview)**: Distributed rate limiting using Upstash Redis.
+- **[@upstash/redis](https://upstash.com/docs/redis/overview)**: Redis client for Upstash, used for storing rate‑limit counters.
 
 ## Python Libraries:
 - **[google-genai](https://ai.google.dev/gemini-api/docs/quickstart?lang=python)**: A collection of Google APIs and tools for integrating generative AI models into applications.
@@ -87,6 +56,9 @@ RECAPTCHA_SECRET_KEY= #same as Login
 - **[functools](https://docs.python.org/3/library/functools.html)**: A module in Python providing higher-order functions to work with functions and callable objects, such as `wraps`.
 - **[requests](https://docs.python-requests.org/en/latest/)**: A simple HTTP library for Python, used for making HTTP requests like GET, POST, PUT, DELETE, etc., with ease and flexibility.
 - **[logging](https://docs.python.org/3/library/logging.html)**: A built-in Python module that provides flexible logging of messages, helping to track application events, errors, and debug information.
+- **[flask-limiter](https://flask-limiter.readthedocs.io/)**: A Flask extension for rate limiting that supports Redis, memory, and other backends. It helps prevent API abuse by limiting the number of requests a client can make in a given time window.
+- **[json](https://docs.python.org/3/library/json.html)**: A built-in Python module for encoding and decoding JSON data, used for parsing request bodies and serializing responses.
+- **[urllib.parse](https://docs.python.org/3/library/urllib.parse.html)**: A built-in Python module for parsing URLs and percent‑encoding special characters, used to safely construct Redis connection strings.
 
 ## How to Set Up and Use
 

@@ -13,7 +13,7 @@ import { CgTrash } from "react-icons/cg";
 import { HiRefresh } from "react-icons/hi";
 import { FiClipboard, FiArrowLeft, FiArrowRight } from "react-icons/fi";
 import { MdDone } from "react-icons/md";
-import Swal from "sweetalert2/dist/sweetalert2.js";
+import { getSwal } from "../utils/swal";
 
 const SharedLinks = () => {
   const [sharedLinks, setSharedLinks] = useState([]);
@@ -79,6 +79,8 @@ const SharedLinks = () => {
         setSharedLinks(reversedLinks);
       }
     } catch {
+      const Swal = await getSwal();
+
       Swal.fire("Error", "Error fetching shared links.", "error");
     }
   };
@@ -91,6 +93,8 @@ const SharedLinks = () => {
   };
 
   const handleDelete = async (shareId) => {
+    const Swal = await getSwal();
+
     Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this action!",
@@ -112,14 +116,17 @@ const SharedLinks = () => {
           },
         });
 
+        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
         const linkResponse = await apiFetch(
           `${BACKEND_API_URL}/api/user/sharedLink/${shareId}`,
           {
             method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
-
-        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
         const fileResponse = await apiFetch(
           `${TEMP_SHARE_API_URL}/file/${shareId}/delete`,
@@ -188,6 +195,8 @@ const SharedLinks = () => {
       const url = `${baseUrl}/${shareId}`;
       await navigator.clipboard.writeText(url.toString());
     } catch (err) {
+      const Swal = await getSwal();
+
       Swal.fire({
         icon: "error",
         title: "Failed to copy",
@@ -317,7 +326,7 @@ const SharedLinks = () => {
               {visibleLinks.map(({ title, shareId, expiryTime }, index) => {
                 const colorClass = buttonColors[index % buttonColors.length];
                 return (
-                  <div key={index} className="relative w-full">
+                  <div key={shareId} className="relative w-full">
                     <div className="flex justify-between items-center w-full">
                       <Link
                         to={`${baseUrl}/${shareId}`}

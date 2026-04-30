@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { IoLogoPython, IoHardwareChipOutline } from "react-icons/io5";
 import {
@@ -21,19 +22,20 @@ import {
 } from "react-icons/pi";
 import { TbBrandKotlin } from "react-icons/tb";
 import { BiLogoTypescript } from "react-icons/bi";
-import Register from "../pages/Register";
-import Login from "../pages/Login";
-import ForgotPassword from "../pages/ForgotPassword";
-import Accounts from "../pages/Accounts";
-import NotFound from "../pages/NotFound";
-import NavigationLinks from "../components/NavigationLinks";
-import Editor from "../components/Editor";
-import CodeEditor from "../components/CodeEditor";
-import ShareEditor from "../components/ShareEditor";
-import { LOCAL_STORAGE_TOKEN_KEY, GENAI_API_URL } from "../utils/constants";
 import sampleHtml from "../samples/index.html?raw";
 import sampleCSS from "../samples/style.css?raw";
 import sampleJavaScript from "../samples/script.js?raw";
+import { LOCAL_STORAGE_TOKEN_KEY, GENAI_API_URL } from "../utils/constants";
+
+const Register = lazy(() => import("../pages/Register"));
+const Login = lazy(() => import("../pages/Login"));
+const ForgotPassword = lazy(() => import("../pages/ForgotPassword"));
+const Accounts = lazy(() => import("../pages/Accounts"));
+const NotFound = lazy(() => import("../pages/NotFound"));
+const NavigationLinks = lazy(() => import("../components/NavigationLinks"));
+const Editor = lazy(() => import("../components/Editor"));
+const CodeEditor = lazy(() => import("../components/CodeEditor"));
+const ShareEditor = lazy(() => import("../components/ShareEditor"));
 
 const isAuthenticated = () => !!localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
@@ -50,6 +52,19 @@ const ProtectedRoute = ({ element }) => {
 const RedirectedRoute = ({ element }) => {
   return !isAuthenticated() ? element : <Navigate to="/" />;
 };
+
+const PageLoader = () => (
+  <div className="flex justify-center items-center min-h-[60vh]">
+    <div className="flex items-center space-x-2">
+      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <span className="text-gray-600 dark:text-gray-300">Loading...</span>
+    </div>
+  </div>
+);
+
+const LazyRoute = ({ element }) => (
+  <Suspense fallback={<PageLoader />}>{element}</Suspense>
+);
 
 const languages = [
   {
@@ -192,47 +207,63 @@ const EditorRoutes = ({ isDarkMode }) => (
     <Routes>
       <Route
         path="/register"
-        element={<RedirectedRoute element={<Register isDarkMode />} />}
+        element={
+          <LazyRoute
+            element={<RedirectedRoute element={<Register isDarkMode />} />}
+          />
+        }
       />
-
-      <Route path="/login" element={<RedirectedRoute element={<Login />} />} />
-
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-
+      <Route
+        path="/login"
+        element={
+          <LazyRoute element={<RedirectedRoute element={<Login />} />} />
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={<LazyRoute element={<ForgotPassword />} />}
+      />
       <Route
         path="/account/:username"
-        element={<ProtectedRoute element={<Accounts />} />}
+        element={
+          <LazyRoute element={<ProtectedRoute element={<Accounts />} />} />
+        }
       />
-
-      <Route path="/" element={<NavigationLinks />} />
-
+      <Route path="/" element={<LazyRoute element={<NavigationLinks />} />} />
       <Route
         path="/htmlcssjs"
-        element={<Editor value={htmlCode} isDarkMode={isDarkMode} />}
+        element={
+          <LazyRoute
+            element={<Editor value={htmlCode} isDarkMode={isDarkMode} />}
+          />
+        }
       />
-
       <Route
         path="/:shareId"
-        element={<ShareEditor isDarkMode={isDarkMode} />}
+        element={
+          <LazyRoute element={<ShareEditor isDarkMode={isDarkMode} />} />
+        }
       />
-
       {languages.map(({ path, language, icon, getSample }) => (
         <Route
           key={language}
           path={path}
           element={
-            <CodeEditor
-              language={language}
-              reactIcon={icon}
-              apiEndpoint={`${GENAI_API_URL}/get-output`}
-              isDarkMode={isDarkMode}
-              defaultCode={getSample}
+            <LazyRoute
+              element={
+                <CodeEditor
+                  language={language}
+                  reactIcon={icon}
+                  apiEndpoint={`${GENAI_API_URL}/get-output`}
+                  isDarkMode={isDarkMode}
+                  defaultCode={getSample}
+                />
+              }
             />
           }
         />
       ))}
-
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={<LazyRoute element={<NotFound />} />} />
     </Routes>
   </div>
 );

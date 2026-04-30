@@ -4,6 +4,7 @@ import NotFound from "../pages/NotFound";
 import CodeEditor from "./CodeEditor";
 import Editor from "./Editor";
 import { apiFetch } from "../utils/apifetch";
+import { getSwal } from "../utils/swal";
 import {
   SESSION_STORAGE_FETCH_STATUS_KEY,
   SESSION_STORAGE_SHARELINKS_KEY,
@@ -287,6 +288,8 @@ const ShareEditor = ({ isDarkMode }) => {
         const shareLink = new URL(`${window.location.origin}/${shareId}`);
         await navigator.clipboard.writeText(shareLink.toString());
       } catch (err) {
+        const Swal = await getSwal();
+
         Swal.fire({
           title: "Failed to copy",
           text: "Could not copy the URL to clipboard.",

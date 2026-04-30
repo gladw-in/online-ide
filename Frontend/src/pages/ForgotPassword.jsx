@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
 import InputField from "../utils/InputField";
+import TurnstileCaptcha from "../utils/TurnstileCaptcha";
 import OtpInputForm from "../utils/OtpInputForm";
 import { apiFetch } from "../utils/apifetch";
 import {
@@ -20,6 +21,8 @@ import {
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const [showConfirmPassword, setShowconfirmPassword] = useState(false);
   const [shownewPassword, setshownewPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -88,6 +91,14 @@ const ForgotPassword = () => {
 
   const handleSubmitEmail = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
+
+    if (!captchaToken) {
+      setError("Please complete CAPTCHA");
+      return;
+    }
+
     if (!email) {
       setSuccess("");
       setError("Please enter your email.");
@@ -110,7 +121,10 @@ const ForgotPassword = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email: email.trim() }),
+          body: JSON.stringify({
+            email: email.trim(),
+            turnstileToken: captchaToken,
+          }),
         }
       );
 
@@ -142,6 +156,8 @@ const ForgotPassword = () => {
       const data = await response.json();
       setError("");
       setSuccess("OTP Sent Successfully");
+      setCaptchaToken(null);
+      setCaptchaKey((prev) => prev + 1);
       setEmailVerified(true);
       setOtpResent(true);
     } catch (err) {
@@ -337,7 +353,7 @@ const ForgotPassword = () => {
               onChange={handleInputChange}
               required
               name="email"
-              disabled={loading}
+              disabled={loading || !captchaToken}
             />
 
             {error && (
@@ -345,6 +361,16 @@ const ForgotPassword = () => {
                 {error}
               </p>
             )}
+
+            <div className="flex justify-center my-2">
+              <TurnstileCaptcha
+                key={captchaKey}
+                onVerify={(token) => {
+                  setCaptchaToken(token);
+                  if (token) setError("");
+                }}
+              />
+            </div>
 
             {otpResent && !error && (
               <p className="text-green-600 dark:text-green-400 text-center my-4">

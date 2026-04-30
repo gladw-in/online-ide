@@ -1,31 +1,40 @@
 const mongoose = require('mongoose');
 
-let cached = global.mongoose;
+let cached = globalThis.mongoose;
+
+const opts = {
+	bufferCommands: false,
+	serverSelectionTimeoutMS: 4000,
+	socketTimeoutMS: 8000,
+	connectTimeoutMS: 4000,
+	maxPoolSize: 5,
+	minPoolSize: 0,
+	maxIdleTimeMS: 10000,
+};
 
 if (!cached) {
-	cached = global.mongoose = {
+	cached = globalThis.mongoose = {
 		conn: null,
 		promise: null
 	};
 }
 
-async function checkAndConnectDB() {
+const checkAndConnectDB = async () => {
 	if (cached.conn) {
 		return cached.conn;
 	}
 
 	if (!cached.promise) {
-		const opts = {
-			bufferCommands: false,
-		};
-
-		cached.promise = mongoose.connect(process.env.MONGO_URI, opts).then((mongoose) => {
-			return mongoose;
-		});
+		cached.promise = mongoose.connect(process.env.MONGO_URI, opts)
+			.catch(err => {
+				cached.promise = null;
+				throw err;
+			});
 	}
-
 	cached.conn = await cached.promise;
 	return cached.conn;
 };
 
-module.exports = { checkAndConnectDB };
+module.exports = {
+	checkAndConnectDB
+};

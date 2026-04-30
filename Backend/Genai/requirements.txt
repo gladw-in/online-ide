@@ -4,3 +4,5 @@ flask-cors
 flask
 pyjwt
 requests
+flask-limiter
+redis

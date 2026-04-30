@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import InputField from "../utils/InputField";
+import TurnstileCaptcha from "../utils/TurnstileCaptcha";
 import { apiFetch } from "../utils/apifetch";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
@@ -13,7 +14,7 @@ import {
 } from "../utils/constants";
 import { useNavigate, useParams } from "react-router-dom";
 import { TbLoader } from "react-icons/tb";
-import Swal from "sweetalert2/dist/sweetalert2.js";
+import { getSwal } from "../utils/swal";
 
 const Accounts = () => {
   const [formData, setFormData] = useState({
@@ -32,6 +33,8 @@ const Accounts = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [delBtnText, setDelBtnText] = useState("Delete Account");
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   const { username } = useParams();
 
@@ -204,6 +207,8 @@ const Accounts = () => {
       return false;
     }
 
+    const Swal = await getSwal();
+
     Swal.fire({
       title: "Are you sure?",
       text: "Do you want to update your username?",
@@ -314,6 +319,8 @@ const Accounts = () => {
       return;
     }
 
+    const Swal = await getSwal();
+
     Swal.fire({
       title: "Are you sure?",
       text: "Do you want to update your password?",
@@ -400,6 +407,13 @@ const Accounts = () => {
       return;
     }
 
+    if (!captchaToken) {
+      setErrorMessage("Please complete the CAPTCHA verification.");
+      return;
+    }
+
+    const Swal = await getSwal();
+
     Swal.fire({
       title: "Are you sure?",
       text: "Once deleted, you will not be able to recover your account!",
@@ -426,7 +440,9 @@ const Accounts = () => {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             },
+            body: JSON.stringify({ turnstileToken: captchaToken }),
           });
 
           const data = await response.json();
@@ -445,9 +461,13 @@ const Accounts = () => {
             });
           } else {
             setErrorMessage(data.msg || "Failed to delete account");
+            setCaptchaToken(null);
+            setCaptchaKey((prev) => prev + 1);
           }
         } catch (error) {
           setErrorMessage("Error deleting account");
+          setCaptchaToken(null);
+          setCaptchaKey((prev) => prev + 1);
         } finally {
           setLoading(false);
         }
@@ -599,10 +619,24 @@ const Accounts = () => {
 
       {isPasswordVerified && (
         <div className="mt-4 text-center">
+          <div className="flex justify-center my-4">
+            <TurnstileCaptcha
+              key={captchaKey}
+              onVerify={(token) => {
+                setCaptchaToken(token);
+                if (
+                  token &&
+                  errorMessage === "Please complete the CAPTCHA verification."
+                ) {
+                  setErrorMessage("");
+                }
+              }}
+            />
+          </div>
           <button
             onClick={handleDeleteAccount}
-            disabled={loading}
-            className="w-full p-2 text-sm bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600 focus:outline-none transition duration-300 dark:bg-red-600 dark:hover:bg-red-500 ease-in-out transform hover:scale-x-95 hover:shadow-lg disabled:cursor-not-allowed"
+            disabled={loading || !captchaToken}
+            className="w-full p-2 text-sm bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600 focus:outline-none transition duration-300 dark:bg-red-600 dark:hover:bg-red-500 ease-in-out transform hover:scale-x-95 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {delBtnText}
           </button>

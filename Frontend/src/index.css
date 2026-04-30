@@ -14,5 +14,5 @@
 }
 
 .grecaptcha-badge {
-  display: none !important;
+  z-index: 50;
 }
