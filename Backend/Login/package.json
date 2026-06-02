@@ -12,17 +12,17 @@
   "description": "",
   "dependencies": {
     "@upstash/ratelimit": "^2.0.8",
-    "@upstash/redis": "^1.37.0",
-    "axios": "^1.15.2",
+    "@upstash/redis": "^1.38.0",
+    "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "google-auth-library": "^10.6.2",
-    "helmet": "^8.1.0",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.6.1",
-    "nodemailer": "^8.0.7",
+    "mongoose": "^9.6.3",
+    "nodemailer": "^8.0.10",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0"
   }

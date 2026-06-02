@@ -26,7 +26,8 @@ const verifyRecaptcha = async (req, res, next) => {
 		const response = await axios.post(verificationUrl, body, {
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded'
-			}
+			},
+			timeout: 4000
 		});
 
 		const {

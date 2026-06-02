@@ -1,8 +1,8 @@
 const crypto = require('node:crypto');
 
-const usernameRegex = /^[a-zA-Z0-9_.-]{5,30}$/;
+const usernameRegex = /^(?![_.-])(?!.*[_.-]{2})[a-zA-Z0-9._-]{5,30}(?<![_.-])$/;
 
-const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 const pwdRegex = /^.{8,64}$/;
 
@@ -51,6 +51,8 @@ const reservedUsernames = [
 	'swift', 'ruby', 'typescript', 'dart', 'kotlin', 'perl', 'scala'
 ];
 
+const allowedLanguages = ['python', 'javascript', 'HtmlJsCss', 'c', 'cpp', 'java', 'csharp', 'rust', 'go', 'verilog', 'sql', 'mongodb', 'swift', 'ruby', 'typescript', 'dart', 'kotlin', 'perl', 'scala', 'julia'];
+
 function getRandomSuffix(length = 4) {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.';
 	let result = '';
@@ -88,5 +90,6 @@ module.exports = {
 	emailRegex,
 	pwdRegex,
 	reservedUsernames,
+	allowedLanguages,
 	sanitizeUsername
 };

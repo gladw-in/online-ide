@@ -19,6 +19,7 @@ from flask import (
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -69,6 +70,8 @@ logging.basicConfig(
 
 app = Flask(__name__)
 
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 MAX_DESCRIPTION_BYTES = int(os.getenv("MAX_DESCRIPTION_BYTES", "4096"))
 STREAM_TIMEOUT_SECONDS = int(os.getenv("STREAM_TIMEOUT_SECONDS", "240"))
 TIMEOUT_SENTINEL = "__REFACTOR_TIMEOUT__"
@@ -93,13 +96,25 @@ REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
 
 if REDIS_HOST and REDIS_PASSWORD:
     encoded_password = quote(REDIS_PASSWORD, safe="")
-    REDIS_URL = f"rediss://default:{encoded_password}@{REDIS_HOST}:{REDIS_PORT}"
+    REDIS_URL = f"rediss://default:{encoded_password}@{REDIS_HOST}:{REDIS_PORT}/0"
     logging.info(f"Redis configured: {REDIS_HOST}:{REDIS_PORT}")
 else:
     REDIS_URL = None
     logging.warning(
         "Redis not configured - rate limiting will use memory:// (not suitable for production)"
     )
+
+app.config["RATELIMIT_STORAGE_URI"] = REDIS_URL or "memory://"
+
+app.config["RATELIMIT_KEY_PREFIX"] = "onlineIdeGenAi"
+
+if REDIS_URL:
+    app.config["RATELIMIT_STORAGE_OPTIONS"] = {
+        "socket_connect_timeout": 5,
+        "socket_timeout": 5,
+        "health_check_interval": 15,
+        "retry_on_timeout": True,
+    }
 
 
 def _rate_limit_key():
@@ -122,7 +137,6 @@ def _rate_limit_key():
 limiter = Limiter(
     app=app,
     key_func=_rate_limit_key,
-    storage_uri=REDIS_URL or "memory://",
     default_limits=["200 per day", "50 per hour"],
     on_breach=lambda limit: logging.warning(f"Rate limit hit: {limit}"),
 )
@@ -385,13 +399,16 @@ def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
-    response.headers["Permissions-Policy"] = "geolocation=(), camera=()"
+    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
 
-    proto = request.headers.get("X-Forwarded-Proto", "")
-    if proto == "https" or request.is_secure:
-        response.headers[
-            "Strict-Transport-Security"
-        ] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "frame-ancestors 'none'; "
+        "object-src 'none'; "
+        "base-uri 'self';"
+    )
+
+    response.headers["Strict-Transport-Security"] = "max-age=31536000"
 
     return response
 
@@ -400,34 +417,6 @@ def add_security_headers(response):
 def index():
     logging.info("Serving index page.")
     return render_template("index.html")
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"status": "ok"}), 200
-
-
-@app.route("/ready", methods=["GET"])
-def readiness():
-    checks = {}
-    code = 200
-    for var in ("JWT_SECRET", "GEMINI_MODEL", "GEMINI_MODEL_1", "RECAPTCHA_SECRET_KEY"):
-        ok = bool(os.getenv(var))
-        checks[var] = "ok" if ok else "MISSING"
-        if not ok:
-            code = 503
-
-    try:
-        get_gemini_client()
-        checks["gemini_client"] = "ok"
-    except Exception as e:
-        checks["gemini_client"] = f"error: {e}"
-        code = 503
-
-    return (
-        jsonify({"status": "ready" if code == 200 else "not_ready", "checks": checks}),
-        code,
-    )
 
 
 @app.route("/generate_code", methods=["POST"])

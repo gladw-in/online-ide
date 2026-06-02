@@ -31,7 +31,8 @@ const {
 	emailRegex,
 	pwdRegex,
 	reservedUsernames,
-	sanitizeUsername
+	sanitizeUsername,
+	allowedLanguages
 } = require("./utils/validation");
 
 const {
@@ -83,9 +84,37 @@ const logger = pino({
 app.use(pinoHttp({
 	logger
 }));
-app.use(helmet());
+
+app.use(
+	helmet({
+		contentSecurityPolicy: {
+			useDefaults: true,
+			directives: {
+				defaultSrc: ["'self'"],
+				frameAncestors: ["'none'"],
+				objectSrc: ["'none'"],
+				baseUri: ["'self'"]
+			}
+		},
+		frameguard: {
+			action: "deny"
+		},
+		referrerPolicy: {
+			policy: "no-referrer"
+		}
+	})
+);
+
+app.use((req, res, next) => {
+	res.setHeader("Strict-Transport-Security", "max-age=31536000");
+	res.setHeader("X-Content-Type-Options", "nosniff");
+	res.setHeader("Permissions-Policy", "geolocation=(), camera=(), microphone=()");
+	next();
+});
+
 app.set('trust proxy', 1);
 app.use(cors(corsOptions));
+
 app.use(express.json({
 	limit: '100kb'
 }));
@@ -122,7 +151,7 @@ app.post('/api/register', rateLimit, verifyTurnstile, verifyRecaptcha, async (re
 				existingEmail.otpExpires = Date.now() + 10 * 60 * 1000;
 				await existingEmail.save();
 
-				await sendOtpEmail(email, otp);
+				await sendOtpEmail(email, otp).catch(err => console.error('Background email failed:', err));
 
 				return res.status(200).json({
 					msg: 'Email not verified.',
@@ -199,7 +228,7 @@ app.post('/api/register', rateLimit, verifyTurnstile, verifyRecaptcha, async (re
 
 		await newUser.save();
 
-		await sendOtpEmail(email, otp);
+		await sendOtpEmail(email, otp).catch(err => console.error('Background email failed:', err));
 
 		res.status(200).json({
 			msg: 'Registration successful, please check your email for the OTP to verify your email address.',
@@ -552,7 +581,7 @@ app.post('/api/resend-otp', rateLimit, verifyRecaptcha, async (req, res) => {
 		user.otpAttempts = 0;
 		await user.save();
 
-		await sendOtpEmail(user.email, otp);
+		await sendOtpEmail(user.email, otp).catch(err => console.error('Background email failed:', err));
 
 		res.status(200).json({
 			msg: 'If that email is registered, an OTP has been sent.'
@@ -565,7 +594,7 @@ app.post('/api/resend-otp', rateLimit, verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.delete('/api/wrong-email', verifyRecaptcha, async (req, res) => {
+app.delete('/api/wrong-email', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp
@@ -669,7 +698,8 @@ app.post('/api/forgot-password', rateLimit, verifyRecaptcha, async (req, res) =>
 			user.otpExpires = Date.now() + 10 * 60 * 1000;
 			user.otpAttempts = 0;
 			await user.save();
-			await sendOtpEmail(user.email, otp);
+
+			await sendOtpEmail(user.email, otp).catch(err => console.error('Background email failed:', err));
 		}
 		res.status(200).json({
 			msg: "If that email is registered and verified, an OTP has been sent."
@@ -855,7 +885,7 @@ app.post('/api/update-password', rateLimit, verifyRecaptcha, async (req, res) =>
 	}
 });
 
-app.get('/api/protected', async (req, res) => {
+app.get('/api/protected', rateLimit, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -906,7 +936,7 @@ app.get('/api/protected', async (req, res) => {
 	}
 });
 
-app.post('/api/account-details', verifyRecaptcha, async (req, res) => {
+app.post('/api/account-details', rateLimit, verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -959,7 +989,7 @@ app.post('/api/account-details', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.put('/api/change-username', verifyRecaptcha, async (req, res) => {
+app.put('/api/change-username', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		newUsername
 	} = req.body;
@@ -1044,7 +1074,7 @@ app.put('/api/change-username', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
+app.put('/api/change-password', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		newPassword,
 		confirmPassword
@@ -1131,7 +1161,7 @@ app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.delete('/api/account', verifyRecaptcha, async (req, res) => {
+app.delete('/api/account', rateLimit, verifyTurnstile, verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -1178,7 +1208,7 @@ app.delete('/api/account', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
+app.post('/api/verify-password', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		password
 	} = req.body;
@@ -1247,7 +1277,7 @@ app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
+app.post('/api/runCode/count', rateLimit, verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 	if (!token) return res.status(403).json({
 		msg: 'No token provided'
@@ -1271,6 +1301,12 @@ app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
 			});
 		}
 
+		if (!allowedLanguages.includes(language)) {
+			return res.status(400).json({
+				msg: 'Unsupported language'
+			});
+		}
+
 		if (!updateLanguageCount(user, 'runCodeCount', language)) {
 			return res.status(400).json({
 				msg: 'Unsupported language'
@@ -1288,7 +1324,7 @@ app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
+app.post('/api/generateCode/count', rateLimit, verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -1316,6 +1352,12 @@ app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
 		if (!user || decoded.v !== user.tokenVersion) {
 			return res.status(403).json({
 				msg: 'Session expired. Please log in again.'
+			});
+		}
+
+		if (!allowedLanguages.includes(language)) {
+			return res.status(400).json({
+				msg: 'Unsupported language'
 			});
 		}
 
@@ -1337,7 +1379,7 @@ app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
+app.post('/api/refactorCode/count', rateLimit, verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -1368,6 +1410,12 @@ app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
 			});
 		}
 
+		if (!allowedLanguages.includes(language)) {
+			return res.status(400).json({
+				msg: 'Unsupported language'
+			});
+		}
+
 		if (!updateLanguageCount(user, 'refactorCodeCount', language)) {
 			return res.status(400).json({
 				msg: 'Unsupported language',
@@ -1386,7 +1434,7 @@ app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
+app.post('/api/sharedLink/count', rateLimit, verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -1469,7 +1517,7 @@ app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/user/sharedLinks', async (req, res) => {
+app.post('/api/user/sharedLinks', rateLimit, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 
 	if (!token) {
@@ -1518,7 +1566,7 @@ app.post('/api/user/sharedLinks', async (req, res) => {
 	}
 });
 
-app.delete('/api/sharedLink', verifyRecaptcha, async (req, res) => {
+app.delete('/api/sharedLink', rateLimit, verifyRecaptcha, async (req, res) => {
 	const token = req.headers['authorization']?.split(' ')[1];
 	if (!token) return res.status(403).json({
 		msg: 'No token provided'
@@ -1562,7 +1610,7 @@ app.delete('/api/sharedLink', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.delete('/api/user/sharedLink/:shareId', verifyRecaptcha, async (req, res) => {
+app.delete('/api/user/sharedLink/:shareId', rateLimit, verifyRecaptcha, async (req, res) => {
 	const {
 		shareId
 	} = req.params;

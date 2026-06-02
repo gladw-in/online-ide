@@ -8,6 +8,7 @@ from flask import Flask, abort, request, jsonify, render_template, redirect, url
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import logging
@@ -32,6 +33,8 @@ logging.basicConfig(
 
 app = Flask(__name__)
 
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 app.config["MAX_CONTENT_LENGTH"] = 600 * 1024
 
 CORS(
@@ -51,7 +54,7 @@ redis_port = os.getenv("REDIS_PORT", "6379")
 redis_password = os.getenv("REDIS_PASSWORD")
 if redis_host and redis_password:
     encoded_password = quote(redis_password, safe="")
-    REDIS_URL = f"rediss://default:{encoded_password}@{redis_host}:{redis_port}"
+    REDIS_URL = f"rediss://default:{encoded_password}@{redis_host}:{redis_port}/0"
 else:
     REDIS_URL = None
 
@@ -59,6 +62,17 @@ if not REDIS_URL:
     raise RuntimeError(
         "REDIS_URL is required for distributed rate limiting. Check REDIS_HOST, REDIS_PORT, REDIS_PASSWORD."
     )
+
+app.config["RATELIMIT_STORAGE_URI"] = REDIS_URL or "memory://"
+
+app.config["RATELIMIT_KEY_PREFIX"] = "onlineIdeTempFile"
+
+app.config["RATELIMIT_STORAGE_OPTIONS"] = {
+    "socket_connect_timeout": 5,
+    "socket_timeout": 5,
+    "health_check_interval": 15,
+    "retry_on_timeout": True,
+}
 
 
 def _rate_limit_key():
@@ -91,8 +105,8 @@ def _rate_limit_key():
 limiter = Limiter(
     app=app,
     key_func=_rate_limit_key,
-    storage_uri=REDIS_URL,
     default_limits=["200 per day", "50 per hour"],
+    on_breach=lambda limit: logging.warning(f"Rate limit hit: {limit}"),
 )
 
 
@@ -112,9 +126,17 @@ def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
-    response.headers["Permissions-Policy"] = "geolocation=(), camera=()"
-    if request.is_secure:
-        response.headers["Strict-Transport-Security"] = "max-age=31536000"
+    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "frame-ancestors 'none'; "
+        "object-src 'none'; "
+        "base-uri 'self';"
+    )
+
+    response.headers["Strict-Transport-Security"] = "max-age=31536000"
+
     return response
 
 

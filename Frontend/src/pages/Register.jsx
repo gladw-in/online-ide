@@ -467,7 +467,7 @@ const Register = () => {
                   : "pointer-events-auto"
               }`}
             >
-              <div className="relative w-fit max-w-full">
+              <div className="relative w-fit max-w-full overflow-hidden rounded-[4px] border-none shadow-none bg-white">
                 <GoogleLogin
                   onSuccess={handleGoogleLoginSuccess}
                   onError={handleGoogleLoginError}
