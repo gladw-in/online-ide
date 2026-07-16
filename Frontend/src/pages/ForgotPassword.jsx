@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
@@ -22,7 +22,6 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [captchaToken, setCaptchaToken] = useState(null);
-  const [captchaKey, setCaptchaKey] = useState(0);
   const [showConfirmPassword, setShowconfirmPassword] = useState(false);
   const [shownewPassword, setshownewPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -38,6 +37,8 @@ const ForgotPassword = () => {
   const [canResendOtp, setCanResendOtp] = useState(true);
   const [resendOtpLoading, setResendOtpLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
+
+  const captchaRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -154,10 +155,9 @@ const ForgotPassword = () => {
       }
 
       const data = await response.json();
+
       setError("");
       setSuccess("OTP Sent Successfully");
-      setCaptchaToken(null);
-      setCaptchaKey((prev) => prev + 1);
       setEmailVerified(true);
       setOtpResent(true);
     } catch (err) {
@@ -165,6 +165,8 @@ const ForgotPassword = () => {
       setError("Server error, please try again.");
     } finally {
       setLoading(false);
+      setCaptchaToken(null);
+      captchaRef.current?.reset();
     }
   };
 
@@ -353,7 +355,7 @@ const ForgotPassword = () => {
               onChange={handleInputChange}
               required
               name="email"
-              disabled={loading || !captchaToken}
+              disabled={loading}
             />
 
             {error && (
@@ -364,10 +366,9 @@ const ForgotPassword = () => {
 
             <div className="flex justify-center my-2">
               <TurnstileCaptcha
-                key={captchaKey}
+                ref={captchaRef}
                 onVerify={(token) => {
                   setCaptchaToken(token);
-                  if (token) setError("");
                 }}
               />
             </div>
@@ -387,7 +388,7 @@ const ForgotPassword = () => {
             <button
               type="submit"
               className="w-full p-2 text-sm cursor-pointer bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
-              disabled={loading}
+              disabled={loading || !captchaToken}
             >
               {loading ? (
                 <>

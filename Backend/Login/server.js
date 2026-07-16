@@ -11,11 +11,11 @@ const {
 const cors = require('cors');
 require('dotenv').config();
 
-const REQUIRED_ENV = [
-	'MONGO_URI', 'JWT_SECRET', 'RECAPTCHA_SECRET_KEY', 'RECAPTCHA_THRESHOLD',
-	'GOOGLE_CLIENT_ID', 'OTP_EMAIL_SERVICE', 'OTP_EMAIL_USER', 'OTP_EMAIL_PASS',
-	'REDIS_URL', 'REDIS_PASSWORD', 'FRONTEND_URL', 'RATE_LIMIT_WINDOW',
-	'TURNSTILE_SECRET_KEY'
+const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'GOOGLE_CLIENT_ID', 'RECAPTCHA_SECRET_KEY',
+	'RECAPTCHA_THRESHOLD', 'TURNSTILE_SECRET_KEY', 'OTP_EMAIL_SERVICE', 'OTP_EMAIL_USER',
+	'OTP_EMAIL_PASS', 'REDIS_URL', 'REDIS_PASSWORD', 'RATE_LIMIT_REQUESTS',
+	'RATE_LIMIT_WINDOW', 'FRONTEND_URL', 'PORT', 'LOG_LEVEL',
+	'HIBP_ENABLED', 'HIBP_TIMEOUT', 'HIBP_CACHE_TTL'
 ];
 
 const missing = REQUIRED_ENV.filter(key => !process.env[key]);
@@ -71,6 +71,10 @@ const {
 const {
 	sendUsernameChangeEmail
 } = require('./smtp/usernameChanged');
+
+const {
+	checkPasswordLeak
+} = require('./utils/hibp');
 
 const app = express();
 
@@ -206,6 +210,14 @@ app.post('/api/register', rateLimit, verifyTurnstile, verifyRecaptcha, async (re
 		if (!pwdRegex.test(password)) {
 			return res.status(400).json({
 				msg: "Password must be at least 8 characters and contain only ASCII characters."
+			});
+		}
+
+		const leakResult = await checkPasswordLeak(password);
+
+		if (leakResult.leaked) {
+			return res.status(400).json({
+				msg: `This password has appeared in ${leakResult.breachCount.toLocaleString()} known data breaches. Please choose a different one.`,
 			});
 		}
 
@@ -502,6 +514,14 @@ app.post('/api/verify-otp', rateLimit, verifyRecaptcha, async (req, res) => {
 
 			return res.status(400).json({
 				msg: 'Invalid OTP',
+			});
+		}
+
+		const leakResult = await checkPasswordLeak(password);
+
+		if (leakResult.leaked) {
+			return res.status(400).json({
+				msg: `This password has appeared in ${leakResult.breachCount.toLocaleString()} known data breaches. Please choose a different one.`,
 			});
 		}
 
@@ -860,6 +880,14 @@ app.post('/api/update-password', rateLimit, verifyRecaptcha, async (req, res) =>
 			});
 		}
 
+		const leakResult = await checkPasswordLeak(password);
+
+		if (leakResult.leaked) {
+			return res.status(400).json({
+				msg: `This password has appeared in ${leakResult.breachCount.toLocaleString()} known data breaches. Please choose a different one.`,
+			});
+		}
+
 		const salt = await bcrypt.genSalt(10);
 		const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -1128,6 +1156,14 @@ app.put('/api/change-password', rateLimit, verifyRecaptcha, async (req, res) => 
 		if (user.googleId && !user.password) {
 			return res.status(403).json({
 				msg: "Login with Google"
+			});
+		}
+
+		const leakResult = await checkPasswordLeak(newPassword);
+
+		if (leakResult.leaked) {
+			return res.status(400).json({
+				msg: `This password has appeared in ${leakResult.breachCount.toLocaleString()} known data breaches. Please choose a different one.`,
 			});
 		}
 

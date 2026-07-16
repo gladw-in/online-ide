@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import InputField from "../utils/InputField";
 import TurnstileCaptcha from "../utils/TurnstileCaptcha";
 import { apiFetch } from "../utils/apifetch";
@@ -34,7 +34,8 @@ const Accounts = () => {
   const [delBtnText, setDelBtnText] = useState("Delete Account");
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
-  const [captchaKey, setCaptchaKey] = useState(0);
+
+  const captchaRef = useRef(null);
 
   const { username } = useParams();
 
@@ -58,7 +59,7 @@ const Accounts = () => {
     if (isGoogleUser) {
       fetchUserData();
     }
-  }, []);
+  }, [username, navigate]);
 
   const clearSession = () => {
     localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
@@ -167,7 +168,7 @@ const Accounts = () => {
 
       const data = await response.json();
       if (response.ok) {
-        fetchUserData();
+        await fetchUserData();
         setIsPasswordVerified(true);
         setErrorMessage("");
       } else {
@@ -371,20 +372,7 @@ const Accounts = () => {
               icon: "success",
               timer: 2000,
             }).then(() => {
-              navigate(`/account/${username}`);
-              location.reload();
-
-              setFormData({
-                username: "",
-                email: "",
-                password: "",
-                newPassword: "",
-                confirmPassword: "",
-                currentPassword: "",
-              });
-
               clearSession();
-
               navigate("/login");
               location.reload();
             });
@@ -461,15 +449,13 @@ const Accounts = () => {
             });
           } else {
             setErrorMessage(data.msg || "Failed to delete account");
-            setCaptchaToken(null);
-            setCaptchaKey((prev) => prev + 1);
           }
         } catch (error) {
           setErrorMessage("Error deleting account");
-          setCaptchaToken(null);
-          setCaptchaKey((prev) => prev + 1);
         } finally {
           setLoading(false);
+          setCaptchaToken(null);
+          captchaRef.current?.reset();
         }
       }
     });
@@ -531,6 +517,7 @@ const Accounts = () => {
 
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
             <button
+              type="button"
               onClick={() => navigate("/forgot-password")}
               disabled={loading}
               className="text-blue-600 cursor-pointer dark:text-blue-400 hover:underline disabled:cursor-not-allowed"
@@ -621,15 +608,9 @@ const Accounts = () => {
         <div className="mt-4 text-center">
           <div className="flex justify-center my-4">
             <TurnstileCaptcha
-              key={captchaKey}
+              ref={captchaRef}
               onVerify={(token) => {
                 setCaptchaToken(token);
-                if (
-                  token &&
-                  errorMessage === "Please complete the CAPTCHA verification."
-                ) {
-                  setErrorMessage("");
-                }
               }}
             />
           </div>

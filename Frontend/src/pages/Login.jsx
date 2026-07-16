@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { TbLoader } from "react-icons/tb";
 import { GoogleLogin } from "@react-oauth/google";
@@ -27,6 +27,8 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
 
+  const captchaRef = useRef(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,6 +41,7 @@ const Login = () => {
     localStorage.setItem(LOCAL_STORAGE_LOGIN_KEY, "true");
     localStorage.setItem(LOCAL_STORAGE_GOOGLE_USER, data.isgoogleuser);
     sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+
     navigate("/");
     location.reload();
   };
@@ -121,6 +124,7 @@ const Login = () => {
     } finally {
       setLoading(false);
       setCaptchaToken(null);
+      captchaRef.current?.reset();
     }
   };
 
@@ -156,6 +160,7 @@ const Login = () => {
     } finally {
       setLoading(false);
       setCaptchaToken(null);
+      captchaRef.current?.reset();
     }
   };
 
@@ -177,7 +182,7 @@ const Login = () => {
             value={formData.email}
             onChange={handleInputChange}
             required
-            disabled={loading || !captchaToken}
+            disabled={loading}
           />
           <InputField
             label="Password"
@@ -188,7 +193,7 @@ const Login = () => {
             required
             showPassword={showPassword}
             onTogglePassword={() => setShowPassword((prev) => !prev)}
-            disabled={loading || !captchaToken}
+            disabled={loading}
           />
 
           {error && (
@@ -199,9 +204,9 @@ const Login = () => {
 
           <div className="flex justify-center my-2">
             <TurnstileCaptcha
+              ref={captchaRef}
               onVerify={(token) => {
                 setCaptchaToken(token);
-                if (token) setError("");
               }}
             />
           </div>
@@ -248,7 +253,7 @@ const Login = () => {
               useOneTap
             />
 
-            {(loading || !captchaToken) && (
+            {loading && (
               <div
                 className="absolute inset-0 z-50 bg-transparent cursor-not-allowed"
                 onClick={(e) => {

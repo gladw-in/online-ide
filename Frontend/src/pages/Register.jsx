@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
@@ -41,6 +41,8 @@ const Register = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendOtpLoading, setResendOtpLoading] = useState(false);
   const [wrongEmailLoading, setWrongEmailLoading] = useState(false);
+
+  const captchaRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -149,6 +151,11 @@ const Register = () => {
 
     setLoading(true);
 
+    if (error || googleLoginError) {
+      setError("");
+      setGoogleLoginError("");
+    }
+
     const { username, email, newPassword } = formData;
 
     try {
@@ -176,7 +183,6 @@ const Register = () => {
           return;
         } else {
           setError(errorData.msg || "Server error, please try again.");
-          setCaptchaToken(null);
           setLoading(false);
           return;
         }
@@ -189,8 +195,9 @@ const Register = () => {
     } catch (err) {
       setError(err.message || "Server error, please try again.");
     } finally {
-      setLoading(false);
       setCaptchaToken(null);
+      captchaRef.current?.reset();
+      setLoading(false);
     }
   };
 
@@ -229,6 +236,7 @@ const Register = () => {
     } finally {
       setLoading(false);
       setCaptchaToken(null);
+      captchaRef.current?.reset();
     }
   };
 
@@ -394,7 +402,7 @@ const Register = () => {
                 value={formData.username}
                 onChange={handleInputChange}
                 required
-                disabled={loading || !captchaToken}
+                disabled={loading}
               />
 
               <div className="relative mb-4">
@@ -405,7 +413,7 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  disabled={loading || !captchaToken}
+                  disabled={loading}
                 />
               </div>
 
@@ -418,7 +426,7 @@ const Register = () => {
                 required
                 showPassword={showPassword}
                 onTogglePassword={() => setShowPassword((prev) => !prev)}
-                disabled={loading || !captchaToken}
+                disabled={loading}
               />
 
               {error && (
@@ -429,9 +437,9 @@ const Register = () => {
 
               <div className="flex justify-center my-2">
                 <TurnstileCaptcha
+                  ref={captchaRef}
                   onVerify={(token) => {
                     setCaptchaToken(token);
-                    if (token) setError("");
                   }}
                 />
               </div>
