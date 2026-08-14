@@ -388,7 +388,7 @@ const ForgotPassword = () => {
             <button
               type="submit"
               className="w-full p-2 text-sm cursor-pointer bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none transition duration-300 dark:bg-blue-500 dark:hover:bg-blue-400 ease-in-out transform hover:scale-x-95 hover:shadow-lg"
-              disabled={loading || !captchaToken}
+              disabled={!captchaToken || loading}
             >
               {loading ? (
                 <>

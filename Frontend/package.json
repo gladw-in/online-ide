@@ -9,27 +9,27 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@marsidev/react-turnstile": "^1.5.3",
+    "@marsidev/react-turnstile": "^1.6.0",
     "@monaco-editor/react": "^4.7.0",
     "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.3.3",
     "lodash": "^4.18.1",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-google-recaptcha-v3": "^1.11.0",
     "react-icons": "^5.7.0",
-    "react-router-dom": "^7.18.1",
+    "react-router-dom": "^7.18.2",
     "sweetalert2": "^11.26.25",
     "vite-plugin-html": "^3.2.2"
   },
   "devDependencies": {
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
-    "sass": "^1.101.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "sass": "^1.102.0",
     "tailwindcss": "^4.3.3",
     "tailwindcss-motion": "^1.1.1",
-    "terser": "^5.49.0",
-    "vite": "^8.1.5"
+    "terser": "^5.50.0",
+    "vite": "^8.2.1"
   }
 }

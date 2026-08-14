@@ -918,7 +918,9 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
       .substring(2, 7)}`;
 
     const Swal = await getSwal();
-    const { default: ShareLinkModal } = await import("../utils/ShareLinkModal.js");
+    const { default: ShareLinkModal } = await import(
+      "../utils/ShareLinkModal.js"
+    );
 
     if (!editorCode) {
       Swal.fire({

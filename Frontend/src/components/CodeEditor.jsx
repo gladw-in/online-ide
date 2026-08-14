@@ -178,9 +178,9 @@ const CodeEditor = ({
   const runCode = async () => {
     if (code.trim().length === 0) return;
 
-    const Swal = await getSwal();
-
     if (code.trim().length > MAX_SIZE) {
+      const Swal = await getSwal();
+
       return Swal.fire({
         title: "Error",
         text: `The ${
@@ -215,6 +215,7 @@ const CodeEditor = ({
       const decoder = new TextDecoder("utf-8");
 
       let isFirstChunk = true;
+      let receivedOutput = false;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -249,9 +250,11 @@ const CodeEditor = ({
 
           return updatedOutput;
         });
+
+        receivedOutput = true;
       }
 
-      if (output.length !== 0) {
+      if (receivedOutput) {
         const now = new Date();
         const timeString = now.toLocaleTimeString(undefined, {
           hour: "2-digit",
