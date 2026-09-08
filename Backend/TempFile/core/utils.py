@@ -1,3 +1,4 @@
+# Small helper functions used everywhere, like connecting to redis, recaptcha and checking tokens.
 import os
 import re
 import jwt
@@ -55,10 +56,13 @@ def get_redis_connection():
         redis_host = os.getenv("REDIS_HOST")
         redis_port = os.getenv("REDIS_PORT", "6379")
         redis_password = os.getenv("REDIS_PASSWORD") or ""
+
         if not redis_password:
             logging.error("REDIS_PASSWORD not set, Redis connection will fail")
+
         encoded_password = quote(redis_password, safe="")
         redis_url = f"rediss://default:{encoded_password}@{redis_host}:{redis_port}"
+
         try:
             client = redis.Redis.from_url(
                 redis_url,
@@ -66,12 +70,14 @@ def get_redis_connection():
                 socket_timeout=3,
                 decode_responses=False,
             )
+
             client.ping()
             _redis_client = client
-        except Exception as e:
-            logging.error(f"Redis connection failed: {e}")
+        except Exception as error:
+            logging.error(f"Redis connection failed: {error}")
             _redis_client = None
             return None
+
     return _redis_client
 
 
@@ -87,6 +93,7 @@ def is_human(recaptcha_token):
             data=payload,
             timeout=RECAPTCHA_TIMEOUT,
         )
+
         response.raise_for_status()
         result = response.json()
 
@@ -102,13 +109,13 @@ def is_human(recaptcha_token):
         return False
 
 
-def token_required(f):
-    @wraps(f)
+def token_required(func):
+    @wraps(func)
     def decorator(*args, **kwargs):
         cached = g.get("_cached_jwt", None)
         if cached:
             request.user_data = cached
-            return f(*args, **kwargs)
+            return func(*args, **kwargs)
 
         token = None
         if "Authorization" in request.headers:
@@ -118,11 +125,13 @@ def token_required(f):
 
         if not token:
             return jsonify({"message": "Token is missing!"}), 403
+
         try:
             decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS512"])
             request.user_data = decoded
         except jwt.InvalidTokenError:
             return jsonify({"message": "Invalid token!"}), 401
-        return f(*args, **kwargs)
+
+        return func(*args, **kwargs)
 
     return decorator

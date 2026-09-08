@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@marsidev/react-turnstile": "^1.6.0",
+    "@marsidev/react-turnstile": "^1.6.1",
     "@monaco-editor/react": "^4.7.0",
     "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.3.3",
@@ -18,18 +18,18 @@
     "react-dom": "^19.2.8",
     "react-google-recaptcha-v3": "^1.11.0",
     "react-icons": "^5.7.0",
-    "react-router-dom": "^7.18.2",
+    "react-router-dom": "^7.18.3",
     "sweetalert2": "^11.26.25",
     "vite-plugin-html": "^3.2.2"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.0.5",
-    "sass": "^1.102.0",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "sass": "^1.104.0",
     "tailwindcss": "^4.3.3",
     "tailwindcss-motion": "^1.1.1",
-    "terser": "^5.50.0",
-    "vite": "^8.2.1"
+    "terser": "^5.51.2",
+    "vite": "^8.2.2"
   }
 }
