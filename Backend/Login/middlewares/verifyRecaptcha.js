@@ -1,3 +1,5 @@
+// Verifies the Google reCAPTCHA token on each request and blocks low-score bots.
+
 const axios = require('axios');
 
 const verifyRecaptcha = async (req, res, next) => {

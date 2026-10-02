@@ -1,3 +1,5 @@
+// Holds shared validation regexes, reserved usernames, and helper functions.
+
 const crypto = require('node:crypto');
 
 const usernameRegex = /^(?![_.-])(?!.*[_.-]{2})[a-zA-Z0-9._-]{5,30}(?<![_.-])$/;

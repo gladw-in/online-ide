@@ -1,3 +1,5 @@
+// Sends a notification email when the user's password has been changed.
+
 const transporter = require('./transporter');
 
 async function sendPassChangeEmail(email) {

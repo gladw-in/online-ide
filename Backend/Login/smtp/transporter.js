@@ -1,3 +1,5 @@
+// Creates the shared nodemailer transporter used to send all outgoing emails.
+
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({

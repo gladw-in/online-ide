@@ -1,3 +1,5 @@
+// Limits requests per IP using Redis so no client can spam the API.
+
 const {
 	Ratelimit
 } = require('@upstash/ratelimit');
@@ -24,12 +26,15 @@ const rateLimit = async (req, res, next) => {
 	let ip = req.ip || req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
 	ip = ip.toString().split(',')[0].trim();
 
-	const {
-		success,
-		remaining
-	} = await authLimiter.limit(ip);
+	let result;
+	try {
+		result = await authLimiter.limit(ip);
+	} catch (err) {
+		console.error('Rate limit check failed:', err);
+		return next();
+	}
 
-	if (!success) {
+	if (!result.success) {
 		return res.status(429).json({
 			msg: 'Too many requests. Try again later.'
 		});

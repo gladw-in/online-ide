@@ -1,3 +1,5 @@
+// Writes or updates an audit log record for a user action in MongoDB.
+
 const Log = require('../models/Log.js');
 
 async function logUserAction(user, actionType) {

@@ -1,3 +1,5 @@
+// Defines the audit log schema that records user actions for tracking.
+
 const mongoose = require('mongoose');
 
 const logsSchema = new mongoose.Schema({

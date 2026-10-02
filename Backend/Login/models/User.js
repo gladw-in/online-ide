@@ -1,7 +1,6 @@
+// Defines the user schema, including auth fields, OTP, usage counts, and shared links.
+
 const mongoose = require('mongoose');
-const {
-	logUserAction
-} = require('../utils/useLogger')
 
 const userSchema = new mongoose.Schema({
 	username: {

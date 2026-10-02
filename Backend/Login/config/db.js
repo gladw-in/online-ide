@@ -1,3 +1,5 @@
+// Connects to MongoDB once and reuses the cached connection across requests.
+
 const mongoose = require('mongoose');
 
 let cached = globalThis.mongoose;

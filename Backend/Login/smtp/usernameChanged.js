@@ -1,3 +1,5 @@
+// Sends a notification email when the user's username has been changed.
+
 const transporter = require('./transporter');
 
 async function sendUsernameChangeEmail(email, oldUsername, newUsername) {

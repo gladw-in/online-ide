@@ -1,3 +1,5 @@
+// Generates a cryptographically random six-digit OTP string.
+
 const crypto = require('node:crypto');
 
 const generateOtp = () => {

@@ -1,3 +1,5 @@
+// Sends a confirmation email after the user's account is deleted.
+
 const transporter = require('./transporter');
 
 async function sendDelEmail(email) {

@@ -1,3 +1,5 @@
+// Checks a password against the HIBP breach database using a k-anonymity prefix.
+
 const crypto = require('node:crypto');
 const {
 	Redis

@@ -1,3 +1,5 @@
+// Verifies the Cloudflare Turnstile CAPTCHA token before allowing the request.
+
 const axios = require("axios");
 
 const verifyTurnstile = async (req, res, next) => {

@@ -1,3 +1,5 @@
+// Increments the per-language counter (run, generate, refactor) for a user.
+
 const updateLanguageCount = (user, countType, language) => {
 	switch (language) {
 		case 'python':

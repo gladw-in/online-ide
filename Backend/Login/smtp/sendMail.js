@@ -1,3 +1,5 @@
+// Sends the OTP verification email with the user's one-time code.
+
 const transporter = require('./transporter');
 
 async function sendOtpEmail(email, otp) {
